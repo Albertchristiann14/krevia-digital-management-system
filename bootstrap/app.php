@@ -38,7 +38,13 @@ $app = Application::configure(basePath: dirname(__DIR__))
         );
     })->create();
 
-if (isset($_SERVER['VERCEL']) || isset($_ENV['VERCEL']) || getenv('VERCEL')) {
+$isVercel = isset($_SERVER['VERCEL'])
+    || isset($_ENV['VERCEL'])
+    || getenv('VERCEL')
+    || isset($_SERVER['LAMBDA_TASK_ROOT'])
+    || (is_dir('/tmp') && ! is_writable(storage_path()));
+
+if ($isVercel) {
     $app->useStoragePath('/tmp/storage');
 }
 
