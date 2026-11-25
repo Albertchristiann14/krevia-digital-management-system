@@ -54,9 +54,9 @@ class TaskController extends Controller
 
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                $q->whereLike('code', "%{$search}%", caseSensitive: false)
+                    ->orWhereLike('title', "%{$search}%", caseSensitive: false)
+                    ->orWhereLike('description', "%{$search}%", caseSensitive: false);
             });
         }
 

@@ -38,9 +38,9 @@ class CrmController extends Controller
 
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('potential_needs', 'like', "%{$search}%")
-                    ->orWhereHas('company', fn ($cq) => $cq->where('name', 'like', "%{$search}%"));
+                $q->whereLike('code', "%{$search}%", caseSensitive: false)
+                    ->orWhereLike('potential_needs', "%{$search}%", caseSensitive: false)
+                    ->orWhereHas('company', fn ($cq) => $cq->whereLike('name', "%{$search}%", caseSensitive: false));
             });
         }
 

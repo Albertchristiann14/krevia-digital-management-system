@@ -33,8 +33,8 @@ class MarketingController extends Controller
 
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(function ($q) use ($search) {
-                $q->where('code', 'like', "%{$search}%")
-                    ->orWhere('title_topic', 'like', "%{$search}%");
+                $q->whereLike('code', "%{$search}%", caseSensitive: false)
+                    ->orWhereLike('title_topic', "%{$search}%", caseSensitive: false);
             });
         }
 

@@ -137,8 +137,8 @@ class AccessControlController extends Controller
 
         if ($search = $request->string('search')->trim()->toString()) {
             $query->where(function ($q) use ($search) {
-                $q->where('summary', 'like', "%{$search}%")
-                    ->orWhere('event', 'like', "%{$search}%");
+                $q->whereLike('summary', "%{$search}%", caseSensitive: false)
+                    ->orWhereLike('event', "%{$search}%", caseSensitive: false);
             });
         }
 

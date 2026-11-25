@@ -22,9 +22,21 @@ class BackupDatabaseCommand extends Command
         $filePath = $this->option('path') ?: ($dir . DIRECTORY_SEPARATOR . 'kdms_backup_' . now()->format('Ymd_His') . '.json');
 
         $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver", $connection);
         $dbName = config("database.connections.{$connection}.database");
+        $pgSchema = config("database.connections.{$connection}.search_path", 'public');
+
         $tables = collect(Schema::getTables())
-            ->filter(fn (array $t) => ($t['schema'] ?? $dbName) === $dbName)
+            ->filter(function (array $t) use ($driver, $dbName, $pgSchema) {
+                if ($driver === 'pgsql') {
+                    return ($t['schema'] ?? 'public') === $pgSchema;
+                }
+                if ($driver === 'sqlite') {
+                    return ! str_starts_with($t['name'], 'sqlite_');
+                }
+
+                return ($t['schema'] ?? $dbName) === $dbName;
+            })
             ->pluck('name')
             ->all();
 
