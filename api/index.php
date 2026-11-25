@@ -26,13 +26,30 @@ foreach ($requiredDirs as $dir) {
     }
 }
 
-// 3. Pre-seed bootstrap cache from build bundle if available
+// 3. Pre-seed bootstrap cache from build bundle with class existence guard
+$vendorAutoload = dirname(__DIR__).'/vendor/autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
+}
+
 $baseBootstrapCache = dirname(__DIR__).'/bootstrap/cache';
 if (is_dir($baseBootstrapCache)) {
-    foreach (['packages.php', 'services.php'] as $cacheFile) {
-        $source = $baseBootstrapCache.'/'.$cacheFile;
-        $target = '/tmp/bootstrap/cache/'.$cacheFile;
-        if (file_exists($source) && ! file_exists($target)) {
+    $source = $baseBootstrapCache.'/packages.php';
+    $target = '/tmp/bootstrap/cache/packages.php';
+    if (file_exists($source) && ! file_exists($target)) {
+        $pkgs = @include $source;
+        if (is_array($pkgs)) {
+            foreach ($pkgs as $k => &$meta) {
+                if (isset($meta['providers']) && is_array($meta['providers'])) {
+                    $meta['providers'] = array_values(array_filter($meta['providers'], fn ($p) => class_exists($p)));
+                    if (empty($meta['providers'])) {
+                        unset($pkgs[$k]);
+                    }
+                }
+            }
+            unset($meta);
+            @file_put_contents($target, '<?php return '.var_export($pkgs, true).';');
+        } else {
             @copy($source, $target);
         }
     }
