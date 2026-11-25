@@ -47,6 +47,9 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
                         <img
                             src="/images/krevia-mark.png"
                             alt="Krevia Digital"
+                            width={44}
+                            height={44}
+                            decoding="async"
                             className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain p-0.5 shadow-sm"
                         />
                         <div>

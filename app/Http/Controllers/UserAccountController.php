@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\EmployeeProfile;
 use App\Domain\Organization\Models\Position;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 class UserAccountController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         abort_unless($request->user()?->canManageAccounts(), 403);
 
@@ -59,9 +60,9 @@ class UserAccountController extends Controller
 
         return Inertia::render('Admin/Accounts', [
             'accounts' => $users,
-            'roles' => Role::query()->orderBy('id')->pluck('name')->values()->all(),
-            'departments' => Department::query()->orderBy('sort_order')->get(['id', 'name']),
-            'positions' => Position::query()->orderBy('id')->get(['id', 'title', 'department_id']),
+            'roles' => $refs->roleNames(),
+            'departments' => $refs->departments()->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values(),
+            'positions' => $refs->positions()->map(fn ($p) => ['id' => $p->id, 'title' => $p->title, 'department_id' => $p->department_id])->values(),
             'isFounderOrOps' => $request->user()->isManagingDirector() || $request->user()->isDirectorOfOperations(),
         ]);
     }

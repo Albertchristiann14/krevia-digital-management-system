@@ -10,6 +10,7 @@ use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\Services\CashflowService;
 use App\Domain\Finance\Services\InvoicePaymentService;
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Carbon\Carbon;
@@ -23,9 +24,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FinanceController extends Controller
 {
-    public function index(Request $request, CashflowService $cashflow): Response
+    public function index(Request $request, CashflowService $cashflow, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', Invoice::class);
+
+        $summary = $cashflow->getSummary();
 
         $budgets = Budget::query()
             ->with('pic:id,name')
@@ -51,8 +54,8 @@ class FinanceController extends Controller
             ->get();
 
         return Inertia::render('Finance/Index', [
-            'summary' => $cashflow->getSummary(),
-            'monthlyCashflow' => $cashflow->getMonthlyCashflow(),
+            'summary' => $summary,
+            'monthlyCashflow' => $cashflow->getMonthlyCashflow($summary['opening_cash_balance'], true),
             'budgets' => $budgets->map(function (Budget $b) use ($expenseByCategory) {
                 $actual = (float) ($expenseByCategory[$b->category] ?? 0);
                 $target = $b->target_amount !== null ? (float) $b->target_amount : null;
@@ -110,7 +113,7 @@ class FinanceController extends Controller
             ]),
             'companies' => Company::query()->orderBy('name')->get(['id', 'name']),
             'projects' => Project::query()->orderBy('code')->get(['id', 'code', 'name', 'company_id']),
-            'users' => User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']),
+            'users' => $refs->activeUsers(),
             'categories' => Transaction::CATEGORIES,
             'canManage' => $request->user()?->canManageFinance() ?? false,
         ]);

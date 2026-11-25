@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Domain\Organization\Models\EmployeeProfile;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -29,6 +30,14 @@ class User extends Authenticatable
     public const ROLE_TECH_CONTRIBUTOR = 'Technical Contributor';
 
     public const ROLE_SOCIAL_DESIGN = 'Social Media & Graphic Design';
+
+    protected static function booted(): void
+    {
+        $invalidate = static fn () => app(ReferenceCacheService::class)->forgetUsers();
+        static::saved($invalidate);
+        static::deleted($invalidate);
+        static::restored($invalidate);
+    }
 
     protected $fillable = [
         'name',

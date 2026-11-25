@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workplan\Models\AnnualRoadmap;
 use App\Domain\Workplan\Models\MonthlyWorkplan;
 use App\Domain\Workspace\Services\AuditLogger;
-use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -14,7 +14,7 @@ use Inertia\Response;
 
 class WorkplanController extends Controller
 {
-    public function roadmap(Request $request): Response
+    public function roadmap(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', AnnualRoadmap::class);
 
@@ -31,7 +31,7 @@ class WorkplanController extends Controller
             ->orderBy('period_month')
             ->get();
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Workplan/Roadmap', [
             'roadmaps' => $roadmaps->map(fn (AnnualRoadmap $r) => [

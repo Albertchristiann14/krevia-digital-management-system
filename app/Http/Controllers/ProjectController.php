@@ -14,6 +14,7 @@ use App\Domain\Project\Models\Release;
 use App\Domain\Project\Models\Requirement;
 use App\Domain\Project\Models\UatRecord;
 use App\Domain\Project\Services\ProjectStageGateService;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,7 @@ use Inertia\Response;
 
 class ProjectController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', Project::class);
 
@@ -44,7 +45,7 @@ class ProjectController extends Controller
 
         $projects = $query->latest('id')->get();
         $companies = Company::query()->orderBy('name')->get(['id', 'name']);
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Projects/Index', [
             'projects' => $projects->map(function (Project $p) {

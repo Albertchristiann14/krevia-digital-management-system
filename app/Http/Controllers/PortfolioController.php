@@ -6,6 +6,7 @@ use App\Domain\Portfolio\Models\DemoAsset;
 use App\Domain\Portfolio\Models\DemoCriteriaCheck;
 use App\Domain\Portfolio\Models\DemoProduct;
 use App\Domain\Portfolio\Services\DemoReadinessService;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PortfolioController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', DemoProduct::class);
 
@@ -35,7 +36,7 @@ class PortfolioController extends Controller
             ->orderBy('code')
             ->get();
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Portfolio/Index', [
             'demos' => $demos->map(fn (DemoProduct $d) => [
@@ -114,7 +115,7 @@ class PortfolioController extends Controller
         return redirect()->route('portfolio.show', $demo)->with('success', "Demo {$demo->code} created.");
     }
 
-    public function show(Request $request, DemoProduct $demo): Response
+    public function show(Request $request, DemoProduct $demo, ReferenceCacheService $refs): Response
     {
         $this->authorize('view', $demo);
 
@@ -127,7 +128,7 @@ class PortfolioController extends Controller
             'contentItems:id,demo_product_id,code,platform,category,title_topic,publish_date,status',
         ]);
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Portfolio/Show', [
             'demo' => [

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Organization\Models;
 
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,6 +10,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Department extends Model
 {
+    protected static function booted(): void
+    {
+        $invalidate = static fn () => app(ReferenceCacheService::class)->forgetOrganization();
+        static::saved($invalidate);
+        static::deleted($invalidate);
+    }
     protected $fillable = [
         'code',
         'name',

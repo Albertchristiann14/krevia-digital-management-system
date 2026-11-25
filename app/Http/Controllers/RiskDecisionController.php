@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Governance\Models\Decision;
 use App\Domain\Governance\Models\Risk;
 use App\Domain\Governance\Services\RiskAndDecisionService;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -15,7 +16,7 @@ use Inertia\Response;
 
 class RiskDecisionController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewRisks', Risk::class);
 
@@ -30,7 +31,7 @@ class RiskDecisionController extends Controller
             ->orderBy('code')
             ->get();
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Governance/RisksAndDecisions', [
             'risks' => $risks->map(fn (Risk $r) => [

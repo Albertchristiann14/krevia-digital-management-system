@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Models\AuditLog;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
@@ -25,7 +26,7 @@ class AccessControlController extends Controller
         'finance.manage',
     ];
 
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         abort_unless($request->user()?->can('roles.view'), 403);
 
@@ -56,11 +57,7 @@ class AccessControlController extends Controller
                 'is_finance_write_eligible' => in_array($r->name, [User::ROLE_FOUNDER, User::ROLE_OPERATIONS], true),
             ]);
 
-        $permissions = Permission::query()
-            ->orderBy('name')
-            ->pluck('name')
-            ->values()
-            ->all();
+        $permissions = $refs->permissionNames();
 
         return Inertia::render('Admin/Roles', [
             'users' => $users,
@@ -89,6 +86,7 @@ class AccessControlController extends Controller
         $user->update(['is_active' => $data['is_active']]);
         $user->syncRoles([$data['role']]);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        app(ReferenceCacheService::class)->forgetUsers();
 
         $audit->log('rbac.user_access_updated', "Updated role/status for {$user->name}.", $user, $old, $data);
 
@@ -117,6 +115,7 @@ class AccessControlController extends Controller
         $oldPerms = $role->permissions()->pluck('name')->values()->all();
         $role->syncPermissions($data['permissions']);
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+        app(ReferenceCacheService::class)->forgetRbac();
 
         $audit->log(
             'rbac.role_permissions_updated',

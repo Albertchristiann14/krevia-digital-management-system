@@ -13,6 +13,7 @@ use App\Domain\Crm\Models\Quotation;
 use App\Domain\Crm\Services\ConvertWonLeadToProjectAction;
 use App\Domain\Crm\Services\LeadPipelineService;
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -24,7 +25,7 @@ use Inertia\Response;
 
 class CrmController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', Lead::class);
 
@@ -62,7 +63,7 @@ class CrmController extends Controller
             fn (string $s) => [$s => $leads->where('stage', $s)->count()]
         );
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Crm/Index', [
             'viewMode' => $request->string('view', 'kanban')->toString(),
@@ -145,7 +146,7 @@ class CrmController extends Controller
         ]);
     }
 
-    public function show(Request $request, Lead $lead): Response
+    public function show(Request $request, Lead $lead, ReferenceCacheService $refs): Response
     {
         $this->authorize('view', $lead);
 
@@ -161,7 +162,7 @@ class CrmController extends Controller
             'quotations',
         ]);
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Crm/Show', [
             'lead' => [

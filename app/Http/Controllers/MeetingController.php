@@ -11,6 +11,7 @@ use App\Domain\Governance\Models\Risk;
 use App\Domain\Governance\Models\WeeklyReport;
 use App\Domain\Governance\Services\MeetingService;
 use App\Domain\Governance\Services\RiskAndDecisionService;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -21,7 +22,7 @@ use Inertia\Response;
 
 class MeetingController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewMeetings', Risk::class);
 
@@ -43,7 +44,7 @@ class MeetingController extends Controller
             ->orderBy('sort_order')
             ->get();
 
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Governance/Meetings', [
             'forums' => $forums->map(fn (MeetingForum $f) => [

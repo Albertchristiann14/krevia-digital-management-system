@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Domain\Crm\Models\Lead;
 use App\Domain\Finance\Services\CashflowService;
-use App\Domain\Organization\Models\Department;
 use App\Domain\Organization\Models\EmployeeProfile;
 use App\Domain\Organization\Models\RaciActivity;
 use App\Domain\Project\Models\Project;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workplan\Models\AnnualRoadmap;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\AuditLog;
@@ -17,7 +17,7 @@ use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index(Request $request, CashflowService $cashflow): Response
+    public function index(Request $request, CashflowService $cashflow, ReferenceCacheService $refs): Response
     {
         $user = $request->user();
         $today = now()->startOfDay();
@@ -138,12 +138,20 @@ class DashboardController extends Controller
             + $profiles->where('coordination_status', '!=', 'Sesuai arahan')->count()
             + RaciActivity::where('data_status', '!=', 'Disepakati')->count();
 
-        $allLeads = Lead::all(['id', 'stage', 'discovery_meeting_at', 'proposal_sent_at']);
+        $leadAgg = Lead::query()
+            ->selectRaw(
+                "COUNT(*) as total_prospects, "
+                ."COUNT(discovery_meeting_at) as discovery_meetings, "
+                ."COUNT(proposal_sent_at) as proposals_sent, "
+                ."COALESCE(SUM(CASE WHEN stage = 'Won' THEN 1 ELSE 0 END), 0) as won_projects"
+            )
+            ->first();
+
         $pipelineSummary = [
-            'total_prospects' => $allLeads->count(),
-            'discovery_meetings' => $allLeads->whereNotNull('discovery_meeting_at')->count(),
-            'proposals_sent' => $allLeads->whereNotNull('proposal_sent_at')->count(),
-            'won_projects' => $allLeads->where('stage', 'Won')->count(),
+            'total_prospects' => (int) ($leadAgg->total_prospects ?? 0),
+            'discovery_meetings' => (int) ($leadAgg->discovery_meetings ?? 0),
+            'proposals_sent' => (int) ($leadAgg->proposals_sent ?? 0),
+            'won_projects' => (int) ($leadAgg->won_projects ?? 0),
             'active_projects' => Project::where('status', 'Active')->count(),
         ];
 
@@ -173,8 +181,8 @@ class DashboardController extends Controller
                 'blocked_tasks' => $blockedTasks,
                 'avg_progress' => $avgProgress,
                 'team_members' => $profiles->count(),
-                'departments' => Department::count(),
-                'raci_activities' => RaciActivity::count(),
+                'departments' => $refs->departmentCount(),
+                'raci_activities' => $refs->raciActivityCount(),
                 'pending_confirmations' => $pendingConfirmations,
                 'roadmap_months' => $monthlyRoadmap->count(),
                 ...$pipelineSummary,

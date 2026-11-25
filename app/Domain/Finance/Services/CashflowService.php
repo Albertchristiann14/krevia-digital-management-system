@@ -24,39 +24,56 @@ class CashflowService
             ? (float) $setting->opening_cash_balance
             : null;
 
-        $revenueReceived = (float) Transaction::query()
-            ->where('type', Transaction::TYPE_INCOME)
-            ->sum('amount');
+        // Single conditional-aggregate query for both income & expense
+        $txTotals = Transaction::query()
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as revenue_received, '
+                .'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as total_expenses',
+                [Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE]
+            )
+            ->first();
 
-        $totalExpenses = (float) Transaction::query()
-            ->where('type', Transaction::TYPE_EXPENSE)
-            ->sum('amount');
+        $revenueReceived = (float) ($txTotals->revenue_received ?? 0);
+        $totalExpenses = (float) ($txTotals->total_expenses ?? 0);
 
-        $activeInvoices = Invoice::query()->where('status', '!=', 'Void');
-        $totalInvoiced = (float) (clone $activeInvoices)->sum('amount');
-        $totalPaidInvoices = (float) (clone $activeInvoices)->sum('paid_amount');
+        // Single aggregate query for active invoices
+        $invoiceTotals = Invoice::query()
+            ->where('status', '!=', 'Void')
+            ->selectRaw('COALESCE(SUM(amount), 0) as total_invoiced, COALESCE(SUM(paid_amount), 0) as total_paid')
+            ->first();
+
+        $totalInvoiced = (float) ($invoiceTotals->total_invoiced ?? 0);
+        $totalPaidInvoices = (float) ($invoiceTotals->total_paid ?? 0);
         $receivables = max(0.0, round($totalInvoiced - $totalPaidInvoices, 2));
 
         $cashBalance = ($openingCash ?? 0.0) + $revenueReceived - $totalExpenses;
 
-        $budgets = Budget::query()->get();
-        $confirmedBudgets = $budgets->whereNotNull('target_amount');
-        $totalBudgetTarget = $confirmedBudgets->isNotEmpty()
-            ? (float) $confirmedBudgets->sum('target_amount')
+        // Single aggregate query for budget targets
+        $budgetStats = Budget::query()
+            ->selectRaw('COUNT(*) as total_count, COUNT(target_amount) as confirmed_count, COALESCE(SUM(target_amount), 0) as total_target')
+            ->first();
+
+        $confirmedBudgetCount = (int) ($budgetStats->confirmed_count ?? 0);
+        $pendingBudgetCount = max(0, (int) ($budgetStats->total_count ?? 0) - $confirmedBudgetCount);
+        $totalBudgetTarget = $confirmedBudgetCount > 0
+            ? (float) $budgetStats->total_target
             : null;
 
         // Section F: Pipeline Estimate (BUKAN pendapatan — strictly separated!)
-        $pipelineLeads = Lead::query()
+        $pipelineAgg = Lead::query()
             ->whereIn('stage', ['Proposal Sent', 'Negotiation', 'Won'])
-            ->get(['id', 'stage', 'estimated_value']);
+            ->selectRaw('stage, COUNT(*) as stage_count, COALESCE(SUM(estimated_value), 0) as estimated_total')
+            ->groupBy('stage')
+            ->get()
+            ->keyBy('stage');
 
-        $pipelineStages = collect(['Proposal Sent', 'Negotiation', 'Won'])->map(function (string $stage) use ($pipelineLeads) {
-            $subset = $pipelineLeads->where('stage', $stage);
+        $pipelineStages = collect(['Proposal Sent', 'Negotiation', 'Won'])->map(function (string $stage) use ($pipelineAgg) {
+            $row = $pipelineAgg->get($stage);
 
             return [
                 'stage' => $stage,
-                'count' => $subset->count(),
-                'estimated_total' => (float) $subset->whereNotNull('estimated_value')->sum('estimated_value'),
+                'count' => (int) ($row->stage_count ?? 0),
+                'estimated_total' => (float) ($row->estimated_total ?? 0),
                 'note' => match ($stage) {
                     'Proposal Sent' => 'Penawaran terkirim, belum ada keputusan klien',
                     'Negotiation' => 'Dalam pembahasan harga/lingkup',
@@ -65,18 +82,16 @@ class CashflowService
             ];
         })->values()->all();
 
-        $pipelineEstimateTotal = (float) $pipelineLeads
-            ->whereIn('stage', ['Proposal Sent', 'Negotiation'])
-            ->whereNotNull('estimated_value')
-            ->sum('estimated_value');
+        $pipelineEstimateTotal = (float) (($pipelineAgg->get('Proposal Sent')->estimated_total ?? 0)
+            + ($pipelineAgg->get('Negotiation')->estimated_total ?? 0));
 
         return [
             'opening_cash_balance' => $openingCash,
             'opening_cash_date' => $setting?->opening_cash_date?->format('Y-m-d') ?? '2026-12-01',
             'opening_cash_status' => $setting?->data_status ?? 'Perlu Konfirmasi Manajemen',
             'total_budget_target' => $totalBudgetTarget,
-            'confirmed_budget_count' => $confirmedBudgets->count(),
-            'pending_budget_count' => $budgets->whereNull('target_amount')->count(),
+            'confirmed_budget_count' => $confirmedBudgetCount,
+            'pending_budget_count' => $pendingBudgetCount,
             'revenue_received' => round($revenueReceived, 2),
             'total_expenses' => round($totalExpenses, 2),
             'total_invoiced' => round($totalInvoiced, 2),
@@ -90,12 +105,16 @@ class CashflowService
     /**
      * @return array<int, array<string, mixed>>
      */
-    public function getMonthlyCashflow(): array
+    public function getMonthlyCashflow(?float $openingCashBalance = null, bool $useProvidedOpening = false): array
     {
-        $setting = FinancialSetting::query()->first();
-        $running = $setting?->opening_cash_balance !== null
-            ? (float) $setting->opening_cash_balance
-            : 0.0;
+        if ($useProvidedOpening) {
+            $running = $openingCashBalance ?? 0.0;
+        } else {
+            $setting = FinancialSetting::query()->first();
+            $running = $setting?->opening_cash_balance !== null
+                ? (float) $setting->opening_cash_balance
+                : 0.0;
+        }
 
         $grouped = Transaction::query()
             ->selectRaw("period_month, type, SUM(amount) as total")

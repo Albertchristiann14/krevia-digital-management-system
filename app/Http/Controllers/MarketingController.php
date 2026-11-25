@@ -7,6 +7,7 @@ use App\Domain\Marketing\Models\ContentItem;
 use App\Domain\Marketing\Models\ContentMetric;
 use App\Domain\Marketing\Services\ContentWorkflowService;
 use App\Domain\Portfolio\Models\DemoProduct;
+use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class MarketingController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, ReferenceCacheService $refs): Response
     {
         $this->authorize('viewAny', ContentItem::class);
 
@@ -56,30 +57,33 @@ class MarketingController extends Controller
 
         $items = $query->orderBy('publish_date')->orderBy('code')->get();
 
-        // Monthly report & platform metrics aggregated from real database records
-        $allItems = ContentItem::query()->with('metrics')->get();
+        // Monthly report & platform metrics aggregated efficiently without loading full content bodies
+        $allItems = ContentItem::query()
+            ->whereNotNull('publish_date')
+            ->withSum('metrics as reach_sum', 'reach')
+            ->withSum('metrics as impressions_sum', 'impressions')
+            ->withSum('metrics as inquiries_sum', 'inquiries_generated')
+            ->get(['id', 'publish_date', 'status', 'is_approved']);
+
         $monthlySummary = $allItems
-            ->filter(fn (ContentItem $c) => $c->publish_date !== null)
             ->groupBy(fn (ContentItem $c) => $c->publish_date->format('Y-m'))
             ->map(function ($group, string $ym) {
-                $metrics = $group->flatMap->metrics;
-
                 return [
                     'month' => $ym,
                     'total' => $group->count(),
                     'published' => $group->where('status', 'Published')->count(),
                     'scheduled' => $group->where('status', 'Scheduled')->count(),
                     'approved' => $group->where('is_approved', true)->count(),
-                    'reach' => $metrics->sum('reach'),
-                    'impressions' => $metrics->sum('impressions'),
-                    'inquiries' => $metrics->sum('inquiries_generated'),
+                    'reach' => (int) $group->sum('reach_sum'),
+                    'impressions' => (int) $group->sum('impressions_sum'),
+                    'inquiries' => (int) $group->sum('inquiries_sum'),
                 ];
             })
             ->sortKeys()
             ->values();
 
         $demos = DemoProduct::query()->orderBy('code')->get(['id', 'code', 'name', 'service_line', 'is_ready_to_present']);
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = $refs->activeUsers();
 
         return Inertia::render('Marketing/Index', [
             'viewMode' => $request->string('view', 'calendar')->toString(),

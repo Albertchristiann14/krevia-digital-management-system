@@ -19,6 +19,27 @@ export default defineConfig({
             'ziggy-js': path.resolve(import.meta.dirname, 'vendor/tightenco/ziggy'),
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks(id) {
+                    if (!id.includes('node_modules')) return;
+                    if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/@inertiajs/')) {
+                        return 'vendor-react';
+                    }
+                    if (id.includes('/recharts/') || id.includes('/d3-') || id.includes('/victory-vendor/')) {
+                        return 'vendor-charts';
+                    }
+                    if (id.includes('/@fullcalendar/')) {
+                        return 'vendor-calendar';
+                    }
+                    if (id.includes('/lucide-react/') || id.includes('/@radix-ui/')) {
+                        return 'vendor-ui';
+                    }
+                },
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

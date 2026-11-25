@@ -35,7 +35,7 @@ import {
     Wallet,
     X,
 } from 'lucide-react';
-import { useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 
 interface NavItem {
     label: string;
@@ -282,6 +282,7 @@ function SidebarContent({
             >
                 <Link
                     href="/dashboard"
+                    prefetch
                     className={cn(
                         'flex items-center overflow-hidden',
                         compact ? 'justify-center' : 'gap-3',
@@ -291,6 +292,9 @@ function SidebarContent({
                     <img
                         src="/images/krevia-mark.png"
                         alt="Krevia Digital"
+                        width={36}
+                        height={36}
+                        decoding="async"
                         className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 shadow-sm"
                     />
                     {!compact && (
@@ -354,6 +358,7 @@ function SidebarContent({
                                         <Link
                                             key={item.href}
                                             href={item.href}
+                                            prefetch
                                             onClick={onCloseMobile}
                                             title={compact ? item.label : undefined}
                                             aria-label={item.label}
@@ -436,6 +441,7 @@ export function AppShell({
     const [collapsed, setCollapsed] = useState<boolean>(readInitialCollapsed);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [showOwnPasswordModal, setShowOwnPasswordModal] = useState(false);
+    const [isNavigating, setIsNavigating] = useState(false);
     const navRef = useRef<HTMLElement | null>(null);
 
     const ownPasswordForm = useForm({
@@ -446,9 +452,22 @@ export function AppShell({
 
     const user = auth.user;
     const unreadCount = auth.unreadNotificationsCount ?? 0;
-    const perms = new Set(user?.permissions ?? []);
+    const perms = useMemo(() => new Set(user?.permissions ?? []), [user?.permissions]);
 
     const canSee = (item: NavItem) => !item.permission || perms.has(item.permission);
+
+    useEffect(() => {
+        const removeStart = router.on('start', (event) => {
+            if (!event.detail.visit.prefetch) {
+                setIsNavigating(true);
+            }
+        });
+        const removeFinish = router.on('finish', () => setIsNavigating(false));
+        return () => {
+            removeStart();
+            removeFinish();
+        };
+    }, []);
 
     useLayoutEffect(() => {
         const el = navRef.current;
@@ -570,6 +589,7 @@ export function AppShell({
 
                         <Link
                             href="/notifications"
+                            prefetch
                             className="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
                             title="Notifications"
                         >
@@ -610,7 +630,7 @@ export function AppShell({
                     </div>
                 </header>
 
-                <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+                <main className={cn('flex-1 px-4 py-6 transition-opacity duration-150 sm:px-6 lg:px-8', isNavigating && 'opacity-70')}>
                     {user?.must_change_password && (
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900">
                             <span>
