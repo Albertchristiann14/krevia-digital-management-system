@@ -72,6 +72,7 @@ export default function TasksIndex({
         validViews.includes(viewMode as ViewTab) ? (viewMode as ViewTab) : 'list',
     );
     const [calendarMode, setCalendarMode] = useState<'deadline' | 'range'>('deadline');
+    const [calendarDensity, setCalendarDensity] = useState<'compact' | 'standard'>('standard');
     const [page, setPage] = useState(1);
 
     // Filter state
@@ -151,30 +152,50 @@ export default function TasksIndex({
     const calendarEvents = useMemo(
         () =>
             tasks.map((t) => {
-                const accent =
-                    t.status === 'Completed'
-                        ? '#16a34a'
-                        : t.deadline_status === 'Terlambat'
-                          ? '#dc2626'
-                          : t.priority === 'Tinggi'
-                            ? '#101d35'
-                            : '#2563eb';
-                const softBg =
-                    t.status === 'Completed'
-                        ? '#f0fdf4'
-                        : t.deadline_status === 'Terlambat'
-                          ? '#fef2f2'
-                          : t.priority === 'Tinggi'
-                            ? '#f1f5f9'
-                            : '#eff6ff';
-                const softBorder =
-                    t.status === 'Completed'
-                        ? '#bbf7d0'
-                        : t.deadline_status === 'Terlambat'
-                          ? '#fecaca'
-                          : t.priority === 'Tinggi'
-                            ? '#cbd5e1'
-                            : '#bfdbfe';
+                const isOverdue = t.deadline_status === 'Terlambat';
+                const isDone = t.status === 'Completed';
+                const isReview = t.status === 'Under Review';
+                const isHigh = t.priority === 'Tinggi';
+
+                const dotColor = isDone
+                    ? '#10b981'
+                    : isOverdue
+                      ? '#ef4444'
+                      : isReview
+                        ? '#f59e0b'
+                        : isHigh
+                          ? '#6366f1'
+                          : '#2563eb';
+
+                const softBg = isDone
+                    ? '#ecfdf5'
+                    : isOverdue
+                      ? '#fef2f2'
+                      : isReview
+                        ? '#fffbeb'
+                        : isHigh
+                          ? '#eef2ff'
+                          : '#f0f9ff';
+
+                const softBorder = isDone
+                    ? '#a7f3d0'
+                    : isOverdue
+                      ? '#fecaca'
+                      : isReview
+                        ? '#fde68a'
+                        : isHigh
+                          ? '#c7d2fe'
+                          : '#bae6fd';
+
+                const textColor = isDone
+                    ? '#065f46'
+                    : isOverdue
+                      ? '#991b1b'
+                      : isReview
+                        ? '#92400e'
+                        : isHigh
+                          ? '#3730a3'
+                          : '#0369a1';
 
                 return {
                     id: String(t.id),
@@ -184,12 +205,13 @@ export default function TasksIndex({
                     allDay: true,
                     backgroundColor: softBg,
                     borderColor: softBorder,
-                    textColor: '#0f172a',
+                    textColor: textColor,
                     extendedProps: {
                         code: t.code,
-                        dotColor: accent,
+                        dotColor,
                         picName: t.pic_name,
                         status: t.status,
+                        priority: t.priority,
                     },
                 };
             }),
@@ -570,50 +592,85 @@ export default function TasksIndex({
             {/* VIEW 3: CALENDAR (FullCalendar - Minimalist) */}
             {activeView === 'calendar' && (
                 <div className="kdms-calendar rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
                         <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-600">
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-emerald-600" />
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-emerald-500" />
                                 Completed
                             </span>
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-blue-600" />
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-blue-500" />
                                 Scheduled
                             </span>
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-[#101D35]" />
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-amber-500" />
+                                Review
+                            </span>
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-indigo-500" />
                                 High Priority
                             </span>
-                            <span className="inline-flex items-center gap-1.5">
-                                <span className="h-2 w-2 rounded-full bg-rose-600" />
+                            <span className="inline-flex items-center gap-1.5 font-medium">
+                                <span className="h-2 w-2 rounded-full bg-rose-500" />
                                 Overdue
                             </span>
                         </div>
-                        <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-medium">
-                            <button
-                                type="button"
-                                onClick={() => setCalendarMode('deadline')}
-                                className={cn(
-                                    'rounded-md px-2.5 py-1 transition',
-                                    calendarMode === 'deadline'
-                                        ? 'bg-white font-semibold text-slate-900 shadow-xs'
-                                        : 'text-slate-500 hover:text-slate-800',
-                                )}
-                            >
-                                Deadlines Only
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setCalendarMode('range')}
-                                className={cn(
-                                    'rounded-md px-2.5 py-1 transition',
-                                    calendarMode === 'range'
-                                        ? 'bg-white font-semibold text-slate-900 shadow-xs'
-                                        : 'text-slate-500 hover:text-slate-800',
-                                )}
-                            >
-                                Date Spans
-                            </button>
+                        <div className="flex flex-wrap items-center gap-2">
+                            {/* Mode: Deadline vs Date Spans */}
+                            <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-medium">
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarMode('deadline')}
+                                    className={cn(
+                                        'rounded-md px-2.5 py-1 transition',
+                                        calendarMode === 'deadline'
+                                            ? 'bg-white font-semibold text-slate-900 shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800',
+                                    )}
+                                >
+                                    Deadlines Only
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarMode('range')}
+                                    className={cn(
+                                        'rounded-md px-2.5 py-1 transition',
+                                        calendarMode === 'range'
+                                            ? 'bg-white font-semibold text-slate-900 shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800',
+                                    )}
+                                >
+                                    Date Spans
+                                </button>
+                            </div>
+
+                            {/* Density: Compact vs Standard */}
+                            <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-[11px] font-medium">
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarDensity('compact')}
+                                    className={cn(
+                                        'rounded-md px-2.5 py-1 transition',
+                                        calendarDensity === 'compact'
+                                            ? 'bg-white font-semibold text-slate-900 shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800',
+                                    )}
+                                >
+                                    Compact
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setCalendarDensity('standard')}
+                                    className={cn(
+                                        'rounded-md px-2.5 py-1 transition',
+                                        calendarDensity === 'standard'
+                                            ? 'bg-white font-semibold text-slate-900 shadow-xs'
+                                            : 'text-slate-500 hover:text-slate-800',
+                                    )}
+                                >
+                                    Standard
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <FullCalendar
@@ -626,7 +683,7 @@ export default function TasksIndex({
                             right: 'dayGridMonth,timeGridWeek',
                         }}
                         events={calendarEvents}
-                        dayMaxEvents={3}
+                        dayMaxEvents={2}
                         moreLinkClick="popover"
                         fixedWeekCount={false}
                         height="auto"
@@ -641,18 +698,20 @@ export default function TasksIndex({
                             return (
                                 <div
                                     title={`${code ?? ''} · ${arg.event.title}${picName ? ` (${picName} — ${taskStatus})` : ''}`}
-                                    className="flex w-full items-center gap-1.5 overflow-hidden px-1.5 py-0.5 text-[11px] leading-tight"
+                                    className="flex w-full items-center gap-1.5 overflow-hidden px-1.5 py-0.5 text-[11px] leading-tight font-medium"
                                 >
                                     <span
                                         className="h-1.5 w-1.5 shrink-0 rounded-full"
                                         style={{ backgroundColor: dotColor ?? '#2563eb' }}
                                     />
-                                    <span className="shrink-0 font-mono text-[10px] font-semibold text-slate-600">
+                                    <span className="shrink-0 font-mono text-[10px] font-bold">
                                         {code}
                                     </span>
-                                    <span className="truncate font-medium text-slate-800">
-                                        {arg.event.title}
-                                    </span>
+                                    {calendarDensity === 'standard' && (
+                                        <span className="truncate opacity-90">
+                                            {arg.event.title}
+                                        </span>
+                                    )}
                                 </div>
                             );
                         }}
