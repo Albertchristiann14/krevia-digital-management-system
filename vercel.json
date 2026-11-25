@@ -1,9 +1,0 @@
-{
-  "regions": ["sin1"],
-  "crons": [
-    {
-      "path": "/api/cron/deadline-alerts",
-      "schedule": "0 1 * * *"
-    }
-  ]
-}
