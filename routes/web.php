@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AccessControlController;
+use App\Http\Controllers\AccountingSuiteController;
 use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CrmController;
@@ -128,6 +129,10 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::prefix('finance')->name('finance.')->group(function () {
         Route::get('/', [FinanceController::class, 'index'])->name('index');
+        Route::get('/suite', [AccountingSuiteController::class, 'index'])->name('suite');
+        Route::get('/my-compensations', [AccountingSuiteController::class, 'myCompensations'])->name('my-compensations');
+        Route::post('/reimbursements', [AccountingSuiteController::class, 'storeReimbursement'])->name('reimbursements.store');
+        Route::post('/expenses', [AccountingSuiteController::class, 'storeExpenseRequest'])->name('expenses.store');
         Route::get('/transactions/{transaction}/evidence', [FinanceController::class, 'downloadEvidence'])->name('transactions.evidence');
 
         Route::middleware('can:manage-finance')->group(function () {
@@ -137,6 +142,23 @@ Route::middleware(['auth', 'active.user'])->group(function () {
             Route::post('/invoices/{invoice}/void', [FinanceController::class, 'voidInvoice'])->name('invoices.void');
             Route::post('/invoices/{invoice}/payments', [FinanceController::class, 'recordPayment'])->name('invoices.payments.store');
             Route::post('/transactions', [FinanceController::class, 'storeTransaction'])->name('transactions.store');
+
+            // Double-Entry Accounting & Operations Suite
+            Route::post('/accounts', [AccountingSuiteController::class, 'storeAccount'])->name('accounts.store');
+            Route::post('/journals', [AccountingSuiteController::class, 'storeJournal'])->name('journals.store');
+            Route::post('/journals/{journal}/post', [AccountingSuiteController::class, 'postJournal'])->name('journals.post');
+            Route::post('/journals/{journal}/reverse', [AccountingSuiteController::class, 'reverseJournal'])->name('journals.reverse');
+            Route::post('/periods/{period}/close', [AccountingSuiteController::class, 'closePeriod'])->name('periods.close');
+            Route::post('/periods/{period}/reopen', [AccountingSuiteController::class, 'reopenPeriod'])->name('periods.reopen');
+            Route::post('/expenses/{expense}/pay', [AccountingSuiteController::class, 'payExpenseRequest'])->name('expenses.pay');
+            Route::post('/compensations', [AccountingSuiteController::class, 'storeCompensation'])->name('compensations.store');
+            Route::post('/compensations/{compensation}/pay', [AccountingSuiteController::class, 'payCompensation'])->name('compensations.pay');
+            Route::post('/approvals/{approvalRequest}/approve', [AccountingSuiteController::class, 'approveRequest'])->name('approvals.approve');
+            Route::post('/approvals/{approvalRequest}/reject', [AccountingSuiteController::class, 'rejectRequest'])->name('approvals.reject');
+            Route::post('/transfers', [AccountingSuiteController::class, 'storeTransfer'])->name('transfers.store');
+            Route::post('/subscriptions', [AccountingSuiteController::class, 'storeSubscription'])->name('subscriptions.store');
+            Route::post('/subscriptions/{subscription}/bill', [AccountingSuiteController::class, 'billSubscription'])->name('subscriptions.bill');
+            Route::post('/project-budgets', [AccountingSuiteController::class, 'storeProjectBudget'])->name('project-budgets.store');
         });
     });
 

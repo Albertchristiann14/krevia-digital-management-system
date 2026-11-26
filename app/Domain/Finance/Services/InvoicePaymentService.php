@@ -2,6 +2,8 @@
 
 namespace App\Domain\Finance\Services;
 
+use App\Domain\Finance\Models\FinanceCashAccount;
+use App\Domain\Finance\Models\FinanceConfiguration;
 use App\Domain\Finance\Models\Invoice;
 use App\Domain\Finance\Models\InvoicePayment;
 use App\Domain\Finance\Models\Transaction;
@@ -90,6 +92,38 @@ class InvoicePaymentService
                 'paid_amount' => $newPaidTotal,
                 'status' => $newStatus,
             ]);
+
+            $cfg = FinanceConfiguration::query()->first();
+            $cashAcc = FinanceCashAccount::query()
+                ->where('account_type', $paymentMethod === 'Cash' ? 'Cash' : 'Bank')
+                ->first() ?? FinanceCashAccount::query()->first();
+
+            if ($cfg && $cashAcc && $cfg->default_ar_account_id) {
+                app(AccountingEngineService::class)->createAndPostSystemJournal(
+                    $paidAt,
+                    "Invoice Payment {$invoice->invoice_no}",
+                    [
+                        [
+                            'account_id' => $cashAcc->gl_account_id,
+                            'debit' => $amount,
+                            'credit' => 0,
+                            'company_id' => $invoice->company_id,
+                            'project_id' => $invoice->project_id,
+                        ],
+                        [
+                            'account_id' => $cfg->default_ar_account_id,
+                            'debit' => 0,
+                            'credit' => $amount,
+                            'company_id' => $invoice->company_id,
+                            'project_id' => $invoice->project_id,
+                        ],
+                    ],
+                    $actor,
+                    InvoicePayment::class,
+                    (string) $payment->id
+                );
+                $cashAcc->increment('current_balance', $amount);
+            }
 
             $this->audit->log(
                 'finance.payment_recorded',

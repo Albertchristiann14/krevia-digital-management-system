@@ -15,6 +15,7 @@ class AuditLog extends Model
         'event',
         'auditable_type',
         'auditable_id',
+        'auditable_uuid',
         'summary',
         'old_values',
         'new_values',

@@ -10,6 +10,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workplan\Models\AnnualRoadmap;
 use App\Domain\Workplan\Models\Task;
+use App\Domain\Workspace\Models\Announcement;
 use App\Domain\Workspace\Models\AuditLog;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -171,6 +172,39 @@ class DashboardController extends Controller
         $canViewFinance = $user->hasPermissionTo('finance.view');
         $financeSummary = $canViewFinance ? $cashflow->getSummary() : null;
 
+        $userDepartmentId = $user->employeeProfile?->department_id;
+        $recentAnnouncements = Announcement::query()
+            ->with('publisher:id,name')
+            ->whereNotNull('published_at')
+            ->latest('published_at')
+            ->latest('id')
+            ->limit(15)
+            ->get()
+            ->filter(function (Announcement $a) use ($user, $userDepartmentId): bool {
+                if ($a->audience_type === 'all') {
+                    return true;
+                }
+                if ($a->audience_type === 'department') {
+                    return $userDepartmentId !== null && (int) $a->department_id === (int) $userDepartmentId;
+                }
+                if ($a->audience_type === 'selected') {
+                    return in_array($user->id, array_map('intval', $a->recipient_user_ids ?? []), true);
+                }
+
+                return false;
+            })
+            ->take(3)
+            ->values()
+            ->map(fn (Announcement $a) => [
+                'id' => $a->id,
+                'code' => $a->code,
+                'title' => $a->title,
+                'body' => $a->body,
+                'priority' => $a->priority,
+                'publisher' => $a->publisher?->name ?? 'Management',
+                'published_at' => $a->published_at?->format('Y-m-d H:i'),
+            ]);
+
         return Inertia::render('Dashboard/Index', [
             'metrics' => [
                 'total_tasks' => $totalTasks,
@@ -198,6 +232,7 @@ class DashboardController extends Controller
             'pendingApprovals' => $pendingApprovals,
             'myTasks' => $myTasks,
             'recentAudits' => $recentAudits,
+            'recentAnnouncements' => $recentAnnouncements,
         ]);
     }
 }

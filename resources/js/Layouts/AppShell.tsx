@@ -137,6 +137,31 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
         ],
     },
     {
+        title: 'Finance & Accounting',
+        items: [
+            {
+                label: 'Financial Tracker',
+                href: '/finance',
+                matchPrefix: '/finance',
+                icon: Wallet,
+                permission: 'finance.view',
+            },
+            {
+                label: 'Accounting & Ledger',
+                href: '/finance/suite',
+                matchPrefix: '/finance/suite',
+                icon: FileSpreadsheet,
+                permission: 'finance.view',
+            },
+            {
+                label: 'My Compensations',
+                href: '/finance/my-compensations',
+                matchPrefix: '/finance/my-compensations',
+                icon: Wallet,
+            },
+        ],
+    },
+    {
         title: 'Organization & Governance',
         items: [
             {
@@ -159,13 +184,6 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
                 matchPrefix: '/admin/audit-logs',
                 icon: Activity,
                 permission: 'audit.view',
-            },
-            {
-                label: 'Financial Tracker',
-                href: '/finance',
-                matchPrefix: '/finance',
-                icon: Wallet,
-                permission: 'finance.view',
             },
             {
                 label: 'KPI & Performance',
@@ -350,9 +368,9 @@ function SidebarContent({
                                 {visibleItems.map((item) => {
                                     const active =
                                         currentUrl === item.href ||
-                                        (item.matchPrefix !== '/tasks'
-                                            ? currentUrl.startsWith(item.matchPrefix)
-                                            : currentUrl.startsWith('/tasks'));
+                                        (item.matchPrefix === '/finance'
+                                            ? currentUrl === '/finance' || currentUrl.startsWith('/finance?')
+                                            : currentUrl.startsWith(item.matchPrefix));
                                     const Icon = item.icon;
                                     return (
                                         <Link

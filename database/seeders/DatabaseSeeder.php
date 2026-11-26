@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
             CrmWorkbookSeeder::class,
             PortfolioMarketingSeeder::class,
             FinanceKpiSeeder::class,
+            FinanceAccountingSeeder::class,
             GovernanceSeeder::class,
         ]);
     }

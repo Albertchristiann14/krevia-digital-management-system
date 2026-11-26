@@ -1,6 +1,6 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, formatShortDate, getInitials } from '@/lib/utils';
+import { cn, formatRupiah, formatShortDate, getInitials } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
@@ -119,6 +119,15 @@ interface ProjectShowProps extends PageProps {
     dodChecklist: string[];
     users: { id: number; name: string }[];
     canUpdate: boolean;
+    projectFinancial?: {
+        contract_value: number;
+        approved_budget: number;
+        actual_direct_costs: number;
+        total_invoiced: number;
+        payments_received: number;
+        gross_profit: number;
+        profit_margin_pct: number;
+    } | null;
 }
 
 type TabKey = 'stages' | 'requirements' | 'qa' | 'uat_releases' | 'handover' | 'tasks' | 'team';
@@ -128,6 +137,7 @@ export default function ProjectsShow({
     dodChecklist,
     users,
     canUpdate,
+    projectFinancial,
     errors,
 }: ProjectShowProps) {
     const [tab, setTab] = useState<TabKey>('stages');
@@ -277,6 +287,31 @@ export default function ProjectsShow({
                     />
                 </div>
             </div>
+
+            {projectFinancial && (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-medium text-slate-500">Total Invoiced</p>
+                        <p className="mt-1 text-sm font-bold text-[#101D35] tabular-nums">{formatRupiah(projectFinancial.total_invoiced)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-medium text-slate-500">Payments Received</p>
+                        <p className="mt-1 text-sm font-bold text-emerald-700 tabular-nums">{formatRupiah(projectFinancial.payments_received)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-medium text-slate-500">Direct Costs</p>
+                        <p className="mt-1 text-sm font-bold text-rose-700 tabular-nums">{formatRupiah(projectFinancial.actual_direct_costs)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-medium text-slate-500">Gross Profit</p>
+                        <p className="mt-1 text-sm font-bold text-[#101D35] tabular-nums">{formatRupiah(projectFinancial.gross_profit)}</p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                        <p className="text-[11px] font-medium text-slate-500">Profit Margin</p>
+                        <p className="mt-1 text-sm font-bold text-slate-800 tabular-nums">{projectFinancial.profit_margin_pct}%</p>
+                    </div>
+                </div>
+            )}
 
             {/* Workspace Tabs */}
             <div className="mt-5 flex flex-wrap gap-1 rounded-xl border border-slate-200 bg-white p-1.5">

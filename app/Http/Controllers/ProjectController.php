@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Crm\Models\Company;
+use App\Domain\Finance\Services\FinanceOperationsService;
 use App\Domain\Project\Models\HandoverRecord;
 use App\Domain\Project\Models\MaintenanceTicket;
 use App\Domain\Project\Models\Milestone;
@@ -128,7 +129,7 @@ class ProjectController extends Controller
         return redirect()->route('projects.show', $project)->with('success', "Project {$project->code} created.");
     }
 
-    public function show(Request $request, Project $project): Response
+    public function show(Request $request, Project $project, FinanceOperationsService $financeOps): Response
     {
         $this->authorize('view', $project);
 
@@ -153,7 +154,10 @@ class ProjectController extends Controller
 
         $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
 
+        $canViewFinance = $request->user()?->hasPermissionTo('finance.view') ?? false;
+
         return Inertia::render('Projects/Show', [
+            'projectFinancial' => $canViewFinance ? $financeOps->getProjectFinancialSummary($project) : null,
             'project' => [
                 'id' => $project->id,
                 'code' => $project->code,

@@ -23,3 +23,12 @@ export function formatShortDate(iso: string | null | undefined): string {
         year: 'numeric',
     });
 }
+
+export function formatRupiah(val: number | string | null | undefined): string {
+    const num = Number(val) || 0;
+    const absFormatted = new Intl.NumberFormat('id-ID', {
+        maximumFractionDigits: 0,
+    }).format(Math.abs(Math.round(num)));
+
+    return num < 0 ? `-Rp ${absFormatted}` : `Rp ${absFormatted}`;
+}

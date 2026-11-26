@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Domain\Crm\Models\Company;
 use App\Domain\Finance\Models\Budget;
+use App\Domain\Finance\Models\FinanceConfiguration;
 use App\Domain\Finance\Models\FinancialSetting;
 use App\Domain\Finance\Models\Invoice;
 use App\Domain\Finance\Models\Transaction;
 use App\Domain\Finance\Services\CashflowService;
+use App\Domain\Finance\Services\FinanceOperationsService;
 use App\Domain\Finance\Services\InvoicePaymentService;
 use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Services\ReferenceCacheService;
@@ -187,6 +189,10 @@ class FinanceController extends Controller
             'paid_amount' => 0,
             'created_by' => $request->user()->id,
         ]);
+
+        if ($invoice->status !== 'Draft' && FinanceConfiguration::query()->exists()) {
+            app(FinanceOperationsService::class)->postInvoiceIssuanceJournal($invoice, $request->user());
+        }
 
         $audit->log('finance.invoice_created', "Created invoice {$invoice->invoice_no}.", $invoice);
 

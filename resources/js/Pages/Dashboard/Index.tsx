@@ -16,6 +16,7 @@ import {
     Handshake,
     Layers,
     Briefcase,
+    Radio,
     Wallet,
 } from 'lucide-react';
 import {
@@ -120,6 +121,15 @@ interface DashboardProps extends PageProps {
         actor: string;
         created_at: string | null;
     }[];
+    recentAnnouncements?: {
+        id: number;
+        code: string;
+        title: string;
+        body: string;
+        priority: string;
+        publisher: string;
+        published_at: string | null;
+    }[];
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -140,6 +150,7 @@ export default function DashboardIndex({
     pendingApprovals,
     myTasks,
     recentAudits,
+    recentAnnouncements = [],
     canViewFinance,
 }: DashboardProps) {
     const { auth } = usePage<PageProps>().props;
@@ -169,6 +180,71 @@ export default function DashboardIndex({
             }
         >
             <Head title="Dashboard" />
+
+            {/* Top Announcements Banner */}
+            {recentAnnouncements.length > 0 && (
+                <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#101D35] text-white">
+                                <Radio className="h-3.5 w-3.5" />
+                            </span>
+                            <div>
+                                <h2 className="text-xs font-bold tracking-wide text-[#101D35] uppercase">
+                                    Latest Announcements
+                                </h2>
+                            </div>
+                        </div>
+                        <Link
+                            href="/announcements"
+                            prefetch
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#101D35] hover:underline"
+                        >
+                            View all <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                    </div>
+                    <div className="grid gap-3 md:grid-cols-3">
+                        {recentAnnouncements.map((ann) => {
+                            const priorityStyle =
+                                ann.priority === 'Mendesak'
+                                    ? 'border-rose-200 bg-rose-50/70'
+                                    : ann.priority === 'Penting'
+                                      ? 'border-amber-200 bg-amber-50/70'
+                                      : 'border-slate-200 bg-slate-50/70';
+                            const badgeStyle =
+                                ann.priority === 'Mendesak'
+                                    ? 'bg-rose-600 text-white'
+                                    : ann.priority === 'Penting'
+                                      ? 'bg-amber-500 text-white'
+                                      : 'bg-[#101D35] text-white';
+
+                            return (
+                                <div
+                                    key={ann.id}
+                                    className={`flex flex-col justify-between rounded-lg border p-3 ${priorityStyle}`}
+                                >
+                                    <div>
+                                        <div className="mb-1.5 flex items-center justify-between gap-2">
+                                            <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${badgeStyle}`}>
+                                                {ann.priority}
+                                            </span>
+                                            <span className="font-mono text-[10px] text-slate-500">{ann.code}</span>
+                                        </div>
+                                        <p className="line-clamp-1 text-xs font-bold text-slate-900">{ann.title}</p>
+                                        <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-600">
+                                            {ann.body}
+                                        </p>
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between border-t border-slate-200/60 pt-1.5 text-[10px] text-slate-500">
+                                        <span>By {ann.publisher}</span>
+                                        <span>{ann.published_at ?? '—'}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Top Row: Live Database Metrics */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">

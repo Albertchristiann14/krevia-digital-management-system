@@ -82,8 +82,8 @@ class CashflowService
             ];
         })->values()->all();
 
-        $pipelineEstimateTotal = (float) (($pipelineAgg->get('Proposal Sent')->estimated_total ?? 0)
-            + ($pipelineAgg->get('Negotiation')->estimated_total ?? 0));
+        $pipelineEstimateTotal = (float) (($pipelineAgg->get('Proposal Sent')?->estimated_total ?? 0)
+            + ($pipelineAgg->get('Negotiation')?->estimated_total ?? 0));
 
         return [
             'opening_cash_balance' => $openingCash,

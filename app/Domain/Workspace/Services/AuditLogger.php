@@ -17,11 +17,15 @@ class AuditLogger
         ?array $newValues = null,
         ?int $actorId = null
     ): AuditLog {
+        $key = $subject?->getKey();
+        $isNumericKey = $key !== null && is_numeric($key);
+
         return AuditLog::create([
             'user_id' => $actorId ?? Auth::id(),
             'event' => $event,
             'auditable_type' => $subject ? $subject::class : null,
-            'auditable_id' => $subject?->getKey(),
+            'auditable_id' => $isNumericKey ? (int) $key : null,
+            'auditable_uuid' => (! $isNumericKey && $key !== null) ? (string) $key : null,
             'summary' => $summary,
             'old_values' => $oldValues,
             'new_values' => $newValues,

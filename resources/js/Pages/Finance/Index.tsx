@@ -1,6 +1,6 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, formatShortDate } from '@/lib/utils';
+import { cn, formatRupiah, formatShortDate } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
@@ -121,11 +121,7 @@ interface FinanceIndexProps extends PageProps {
 
 function formatRp(val: number | null | undefined): string {
     if (val === null || val === undefined) return 'Perlu Konfirmasi Manajemen';
-    return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        maximumFractionDigits: 0,
-    }).format(val);
+    return formatRupiah(val);
 }
 
 export default function FinanceIndex({
