@@ -1,6 +1,7 @@
 import { RaciBadge, StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn } from '@/lib/utils';
 import type {
     DepartmentItem,
     EmployeeProfileItem,
@@ -261,12 +262,13 @@ export default function OrganizationIndex({
                                         <tr key={p.id} className="hover:bg-slate-50/70">
                                             <td className="px-4 py-3.5">
                                                 <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                        style={{ backgroundColor: p.avatar_color }}
-                                                    >
-                                                        {getInitials(p.name)}
-                                                    </div>
+                                                    <UserAvatar
+                                                        name={p.name}
+                                                        avatarUrl={(p as { avatar_url?: string | null }).avatar_url}
+                                                        avatarColor={p.avatar_color}
+                                                        size="sm"
+                                                        className="h-9 w-9"
+                                                    />
                                                     <div>
                                                         <div className="flex items-center gap-2">
                                                             <span className="font-semibold text-slate-900">
@@ -389,12 +391,12 @@ export default function OrganizationIndex({
                                                     style={{ backgroundColor: leader.department_color }}
                                                 />
                                                 <div className="flex items-center gap-3">
-                                                    <div
-                                                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                                                        style={{ backgroundColor: leader.avatar_color }}
-                                                    >
-                                                        {getInitials(leader.name)}
-                                                    </div>
+                                                    <UserAvatar
+                                                        name={leader.name}
+                                                        avatarUrl={(leader as { avatar_url?: string | null }).avatar_url}
+                                                        avatarColor={leader.avatar_color}
+                                                        size="md"
+                                                    />
                                                     <div className="min-w-0">
                                                         <p className="truncate text-sm font-bold text-slate-900">
                                                             {leader.name}
@@ -472,12 +474,12 @@ export default function OrganizationIndex({
                                         : 'text-slate-700 hover:bg-slate-50',
                                 )}
                             >
-                                <div
-                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-white/20"
-                                    style={{ backgroundColor: p.avatar_color }}
-                                >
-                                    {getInitials(p.name)}
-                                </div>
+                                <UserAvatar
+                                    name={p.name}
+                                    avatarUrl={(p as { avatar_url?: string | null }).avatar_url}
+                                    avatarColor={p.avatar_color}
+                                    size="sm"
+                                />
                                 <div className="min-w-0">
                                     <p className="truncate text-xs font-semibold">{p.name}</p>
                                     <p
@@ -891,12 +893,13 @@ function OrgMemberCard({ member }: { member: EmployeeProfileItem }) {
     return (
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
             <div className="flex items-center gap-3">
-                <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                    style={{ backgroundColor: member.avatar_color }}
-                >
-                    {getInitials(member.name)}
-                </div>
+                <UserAvatar
+                    name={member.name}
+                    avatarUrl={(member as { avatar_url?: string | null }).avatar_url}
+                    avatarColor={member.avatar_color}
+                    size="sm"
+                    className="h-9 w-9"
+                />
                 <div className="min-w-0">
                     <p className="truncate text-sm font-bold text-slate-900">{member.name}</p>
                     <p className="truncate text-xs text-slate-500">{member.position}</p>

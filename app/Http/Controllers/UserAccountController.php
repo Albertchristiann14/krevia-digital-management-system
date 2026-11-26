@@ -37,6 +37,8 @@ class UserAccountController extends Controller
                 'id' => $u->id,
                 'name' => $u->name,
                 'email' => $u->email,
+                'avatar_url' => $u->avatarUrl(),
+                'avatar_color' => $u->employeeProfile?->avatar_color ?? '#101D35',
                 'is_active' => (bool) $u->is_active,
                 'must_change_password' => (bool) $u->must_change_password,
                 'password_updated_at' => $u->password_updated_at?->format('Y-m-d H:i'),

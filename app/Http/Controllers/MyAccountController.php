@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Domain\Workspace\Models\AuditLog;
 use App\Domain\Workspace\Services\AuditLogger;
+use App\Services\Identity\DigitalIdentityService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -134,6 +135,8 @@ class MyAccountController extends Controller
             is_array($user->preferences) ? $user->preferences : []
         );
 
+        $digitalIdentity = app(DigitalIdentityService::class)->ensureForUser($user);
+
         return Inertia::render('MyAccount/Index', [
             'initialTab' => $request->string('tab', 'personal')->toString(),
             'account' => [
@@ -161,6 +164,13 @@ class MyAccountController extends Controller
                 'joined_at' => $profile?->joined_at?->format('Y-m-d'),
                 'account_status' => $user->is_active ? 'Active' : 'Inactive',
             ],
+            'digitalIdentity' => $digitalIdentity ? [
+                'status' => $digitalIdentity->status,
+                'public_url' => $digitalIdentity->publicUrl(),
+                'regenerated_at' => $digitalIdentity->regenerated_at?->format('Y-m-d H:i'),
+                'created_at' => $digitalIdentity->created_at?->format('Y-m-d H:i'),
+            ] : null,
+            'publicVisibility' => $user->publicVisibility(),
             'sessions' => $sessions,
             'sessionDriver' => $sessionDriver,
             'notificationPreferences' => $notifPrefs,

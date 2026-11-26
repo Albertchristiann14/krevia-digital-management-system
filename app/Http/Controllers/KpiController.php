@@ -61,6 +61,7 @@ class KpiController extends Controller
                 'name' => $p->user?->name,
                 'position' => $p->position?->title,
                 'department' => $p->department?->name,
+                'avatar_url' => $p->user?->avatarUrl(),
                 'avatar_color' => $p->avatar_color,
                 'total_weight' => round((float) $defs->sum('weight'), 4),
                 'definitions' => $defs->map(fn (KpiDefinition $d) => [

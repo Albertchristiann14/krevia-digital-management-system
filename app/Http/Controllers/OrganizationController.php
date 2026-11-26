@@ -81,6 +81,7 @@ class OrganizationController extends Controller
                 'capacity_status' => $p->capacity_status,
                 'employment_status' => $p->employment_status,
                 'joined_at' => $p->joined_at?->format('Y-m-d'),
+                'avatar_url' => $p->user?->avatarUrl(),
                 'avatar_color' => $p->avatar_color,
                 'job_description' => $p->position?->jobDescription ? [
                     'purpose' => $p->position->jobDescription->purpose,

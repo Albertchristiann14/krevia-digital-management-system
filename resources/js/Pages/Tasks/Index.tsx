@@ -1,6 +1,7 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn } from '@/lib/utils';
 import type { PageProps, TaskListItem } from '@/types';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -434,12 +435,13 @@ export default function TasksIndex({
                                             </td>
                                             <td className="px-4 py-3 whitespace-nowrap">
                                                 <div className="flex items-center gap-2">
-                                                    <div
-                                                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                                                        style={{ backgroundColor: t.pic_avatar_color }}
-                                                    >
-                                                        {getInitials(t.pic_name ?? 'U')}
-                                                    </div>
+                                                    <UserAvatar
+                                                        name={t.pic_name}
+                                                        avatarUrl={(t as { pic_avatar_url?: string | null }).pic_avatar_url}
+                                                        avatarColor={t.pic_avatar_color}
+                                                        size="xs"
+                                                        className="h-7 w-7"
+                                                    />
                                                     <span className="text-xs font-medium text-slate-800">
                                                         {t.pic_name}
                                                     </span>

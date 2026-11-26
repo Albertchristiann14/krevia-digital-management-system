@@ -1,6 +1,7 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import { Award, CheckCircle2, ClipboardCheck, Scale, Target } from 'lucide-react';
@@ -208,16 +209,12 @@ export default function KpiIndex({
                             )}
                         >
                             <div className="flex items-center gap-2.5">
-                                <span
-                                    className={cn(
-                                        'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                                        activeMember?.user_id === m.user_id
-                                            ? 'bg-white text-[#101D35]'
-                                            : 'bg-[#101D35] text-white',
-                                    )}
-                                >
-                                    {m.name ? getInitials(m.name) : 'KD'}
-                                </span>
+                                <UserAvatar
+                                    name={m.name}
+                                    avatarUrl={(m as { avatar_url?: string | null }).avatar_url}
+                                    avatarColor={m.avatar_color}
+                                    size="sm"
+                                />
                                 <div className="min-w-0">
                                     <p className="truncate text-xs font-bold">{m.name}</p>
                                     <p

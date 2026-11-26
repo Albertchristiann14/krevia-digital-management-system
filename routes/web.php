@@ -6,6 +6,7 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\CrmController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DigitalIdentityController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ImportExportController;
@@ -15,6 +16,7 @@ use App\Http\Controllers\MeetingController;
 use App\Http\Controllers\MyAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
+use App\Http\Controllers\PeopleController;
 use App\Http\Controllers\PortfolioController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskDecisionController;
@@ -22,6 +24,10 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/id/{token}', [DigitalIdentityController::class, 'showPublic'])
+    ->middleware('throttle:30,1')
+    ->name('identity.public');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
@@ -43,6 +49,25 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::delete('/sessions', [MyAccountController::class, 'destroyOtherSessions'])->name('sessions.destroy');
         Route::patch('/notifications', [MyAccountController::class, 'updateNotifications'])->name('notifications.update');
         Route::patch('/preferences', [MyAccountController::class, 'updatePreferences'])->name('preferences.update');
+        Route::post('/identity/regenerate', [DigitalIdentityController::class, 'regenerate'])
+            ->middleware('throttle:10,1')
+            ->name('identity.regenerate');
+        Route::patch('/identity/status', [DigitalIdentityController::class, 'toggleStatus'])
+            ->middleware('throttle:10,1')
+            ->name('identity.status');
+        Route::patch('/identity/visibility', [DigitalIdentityController::class, 'updateVisibility'])
+            ->name('identity.visibility');
+    });
+
+    Route::middleware('permission:organization.view')->group(function () {
+        Route::get('/people', [PeopleController::class, 'index'])->name('people.index');
+        Route::get('/people/{member}', [PeopleController::class, 'show'])->name('people.show');
+        Route::post('/people/{member}/identity/regenerate', [DigitalIdentityController::class, 'regenerateForMember'])
+            ->middleware('throttle:10,1')
+            ->name('people.identity.regenerate');
+        Route::patch('/people/{member}/identity/status', [DigitalIdentityController::class, 'toggleStatusForMember'])
+            ->middleware('throttle:10,1')
+            ->name('people.identity.status');
     });
 
     Route::get('/', fn () => redirect()->route('dashboard'));

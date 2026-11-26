@@ -61,6 +61,7 @@ class DashboardController extends Controller
                 'weekly_capacity_hours' => $p->weekly_capacity_hours !== null ? (float) $p->weekly_capacity_hours : null,
                 'capacity_status' => $p->capacity_status,
                 'coordination_status' => $p->coordination_status,
+                'avatar_url' => $p->user?->avatarUrl(),
                 'avatar_color' => $p->avatar_color,
                 'total_tasks' => $memberTasks->count(),
                 'completed_tasks' => $memberTasks->where('status', 'Completed')->count(),

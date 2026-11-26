@@ -100,6 +100,7 @@ class TaskController extends Controller
             'expected_result' => $t->expected_result,
             'pic_user_id' => $t->pic_user_id,
             'pic_name' => $t->pic?->name,
+            'pic_avatar_url' => $t->pic?->avatarUrl(),
             'pic_avatar_color' => $t->pic?->employeeProfile?->avatar_color ?? '#101D35',
             'department' => $t->pic?->employeeProfile?->department?->name,
             'department_color' => $t->pic?->employeeProfile?->department?->color_hex,

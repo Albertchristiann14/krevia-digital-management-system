@@ -1,6 +1,7 @@
 import { StatCard } from '@/Components/shared/StatCard';
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { getInitials } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
@@ -526,12 +527,13 @@ export default function DashboardIndex({
                                     <tr key={m.id} className="hover:bg-slate-50/70">
                                         <td className="py-2.5 pr-3">
                                             <div className="flex items-center gap-2.5">
-                                                <div
-                                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                                                    style={{ backgroundColor: m.avatar_color }}
-                                                >
-                                                    {getInitials(m.name)}
-                                                </div>
+                                                <UserAvatar
+                                                    name={m.name}
+                                                    avatarUrl={(m as { avatar_url?: string | null }).avatar_url}
+                                                    avatarColor={m.avatar_color}
+                                                    size="xs"
+                                                    className="h-7 w-7"
+                                                />
                                                 <div>
                                                     <p className="font-semibold text-slate-900">{m.name}</p>
                                                     <p className="text-[11px] text-slate-500">{m.department}</p>

@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@custom-variant dark (&:where(.dark, .dark *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -204,4 +205,87 @@
     font-weight: 700;
     color: #0f172a;
     padding: 0.45rem 0.65rem;
+}
+
+/* ==========================================================================
+   Dark Mode Theme Tokens & Global Surface Harmonization
+   ========================================================================== */
+html.dark body {
+    background-color: #0b1220;
+    color: #e2e8f0;
+}
+
+html.dark .org-grid-bg {
+    background-color: #0b1220;
+    background-image: radial-gradient(#1e293b 1px, transparent 1px);
+}
+
+/* Harmonize standard light surface/text/border classes across existing modules when .dark is active */
+html.dark :where(.bg-white) {
+    background-color: #111a2e;
+}
+
+html.dark :where(.bg-\[\#F8FAFC\], .bg-slate-50, .bg-slate-50\/70, .bg-slate-50\/80) {
+    background-color: #0f172a;
+}
+
+html.dark :where(.bg-slate-100) {
+    background-color: #1e293b;
+}
+
+html.dark :where(.border-slate-200, .border-slate-100, .divide-slate-100 > :not(:first-child), .divide-slate-200 > :not(:first-child)) {
+    border-color: #1e293b;
+}
+
+html.dark :where(.text-slate-900, .text-slate-800) {
+    color: #f1f5f9;
+}
+
+html.dark :where(.text-slate-700, .text-slate-600) {
+    color: #cbd5e1;
+}
+
+html.dark :where(.text-slate-500) {
+    color: #94a3b8;
+}
+
+html.dark :where(.hover\:bg-slate-50:hover, .hover\:bg-slate-100:hover) {
+    background-color: #1e293b;
+}
+
+html.dark :where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
+    background-color: #0f172a;
+    border-color: #334155;
+    color: #f1f5f9;
+}
+
+html.dark :where(input::placeholder, textarea::placeholder) {
+    color: #64748b;
+}
+
+/* FullCalendar Dark Mode */
+html.dark .kdms-calendar .fc {
+    --fc-border-color: #1e293b;
+    --fc-today-bg-color: rgba(59, 130, 246, 0.12);
+    --fc-page-bg-color: #111a2e;
+    --fc-neutral-bg-color: #0f172a;
+}
+
+html.dark .kdms-calendar .fc .fc-toolbar-title {
+    color: #f1f5f9;
+}
+
+html.dark .kdms-calendar .fc .fc-button-primary {
+    background-color: #1e293b;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+/* Preserve print legibility */
+@media print {
+    html.dark body,
+    html.dark :where(.bg-white) {
+        background-color: #ffffff !important;
+        color: #0f172a !important;
+    }
 }

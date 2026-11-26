@@ -1,7 +1,8 @@
+import { useEffect, useState } from 'react';
 import { cn, getInitials } from '@/lib/utils';
 
 interface UserAvatarProps {
-    name: string;
+    name?: string | null;
     avatarUrl?: string | null;
     avatarColor?: string | null;
     size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -23,13 +24,22 @@ export function UserAvatar({
     size = 'sm',
     className,
 }: UserAvatarProps) {
-    if (avatarUrl) {
+    const [imgFailed, setImgFailed] = useState(false);
+
+    useEffect(() => {
+        setImgFailed(false);
+    }, [avatarUrl]);
+
+    const displayName = name?.trim() || 'Krevia Member';
+
+    if (avatarUrl && !imgFailed) {
         return (
             <img
                 src={avatarUrl}
-                alt={name}
+                alt={displayName}
+                onError={() => setImgFailed(true)}
                 className={cn(
-                    'shrink-0 rounded-full object-cover ring-1 ring-slate-200',
+                    'shrink-0 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700',
                     SIZE_CLASSES[size],
                     className,
                 )}
@@ -39,14 +49,15 @@ export function UserAvatar({
 
     return (
         <div
+            aria-label={displayName}
             className={cn(
-                'flex shrink-0 items-center justify-center rounded-full font-bold text-white',
+                'flex shrink-0 items-center justify-center rounded-full font-bold text-white ring-1 ring-white/10',
                 SIZE_CLASSES[size],
                 className,
             )}
             style={{ backgroundColor: avatarColor || '#101D35' }}
         >
-            {getInitials(name)}
+            {name?.trim() ? getInitials(displayName) : 'KD'}
         </div>
     );
 }

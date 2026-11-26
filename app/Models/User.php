@@ -51,6 +51,7 @@ class User extends Authenticatable
         'last_login_ip',
         'notification_preferences',
         'preferences',
+        'public_visibility',
     ];
 
     protected $hidden = [
@@ -69,12 +70,45 @@ class User extends Authenticatable
             'password' => 'hashed',
             'notification_preferences' => 'array',
             'preferences' => 'array',
+            'public_visibility' => 'array',
         ];
     }
 
     public function avatarUrl(): ?string
     {
-        return $this->avatar_path ? '/storage/'.ltrim($this->avatar_path, '/') : null;
+        if (! $this->avatar_path) {
+            return null;
+        }
+
+        $base = '/storage/'.ltrim($this->avatar_path, '/');
+        $version = $this->updated_at?->timestamp;
+
+        return $version ? "{$base}?v={$version}" : $base;
+    }
+
+    /**
+     * @return array{show_email: bool, show_whatsapp: bool}
+     */
+    public function publicVisibility(): array
+    {
+        $raw = is_array($this->public_visibility) ? $this->public_visibility : [];
+
+        return [
+            'show_email' => (bool) ($raw['show_email'] ?? false),
+            'show_whatsapp' => (bool) ($raw['show_whatsapp'] ?? false),
+        ];
+    }
+
+    public function digitalIdentities(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(DigitalIdentity::class);
+    }
+
+    public function activeDigitalIdentity(): HasOne
+    {
+        return $this->hasOne(DigitalIdentity::class)
+            ->whereIn('status', [DigitalIdentity::STATUS_ACTIVE, DigitalIdentity::STATUS_INACTIVE])
+            ->latestOfMany('id');
     }
 
     public function employeeProfile(): HasOne

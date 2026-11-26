@@ -8,6 +8,7 @@ import {
     Camera,
     CheckCircle2,
     Clock,
+    ExternalLink,
     Globe,
     KeyRound,
     Laptop,
@@ -16,7 +17,10 @@ import {
     MessageSquare,
     Monitor,
     Palette,
+    Power,
     Printer,
+    QrCode,
+    RefreshCw,
     Shield,
     ShieldAlert,
     SlidersHorizontal,
@@ -26,6 +30,7 @@ import {
     User as UserIcon,
 } from 'lucide-react';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { QrIdentityWidget } from '@/Components/shared/QrIdentityWidget';
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { AppShell } from '@/Layouts/AppShell';
@@ -102,10 +107,24 @@ interface PaginatorLink {
     active: boolean;
 }
 
+interface DigitalIdentityData {
+    status: 'active' | 'inactive' | 'revoked';
+    public_url: string | null;
+    regenerated_at: string | null;
+    created_at: string | null;
+}
+
+interface PublicVisibilityData {
+    show_email: boolean;
+    show_whatsapp: boolean;
+}
+
 interface MyAccountProps {
     initialTab: TabKey;
     account: AccountData;
     organizationIdentity: OrganizationIdentityData;
+    digitalIdentity: DigitalIdentityData | null;
+    publicVisibility: PublicVisibilityData;
     sessions: SessionItem[];
     sessionDriver: string;
     notificationPreferences: NotificationPreferencesData;
@@ -206,6 +225,8 @@ export default function MyAccountIndex({
     initialTab,
     account,
     organizationIdentity,
+    digitalIdentity,
+    publicVisibility,
     sessions,
     sessionDriver,
     notificationPreferences,
@@ -214,6 +235,8 @@ export default function MyAccountIndex({
     activityFilters,
 }: MyAccountProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab ?? 'personal');
+    const [confirmingRegenerate, setConfirmingRegenerate] = useState(false);
+    const [qrProcessing, setQrProcessing] = useState(false);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
     const [avatarUploading, setAvatarUploading] = useState(false);
@@ -763,16 +786,227 @@ export default function MyAccountIndex({
                                                 {organizationIdentity.employment_status}
                                             </p>
                                         </div>
-                                        <div className="rounded-xl bg-slate-50 p-3.5">
+                                        <div className="rounded-xl bg-slate-50 p-3.5 dark:bg-slate-800/60">
                                             <p className="text-[11px] font-medium text-slate-400 uppercase">
                                                 Joined Date
                                             </p>
-                                            <p className="mt-1 text-sm font-semibold text-slate-900">
+                                            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
                                                 {organizationIdentity.joined_at ?? '—'}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* QR Code & Public Contact Visibility */}
+                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12 print:hidden">
+                                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-7">
+                                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-4 dark:border-slate-800">
+                                        <div className="flex items-center gap-2">
+                                            <QrCode className="h-4 w-4 text-[#101D35] dark:text-blue-400" />
+                                            <div>
+                                                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                    Digital Identity QR Code
+                                                </h3>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    Scan to open your verified Krevia Digital business card.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <StatusBadge
+                                            label={
+                                                digitalIdentity?.status === 'active'
+                                                    ? 'Active'
+                                                    : 'Inactive'
+                                            }
+                                            tone={
+                                                digitalIdentity?.status === 'active'
+                                                    ? 'emerald'
+                                                    : 'amber'
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
+                                        <QrIdentityWidget
+                                            value={digitalIdentity?.public_url ?? null}
+                                            status={digitalIdentity?.status ?? 'inactive'}
+                                            fileName={`krevia-id-${organizationIdentity.employee_code}`}
+                                        />
+
+                                        <div className="flex-1 space-y-3 text-xs">
+                                            <div className="rounded-lg bg-slate-50 p-3 dark:bg-slate-800/60">
+                                                <p className="text-[11px] text-slate-400">
+                                                    Last Regenerated
+                                                </p>
+                                                <p className="mt-0.5 font-medium text-slate-800 dark:text-slate-200">
+                                                    {digitalIdentity?.regenerated_at ?? 'Initial QR active'}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                {digitalIdentity?.status === 'active' &&
+                                                    digitalIdentity?.public_url && (
+                                                        <a
+                                                            href={digitalIdentity.public_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#101D35] px-3 py-2 text-xs font-semibold text-white hover:bg-[#192c4f] dark:bg-blue-600 dark:hover:bg-blue-700"
+                                                        >
+                                                            <ExternalLink className="h-3.5 w-3.5" />
+                                                            Preview Digital Identity
+                                                        </a>
+                                                    )}
+
+                                                <button
+                                                    type="button"
+                                                    disabled={qrProcessing}
+                                                    onClick={() => {
+                                                        setQrProcessing(true);
+                                                        router.patch(
+                                                            '/my-account/identity/status',
+                                                            {
+                                                                active:
+                                                                    digitalIdentity?.status !== 'active',
+                                                            },
+                                                            {
+                                                                preserveScroll: true,
+                                                                onFinish: () => setQrProcessing(false),
+                                                            },
+                                                        );
+                                                    }}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                                                >
+                                                    <Power className="h-3.5 w-3.5" />
+                                                    {digitalIdentity?.status === 'active'
+                                                        ? 'Deactivate QR'
+                                                        : 'Activate QR'}
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    disabled={qrProcessing}
+                                                    onClick={() => setConfirmingRegenerate(true)}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800 hover:bg-amber-100 dark:border-amber-800/60 dark:bg-amber-950/60 dark:text-amber-300"
+                                                >
+                                                    <RefreshCw className="h-3.5 w-3.5" />
+                                                    Regenerate QR
+                                                </button>
+                                            </div>
+
+                                            {confirmingRegenerate && (
+                                                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/60 dark:bg-amber-950/50">
+                                                    <p className="font-semibold text-amber-900 dark:text-amber-200">
+                                                        Regenerate QR Code?
+                                                    </p>
+                                                    <p className="mt-1 text-[11px] text-amber-800 dark:text-amber-300">
+                                                        Your previous QR URL will be permanently
+                                                        revoked and stop working immediately.
+                                                    </p>
+                                                    <div className="mt-2.5 flex gap-2">
+                                                        <button
+                                                            type="button"
+                                                            disabled={qrProcessing}
+                                                            onClick={() => {
+                                                                setQrProcessing(true);
+                                                                router.post(
+                                                                    '/my-account/identity/regenerate',
+                                                                    {},
+                                                                    {
+                                                                        preserveScroll: true,
+                                                                        onFinish: () => {
+                                                                            setQrProcessing(false);
+                                                                            setConfirmingRegenerate(false);
+                                                                        },
+                                                                    },
+                                                                );
+                                                            }}
+                                                            className="rounded-lg bg-amber-700 px-3 py-1.5 text-[11px] font-semibold text-white hover:bg-amber-800"
+                                                        >
+                                                            Confirm Regenerate
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setConfirmingRegenerate(false)
+                                                            }
+                                                            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900 lg:col-span-5">
+                                    <div className="mb-4 border-b border-slate-100 pb-4 dark:border-slate-800">
+                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                            Public Contact Visibility
+                                        </h3>
+                                        <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                                            Control which contact details appear on your public QR
+                                            landing page.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                                            <div>
+                                                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                                                    Show Professional Email
+                                                </p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    Allow QR scanners to see and email {account.email}
+                                                </p>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={publicVisibility.show_email}
+                                                onChange={(e) =>
+                                                    router.patch(
+                                                        '/my-account/identity/visibility',
+                                                        {
+                                                            show_email: e.target.checked,
+                                                            show_whatsapp:
+                                                                publicVisibility.show_whatsapp,
+                                                        },
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                                className="h-4 w-4 rounded border-slate-300 text-[#101D35]"
+                                            />
+                                        </label>
+
+                                        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                                            <div>
+                                                <p className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                                                    Show WhatsApp Number
+                                                </p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    Allow QR scanners to contact your WhatsApp
+                                                </p>
+                                            </div>
+                                            <input
+                                                type="checkbox"
+                                                checked={publicVisibility.show_whatsapp}
+                                                onChange={(e) =>
+                                                    router.patch(
+                                                        '/my-account/identity/visibility',
+                                                        {
+                                                            show_email: publicVisibility.show_email,
+                                                            show_whatsapp: e.target.checked,
+                                                        },
+                                                        { preserveScroll: true },
+                                                    )
+                                                }
+                                                className="h-4 w-4 rounded border-slate-300 text-[#101D35]"
+                                            />
+                                        </label>
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     )}

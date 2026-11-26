@@ -1,6 +1,7 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, router, useForm } from '@inertiajs/react';
 import {
@@ -174,9 +175,12 @@ export default function Accounts({
                                     <tr key={acc.id} className={cn(isArchived && 'bg-slate-50/70 opacity-70')}>
                                         <td className="px-4 py-3 align-top">
                                             <div className="flex items-center gap-2.5">
-                                                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#101D35] text-xs font-bold text-white">
-                                                    {getInitials(acc.name)}
-                                                </span>
+                                                <UserAvatar
+                                                    name={acc.name}
+                                                    avatarUrl={(acc as { avatar_url?: string | null }).avatar_url}
+                                                    avatarColor={(acc as { avatar_color?: string | null }).avatar_color}
+                                                    size="sm"
+                                                />
                                                 <div>
                                                     <div className="font-bold text-[#101D35]">
                                                         {acc.name}{' '}

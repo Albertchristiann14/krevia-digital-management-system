@@ -24,6 +24,8 @@ import {
     MailCheck,
     Megaphone,
     Menu,
+    Monitor,
+    Moon,
     NotebookPen,
     PanelLeftClose,
     PanelLeftOpen,
@@ -31,9 +33,11 @@ import {
     Radio,
     ShieldAlert,
     ShieldCheck,
+    Sun,
     Target,
     UserCircle,
     UserCog,
+    Users,
     Wallet,
     X,
 } from 'lucide-react';
@@ -235,6 +239,18 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
                 matchPrefix: '/admin/notifications-settings',
                 icon: MailCheck,
                 permission: 'users.manage',
+            },
+        ],
+    },
+    {
+        title: 'People',
+        items: [
+            {
+                label: 'People',
+                href: '/people',
+                matchPrefix: '/people',
+                icon: Users,
+                permission: 'organization.view',
             },
         ],
     },
@@ -483,6 +499,7 @@ export function AppShell({
 
     const user = auth.user;
     const unreadCount = auth.unreadNotificationsCount ?? 0;
+    const activeTheme = user?.preferences?.theme ?? 'light';
 
     useEffect(() => {
         if (typeof document === 'undefined' || !user?.preferences) {
@@ -490,14 +507,55 @@ export function AppShell({
         }
         const root = document.documentElement;
         const theme = user.preferences.theme ?? 'light';
-        const prefersDark =
-            theme === 'dark' ||
-            (theme === 'system' &&
-                typeof window !== 'undefined' &&
-                window.matchMedia('(prefers-color-scheme: dark)').matches);
-        root.classList.toggle('dark', prefersDark);
+        try {
+            localStorage.setItem('kdms_theme', theme);
+        } catch {
+            // Ignore storage errors
+        }
+
+        const applyTheme = () => {
+            const prefersDark =
+                theme === 'dark' ||
+                (theme === 'system' &&
+                    typeof window !== 'undefined' &&
+                    window.matchMedia('(prefers-color-scheme: dark)').matches);
+            root.classList.toggle('dark', prefersDark);
+        };
+
+        applyTheme();
         root.setAttribute('data-density', user.preferences.compact_mode ?? 'comfortable');
+
+        if (theme === 'system' && typeof window !== 'undefined') {
+            const media = window.matchMedia('(prefers-color-scheme: dark)');
+            media.addEventListener('change', applyTheme);
+            return () => media.removeEventListener('change', applyTheme);
+        }
     }, [user?.preferences?.theme, user?.preferences?.compact_mode]);
+
+    const cycleTheme = () => {
+        if (!user) {
+            return;
+        }
+        const order: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+        const currentIdx = order.indexOf(activeTheme);
+        const nextTheme = order[(currentIdx + 1) % order.length];
+        try {
+            localStorage.setItem('kdms_theme', nextTheme);
+        } catch {
+            // Ignore
+        }
+        router.patch(
+            '/my-account/preferences',
+            {
+                theme: nextTheme,
+                language: user.preferences?.language ?? 'en',
+                timezone: user.preferences?.timezone ?? 'Asia/Jakarta',
+                date_format: user.preferences?.date_format ?? 'DD/MM/YYYY',
+                compact_mode: user.preferences?.compact_mode ?? 'comfortable',
+            },
+            { preserveScroll: true, preserveState: true },
+        );
+    };
     const perms = useMemo(() => new Set(user?.permissions ?? []), [user?.permissions]);
 
     const canSee = (item: NavItem) => !item.permission || perms.has(item.permission);
@@ -628,15 +686,32 @@ export function AppShell({
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                        <div className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 sm:inline-flex">
-                            <CalendarRange className="h-3.5 w-3.5 text-[#101D35]" />
+                        <div className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                            <CalendarRange className="h-3.5 w-3.5 text-[#101D35] dark:text-blue-400" />
                             <span>{app.period}</span>
                         </div>
+
+                        {user && (
+                            <button
+                                type="button"
+                                onClick={cycleTheme}
+                                title={`Theme: ${activeTheme} (click to switch)`}
+                                className="rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                            >
+                                {activeTheme === 'dark' ? (
+                                    <Moon className="h-4 w-4" />
+                                ) : activeTheme === 'system' ? (
+                                    <Monitor className="h-4 w-4" />
+                                ) : (
+                                    <Sun className="h-4 w-4" />
+                                )}
+                            </button>
+                        )}
 
                         <Link
                             href="/notifications"
                             prefetch
-                            className="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50"
+                            className="relative rounded-lg border border-slate-200 bg-white p-2 text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                             title="Notifications"
                         >
                             <Bell className="h-4 w-4" />
