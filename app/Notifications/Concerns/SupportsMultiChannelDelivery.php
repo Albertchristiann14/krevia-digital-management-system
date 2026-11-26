@@ -33,7 +33,29 @@ trait SupportsMultiChannelDelivery
         $allowEmail = property_exists($this, 'sendEmail') ? (bool) $this->sendEmail : true;
         $allowWa = property_exists($this, 'sendWhatsApp') ? (bool) $this->sendWhatsApp : true;
 
-        if ($allowEmail && $setting->mail_enabled && ($profile?->notify_via_email ?? true)) {
+        $isMandatorySecurity = property_exists($this, 'isMandatorySecurity') && (bool) $this->isMandatorySecurity;
+        $prefs = $notifiable->notification_preferences ?? [];
+        $prefKey = match (class_basename($this)) {
+            'AnnouncementNotification' => 'announcements',
+            'TaskNotification' => (isset($this->category) && str_contains(strtolower((string) $this->category), 'assign'))
+                ? 'task_assignment'
+                : ((isset($this->category) && str_contains(strtolower((string) $this->category), 'comment'))
+                    ? 'task_comments'
+                    : 'task_deadline_reminder'),
+            default => 'general_system',
+        };
+
+        $categoryEnabled = $isMandatorySecurity || (bool) ($prefs['categories'][$prefKey] ?? true);
+        if (! $categoryEnabled) {
+            return $channels;
+        }
+
+        $prefInApp = $isMandatorySecurity || (bool) ($prefs['channels']['in_app'] ?? true);
+        if (! $prefInApp) {
+            $channels = [];
+        }
+
+        if ($allowEmail && $setting->mail_enabled && ($isMandatorySecurity || (($profile?->notify_via_email ?? true) && ($prefs['channels']['email'] ?? true)))) {
             $channels[] = 'mail';
             app(NotificationDispatchService::class)->logDelivery(
                 'mail',
@@ -48,7 +70,7 @@ trait SupportsMultiChannelDelivery
         if (
             $allowWa
             && $setting->whatsapp_enabled
-            && ($profile?->notify_via_whatsapp ?? true)
+            && ($isMandatorySecurity || (($profile?->notify_via_whatsapp ?? true) && ($prefs['channels']['whatsapp'] ?? true)))
             && $notifiable->routeNotificationForWhatsApp() !== null
         ) {
             $channels[] = WhatsAppChannel::class;

@@ -9,12 +9,24 @@ export interface AuthUserProfile {
     notification_email?: string | null;
 }
 
+export interface UserPersonalPreferences {
+    theme: 'light' | 'dark' | 'system';
+    language: 'id' | 'en';
+    timezone: string;
+    date_format: 'DD/MM/YYYY' | 'YYYY-MM-DD' | 'MM/DD/YYYY';
+    compact_mode: 'comfortable' | 'compact';
+}
+
 export interface AuthUser {
     id: number;
     name: string;
     email: string;
+    avatar_url?: string | null;
     is_active: boolean;
     must_change_password?: boolean;
+    last_login_at?: string | null;
+    last_login_ip?: string | null;
+    preferences?: UserPersonalPreferences;
     roles: string[];
     permissions: string[];
     can_manage_finance: boolean;

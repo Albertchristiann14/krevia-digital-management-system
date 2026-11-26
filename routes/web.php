@@ -12,6 +12,7 @@ use App\Http\Controllers\ImportExportController;
 use App\Http\Controllers\KpiController;
 use App\Http\Controllers\MarketingController;
 use App\Http\Controllers\MeetingController;
+use App\Http\Controllers\MyAccountController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\OrganizationController;
 use App\Http\Controllers\PortfolioController;
@@ -32,6 +33,17 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active.user'])->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
     Route::put('/profile/password', [UserAccountController::class, 'updateOwnPassword'])->name('profile.password.update');
+
+    Route::prefix('my-account')->name('my-account.')->group(function () {
+        Route::get('/', [MyAccountController::class, 'index'])->name('index');
+        Route::patch('/profile', [MyAccountController::class, 'updateProfile'])->name('profile.update');
+        Route::post('/avatar', [MyAccountController::class, 'uploadAvatar'])->name('avatar.store');
+        Route::delete('/avatar', [MyAccountController::class, 'removeAvatar'])->name('avatar.destroy');
+        Route::put('/password', [MyAccountController::class, 'updatePassword'])->name('password.update');
+        Route::delete('/sessions', [MyAccountController::class, 'destroyOtherSessions'])->name('sessions.destroy');
+        Route::patch('/notifications', [MyAccountController::class, 'updateNotifications'])->name('notifications.update');
+        Route::patch('/preferences', [MyAccountController::class, 'updatePreferences'])->name('preferences.update');
+    });
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

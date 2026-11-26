@@ -44,7 +44,10 @@ class AuthenticatedSessionController extends Controller
         }
 
         $request->session()->regenerate();
-        $user->forceFill(['last_login_at' => now()])->save();
+        $user->forceFill([
+            'last_login_at' => now(),
+            'last_login_ip' => $request->ip(),
+        ])->save();
 
         $audit->log('auth.login', "User {$user->name} signed in.", $user);
 

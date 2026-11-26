@@ -42,11 +42,15 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'avatar_path',
         'password',
         'is_active',
         'must_change_password',
         'password_updated_at',
         'last_login_at',
+        'last_login_ip',
+        'notification_preferences',
+        'preferences',
     ];
 
     protected $hidden = [
@@ -63,7 +67,14 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'must_change_password' => 'boolean',
             'password' => 'hashed',
+            'notification_preferences' => 'array',
+            'preferences' => 'array',
         ];
+    }
+
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? '/storage/'.ltrim($this->avatar_path, '/') : null;
     }
 
     public function employeeProfile(): HasOne

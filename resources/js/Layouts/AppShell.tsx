@@ -1,4 +1,5 @@
-import { cn, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
@@ -31,6 +32,7 @@ import {
     ShieldAlert,
     ShieldCheck,
     Target,
+    UserCircle,
     UserCog,
     Wallet,
     X,
@@ -236,6 +238,17 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
             },
         ],
     },
+    {
+        title: 'My Account',
+        items: [
+            {
+                label: 'My Account',
+                href: '/my-account',
+                matchPrefix: '/my-account',
+                icon: UserCircle,
+            },
+        ],
+    },
 ];
 
 const SIDEBAR_COLLAPSED_KEY = 'kdms.sidebar.collapsed';
@@ -411,13 +424,13 @@ function SidebarContent({
                             compact ? 'justify-center p-1.5' : 'gap-3 p-2.5',
                         )}
                     >
-                        <div
-                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white ring-1 ring-white/20"
-                            style={{ backgroundColor: user.profile?.avatar_color ?? '#1E3A5F' }}
-                            title={compact ? `${user.name} (${user.roles[0] ?? 'Member'})` : undefined}
-                        >
-                            {getInitials(user.name)}
-                        </div>
+                        <UserAvatar
+                            name={user.name}
+                            avatarUrl={user.avatar_url}
+                            avatarColor={user.profile?.avatar_color ?? '#1E3A5F'}
+                            size="sm"
+                            className="ring-1 ring-white/20"
+                        />
                         {!compact && (
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-white">{user.name}</p>
@@ -470,6 +483,21 @@ export function AppShell({
 
     const user = auth.user;
     const unreadCount = auth.unreadNotificationsCount ?? 0;
+
+    useEffect(() => {
+        if (typeof document === 'undefined' || !user?.preferences) {
+            return;
+        }
+        const root = document.documentElement;
+        const theme = user.preferences.theme ?? 'light';
+        const prefersDark =
+            theme === 'dark' ||
+            (theme === 'system' &&
+                typeof window !== 'undefined' &&
+                window.matchMedia('(prefers-color-scheme: dark)').matches);
+        root.classList.toggle('dark', prefersDark);
+        root.setAttribute('data-density', user.preferences.compact_mode ?? 'comfortable');
+    }, [user?.preferences?.theme, user?.preferences?.compact_mode]);
     const perms = useMemo(() => new Set(user?.permissions ?? []), [user?.permissions]);
 
     const canSee = (item: NavItem) => !item.permission || perms.has(item.permission);
@@ -621,20 +649,22 @@ export function AppShell({
 
                         {user && (
                             <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
-                                <div
-                                    className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                                    style={{ backgroundColor: user.profile?.avatar_color ?? '#101D35' }}
-                                >
-                                    {getInitials(user.name)}
-                                </div>
-                                <div className="hidden text-left sm:block">
-                                    <p className="text-xs leading-none font-semibold text-slate-800">
-                                        {user.name}
-                                    </p>
-                                    <p className="mt-0.5 text-[10px] leading-none text-slate-500">
-                                        {user.profile?.department ?? user.roles[0]}
-                                    </p>
-                                </div>
+                                <Link href="/my-account" prefetch className="flex items-center gap-2 hover:opacity-85">
+                                    <UserAvatar
+                                        name={user.name}
+                                        avatarUrl={user.avatar_url}
+                                        avatarColor={user.profile?.avatar_color ?? '#101D35'}
+                                        size="xs"
+                                    />
+                                    <div className="hidden text-left sm:block">
+                                        <p className="text-xs leading-none font-semibold text-slate-800">
+                                            {user.name}
+                                        </p>
+                                        <p className="mt-0.5 text-[10px] leading-none text-slate-500">
+                                            {user.profile?.department ?? user.roles[0]}
+                                        </p>
+                                    </div>
+                                </Link>
                                 <button
                                     type="button"
                                     onClick={() => setShowOwnPasswordModal(true)}
