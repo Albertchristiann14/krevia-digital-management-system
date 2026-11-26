@@ -8,7 +8,11 @@
         <script>
             (function () {
                 try {
-                    var theme = localStorage.getItem('kdms_theme') || 'light';
+                    var serverTheme = @json(auth()->user()?->preferences['theme'] ?? null);
+                    var theme = serverTheme || localStorage.getItem('kdms_theme') || 'light';
+                    if (serverTheme) {
+                        localStorage.setItem('kdms_theme', serverTheme);
+                    }
                     var isDark =
                         theme === 'dark' ||
                         (theme === 'system' &&

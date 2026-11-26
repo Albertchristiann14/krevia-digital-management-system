@@ -275,6 +275,22 @@ export default function MyAccountIndex({
         compact_mode: personalPreferences.compact_mode,
     });
 
+    useEffect(() => {
+        prefForm.setData({
+            theme: personalPreferences.theme,
+            language: personalPreferences.language,
+            timezone: personalPreferences.timezone,
+            date_format: personalPreferences.date_format,
+            compact_mode: personalPreferences.compact_mode,
+        });
+    }, [
+        personalPreferences.theme,
+        personalPreferences.language,
+        personalPreferences.timezone,
+        personalPreferences.date_format,
+        personalPreferences.compact_mode,
+    ]);
+
     const groupedActivities = useMemo(() => {
         const groups: Record<string, ActivityItem[]> = {};
         for (const item of activities.data) {
