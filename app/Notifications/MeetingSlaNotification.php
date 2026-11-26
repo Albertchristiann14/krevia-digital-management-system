@@ -25,11 +25,23 @@ class MeetingSlaNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->buildKdmsMail(
-            "Meeting SLA · {$this->meeting->code}",
-            $this->message,
-            'Buka Meetings & Evaluation',
-            '/governance/meetings'
+        return $this->buildKdmsViewMail(
+            "[DMS] Meeting SLA: {$this->meeting->code}",
+            'emails.notifications.generic',
+            [
+                'preheader' => mb_strimwidth($this->message, 0, 110, '...'),
+                'categoryBadge' => 'Governance',
+                'headline' => "Pengingat SLA Meeting {$this->meeting->code}",
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'messageText' => $this->message,
+                'details' => array_filter([
+                    'Kode Meeting' => $this->meeting->code,
+                    'Forum' => $this->meeting->forum_name,
+                    'Tanggal' => $this->meeting->scheduled_date?->format('d M Y'),
+                ]),
+                'actionLabel' => 'Open Meetings',
+                'actionUrl' => route('governance.meetings.index'),
+            ]
         );
     }
 

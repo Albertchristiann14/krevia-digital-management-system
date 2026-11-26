@@ -2,7 +2,6 @@
 
 namespace App\Notifications\Concerns;
 
-use App\Domain\Workspace\Models\NotificationSetting;
 use App\Models\User;
 use App\Notifications\Channels\WhatsAppChannel;
 use App\Services\Notifications\NotificationDispatchService;
@@ -41,7 +40,7 @@ trait SupportsMultiChannelDelivery
                 $notifiable,
                 $notifiable->routeNotificationForMail(),
                 method_exists($this, 'whatsappSubject') ? $this->whatsappSubject() : class_basename($this),
-                method_exists($this, 'toWhatsApp') ? $this->toWhatsApp($notifiable) : 'KDMS Email Notification',
+                'Queued/dispatched via KDMS Mail template',
                 'sent'
             );
         }
@@ -58,17 +57,40 @@ trait SupportsMultiChannelDelivery
         return $channels;
     }
 
-    protected function buildKdmsMail(string $subject, string $body, ?string $actionLabel = null, ?string $actionUrl = null): MailMessage
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    protected function buildKdmsViewMail(string $subject, string $view, array $data): MailMessage
     {
-        $mail = (new MailMessage)
-            ->subject("[KDMS] {$subject}")
-            ->greeting('Halo Tim Krevia Digital,')
-            ->line($body);
+        return (new MailMessage)
+            ->subject($subject)
+            ->view($view, array_merge([
+                'emailTitle' => $subject,
+            ], $data));
+    }
 
-        if ($actionLabel && $actionUrl) {
-            $mail->action($actionLabel, url($actionUrl));
-        }
+    protected function buildKdmsMail(
+        string $subject,
+        string $body,
+        ?string $actionLabel = null,
+        ?string $actionUrl = null,
+        ?object $notifiable = null,
+        string $categoryBadge = 'Notification'
+    ): MailMessage {
+        $recipientName = $notifiable?->name ?? 'Tim Krevia Digital';
 
-        return $mail->salutation('— Krevia Digital Management System (Build Smarter. Operate Better.)');
+        return $this->buildKdmsViewMail(
+            "[DMS] {$subject}",
+            'emails.notifications.generic',
+            [
+                'preheader' => mb_strimwidth($body, 0, 110, '...'),
+                'categoryBadge' => $categoryBadge,
+                'headline' => $subject,
+                'recipientName' => $recipientName,
+                'messageText' => $body,
+                'actionLabel' => $actionLabel,
+                'actionUrl' => $actionUrl ? url($actionUrl) : null,
+            ]
+        );
     }
 }

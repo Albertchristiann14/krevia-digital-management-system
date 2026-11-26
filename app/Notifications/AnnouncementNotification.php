@@ -29,11 +29,28 @@ class AnnouncementNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->buildKdmsMail(
-            "[{$this->announcement->priority}] {$this->announcement->title}",
-            $this->announcement->body,
-            'Buka Pengumuman di KDMS',
-            '/announcements'
+        $publisherName = $this->announcement->relationLoaded('publisher')
+            ? $this->announcement->publisher?->name
+            : null;
+
+        return $this->buildKdmsViewMail(
+            "[DMS] New Announcement: {$this->announcement->title}",
+            'emails.notifications.announcement',
+            [
+                'preheader' => mb_strimwidth($this->announcement->body, 0, 110, '...'),
+                'categoryBadge' => 'Announcement',
+                'headline' => $this->announcement->title,
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'bodyText' => $this->announcement->body,
+                'details' => array_filter([
+                    'Kode' => $this->announcement->code,
+                    'Prioritas' => $this->announcement->priority,
+                    'Dipublikasikan Oleh' => $publisherName,
+                    'Tanggal Publikasi' => $this->announcement->published_at?->format('d M Y H:i'),
+                ]),
+                'actionLabel' => 'View Announcement',
+                'actionUrl' => route('announcements.index'),
+            ]
         );
     }
 

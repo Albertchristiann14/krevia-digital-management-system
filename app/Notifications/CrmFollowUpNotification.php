@@ -22,12 +22,26 @@ class CrmFollowUpNotification extends Notification
     public function toMail(object $notifiable): MailMessage
     {
         $lead = $this->followUp->lead;
+        $companyName = $lead?->company?->name ?? 'Prospek';
+        $dueDate = $this->followUp->due_at?->format('d M Y') ?? '-';
 
-        return $this->buildKdmsMail(
-            "CRM Follow-Up {$lead->code} — {$lead->company->name}",
-            "Follow-up prospek {$lead->code} ({$lead->company->name}) dijadwalkan pada {$this->followUp->due_at->format('Y-m-d')}.",
-            'Buka Prospek CRM',
-            "/crm/leads/{$lead->id}"
+        return $this->buildKdmsViewMail(
+            "[DMS] CRM Follow-Up: {$lead->code} — {$companyName}",
+            'emails.notifications.generic',
+            [
+                'preheader' => "Follow-up prospek {$lead->code} ({$companyName}) dijadwalkan pada {$dueDate}.",
+                'categoryBadge' => 'CRM Follow-Up',
+                'headline' => "Follow-Up Prospek {$lead->code}",
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'messageText' => "Follow-up prospek {$lead->code} ({$companyName}) dijadwalkan pada {$dueDate}.",
+                'details' => [
+                    'Kode Prospek' => $lead->code,
+                    'Perusahaan' => $companyName,
+                    'Jatuh Tempo' => $dueDate,
+                ],
+                'actionLabel' => 'Open CRM Lead',
+                'actionUrl' => route('crm.leads.show', $lead),
+            ]
         );
     }
 

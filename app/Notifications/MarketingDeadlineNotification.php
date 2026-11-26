@@ -25,11 +25,24 @@ class MarketingDeadlineNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->buildKdmsMail(
-            "Konten {$this->contentItem->code} ({$this->contentItem->platform})",
-            $this->message,
-            'Buka Kalender Konten',
-            "/marketing/content/{$this->contentItem->id}"
+        return $this->buildKdmsViewMail(
+            "[DMS] Content Reminder: {$this->contentItem->code}",
+            'emails.notifications.generic',
+            [
+                'preheader' => mb_strimwidth($this->message, 0, 110, '...'),
+                'categoryBadge' => 'Marketing',
+                'headline' => "Pengingat Konten {$this->contentItem->code}",
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'messageText' => $this->message,
+                'details' => array_filter([
+                    'Kode Konten' => $this->contentItem->code,
+                    'Platform' => $this->contentItem->platform,
+                    'Topik' => $this->contentItem->title_topic,
+                    'Tanggal Tayang' => $this->contentItem->publish_date?->format('d M Y'),
+                ]),
+                'actionLabel' => 'Open Content',
+                'actionUrl' => route('marketing.show', $this->contentItem),
+            ]
         );
     }
 

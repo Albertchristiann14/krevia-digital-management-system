@@ -25,7 +25,12 @@ use App\Policies\ProjectPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\WorkplanPolicy;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
+use App\Services\Notifications\NotificationDispatchService;
+use Illuminate\Notifications\Events\NotificationFailed;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -57,5 +62,37 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('audit.view', fn ($user) => $user->hasPermissionTo('audit.view'));
         Gate::define('manage-finance', fn ($user) => $user->canManageFinance());
         Gate::define('manage-accounts', fn ($user) => $user->canManageAccounts());
+
+        Event::listen(NotificationFailed::class, function (NotificationFailed $event): void {
+            if ($event->channel !== 'mail') {
+                return;
+            }
+
+            $error = $event->data['exception'] ?? null;
+            $rawMessage = $error instanceof \Throwable ? $error->getMessage() : 'Mail transport failure';
+            $sanitized = preg_replace('/(password|token|secret)=[^\s&;]+/i', '$1=***', $rawMessage) ?? 'Mail transport failure';
+
+            Log::warning('KDMS Mail delivery failed', [
+                'notification' => class_basename($event->notification),
+                'recipient_id' => $event->notifiable instanceof User ? $event->notifiable->id : null,
+                'error' => mb_strimwidth($sanitized, 0, 250, '...'),
+            ]);
+
+            if ($event->notifiable instanceof User) {
+                try {
+                    app(NotificationDispatchService::class)->logDelivery(
+                        'mail',
+                        $event->notifiable,
+                        $event->notifiable->routeNotificationForMail(),
+                        class_basename($event->notification),
+                        'Mail delivery failed (logged safely)',
+                        'failed',
+                        mb_strimwidth($sanitized, 0, 250, '...')
+                    );
+                } catch (\Throwable) {
+                    // Never allow delivery logging failure to mask the original transport failure
+                }
+            }
+        });
     }
 }

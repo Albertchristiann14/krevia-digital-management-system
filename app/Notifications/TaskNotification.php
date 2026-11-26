@@ -26,11 +26,35 @@ class TaskNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->buildKdmsMail(
-            "Task {$this->task->code} ({$this->task->priority})",
-            $this->message,
-            'Lihat Task',
-            "/tasks/{$this->task->id}"
+        $isAssignment = in_array(strtolower($this->category), ['assigned', 'assignment', 'task_assigned'], true);
+        $subject = $isAssignment
+            ? "[DMS] New Task Assigned: {$this->task->title}"
+            : "[DMS] Task Reminder: {$this->task->title}";
+
+        $picName = $this->task->relationLoaded('pic') ? $this->task->pic?->name : null;
+
+        return $this->buildKdmsViewMail(
+            $subject,
+            'emails.notifications.task',
+            [
+                'preheader' => mb_strimwidth($this->message, 0, 110, '...'),
+                'categoryBadge' => $isAssignment ? 'Task Assignment' : 'Task Reminder',
+                'headline' => $this->task->title,
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'introText' => $isAssignment
+                    ? 'Anda mendapatkan penugasan task baru di Krevia Digital DMS:'
+                    : 'Pengingat terkait task berikut di Krevia Digital DMS:',
+                'messageText' => $this->message,
+                'details' => array_filter([
+                    'Kode Task' => $this->task->code,
+                    'Status' => $this->task->status,
+                    'Prioritas' => $this->task->priority,
+                    'Deadline' => $this->task->deadline?->format('d M Y'),
+                    'PIC' => $picName,
+                ]),
+                'actionLabel' => $isAssignment ? 'View Task' : 'Open Task',
+                'actionUrl' => route('tasks.show', $this->task),
+            ]
         );
     }
 

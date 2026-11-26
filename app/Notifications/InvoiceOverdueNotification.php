@@ -21,11 +21,28 @@ class InvoiceOverdueNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        return $this->buildKdmsMail(
-            "Invoice {$this->invoice->invoice_no} Jatuh Tempo",
-            "Invoice {$this->invoice->invoice_no} ({$this->invoice->company?->name}) telah melewati jatuh tempo {$this->invoice->due_date?->format('Y-m-d')}.",
-            'Buka Financial Tracker',
-            '/finance'
+        $companyName = $this->invoice->company?->name ?? 'Klien';
+        $dueDate = $this->invoice->due_date?->format('d M Y') ?? '-';
+        $remaining = 'Rp '.number_format($this->invoice->balanceRemaining(), 0, ',', '.');
+
+        return $this->buildKdmsViewMail(
+            "[DMS] Invoice Overdue: {$this->invoice->invoice_no}",
+            'emails.notifications.generic',
+            [
+                'preheader' => "Invoice {$this->invoice->invoice_no} ({$companyName}) melewati jatuh tempo {$dueDate}.",
+                'categoryBadge' => 'Finance Alert',
+                'headline' => "Invoice {$this->invoice->invoice_no} Jatuh Tempo",
+                'recipientName' => $notifiable->name ?? 'Tim Krevia Digital',
+                'messageText' => "Invoice {$this->invoice->invoice_no} untuk {$companyName} telah melewati tanggal jatuh tempo {$dueDate}. Mohon tindak lanjuti penagihan.",
+                'details' => [
+                    'Nomor Invoice' => $this->invoice->invoice_no,
+                    'Klien' => $companyName,
+                    'Jatuh Tempo' => $dueDate,
+                    'Sisa Tagihan' => $remaining,
+                ],
+                'actionLabel' => 'View Invoice',
+                'actionUrl' => route('finance.index'),
+            ]
         );
     }
 
