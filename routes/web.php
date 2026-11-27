@@ -23,6 +23,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskDecisionController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserAccountController;
+use App\Http\Controllers\VirtualOfficeController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/virtual-office', [VirtualOfficeController::class, 'index'])->name('virtual-office.index');
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');

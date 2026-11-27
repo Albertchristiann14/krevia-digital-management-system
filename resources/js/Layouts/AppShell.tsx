@@ -64,6 +64,12 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
                 icon: LayoutDashboard,
             },
             {
+                label: 'Virtual Office',
+                href: '/virtual-office',
+                matchPrefix: '/virtual-office',
+                icon: Building2,
+            },
+            {
                 label: 'My Tasks',
                 href: '/my-tasks',
                 matchPrefix: '/my-tasks',
