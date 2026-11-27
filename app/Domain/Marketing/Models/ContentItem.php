@@ -21,6 +21,14 @@ class ContentItem extends Model
         'TikTok',
     ];
 
+    public const FORMATS = [
+        'Single Image',
+        'Carousel',
+        'Reels',
+        'Video',
+        'Story',
+    ];
+
     public const CATEGORIES = [
         'Company Introduction',
         'Service Education',
@@ -100,8 +108,10 @@ class ContentItem extends Model
         'demo_product_id',
         'platform',
         'category',
+        'content_format',
         'title_topic',
         'brief',
+        'structured_brief',
         'caption',
         'hashtags',
         'pic_user_id',
@@ -124,6 +134,7 @@ class ContentItem extends Model
     protected function casts(): array
     {
         return [
+            'structured_brief' => 'array',
             'production_date' => 'date',
             'review_date' => 'date',
             'publish_date' => 'date',

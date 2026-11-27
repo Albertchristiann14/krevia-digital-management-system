@@ -1,3 +1,10 @@
+import { ContentBriefBuilder } from '@/Components/marketing/ContentBriefBuilder';
+import { ContentBriefViewer } from '@/Components/marketing/ContentBriefViewer';
+import {
+    suggestFormatForPlatform,
+    type ContentFormat,
+    type StructuredBrief,
+} from '@/Components/marketing/briefTypes';
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { UserPicker, type UserPickerOption } from '@/Components/shared/UserPicker';
@@ -26,8 +33,10 @@ interface MarketingShowProps extends PageProps {
         code: string;
         platform: string;
         category: string;
+        content_format?: ContentFormat | null;
         title_topic: string;
         brief: string | null;
+        structured_brief?: StructuredBrief | null;
         caption: string | null;
         hashtags: string | null;
         pic_user_id: number | null;
@@ -110,9 +119,26 @@ export default function MarketingShow({
         pic_user_id: item.pic_user_id ? String(item.pic_user_id) : '',
     });
 
-    const editForm = useForm({
+    const editForm = useForm<{
+        title_topic: string;
+        content_format: ContentFormat;
+        brief: string;
+        structured_brief: StructuredBrief | null;
+        caption: string;
+        hashtags: string;
+        demo_product_id: string;
+        pic_user_id: string;
+        reviewer_user_id: string;
+        production_date: string;
+        review_date: string;
+        publish_date: string;
+        published_url: string;
+        notes: string;
+    }>({
         title_topic: item.title_topic,
+        content_format: (item.content_format ?? suggestFormatForPlatform(item.platform)) as ContentFormat,
         brief: item.brief ?? '',
+        structured_brief: item.structured_brief ?? null,
         caption: item.caption ?? '',
         hashtags: item.hashtags ?? '',
         demo_product_id: item.demo_product_id ? String(item.demo_product_id) : '',
@@ -340,6 +366,11 @@ export default function MarketingShow({
             <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
                 {/* Left 2 cols: Brief, Caption, Reviewer Approval & Metrics */}
                 <div className="space-y-6 lg:col-span-2">
+                    <ContentBriefViewer
+                        format={item.content_format}
+                        structuredBrief={item.structured_brief}
+                        legacyBrief={item.brief}
+                    />
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
@@ -465,18 +496,16 @@ export default function MarketingShow({
                                 </select>
                             </div>
                         </div>
-                        <div>
-                            <label className="text-xs font-semibold text-slate-700">
-                                Content Brief
-                            </label>
-                            <textarea
-                                rows={2}
-                                disabled={!permissions.canUpdate}
-                                value={editForm.data.brief}
-                                onChange={(e) => editForm.setData('brief', e.target.value)}
-                                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                            />
-                        </div>
+                        <ContentBriefBuilder
+                            format={editForm.data.content_format}
+                            onFormatChange={(fmt) => editForm.setData('content_format', fmt)}
+                            value={editForm.data.structured_brief}
+                            onChange={(next) => editForm.setData('structured_brief', next)}
+                            legacyBrief={editForm.data.brief}
+                            onLegacyBriefChange={(val) => editForm.setData('brief', val)}
+                            disabled={!permissions.canUpdate}
+                            errors={editForm.errors as Record<string, string>}
+                        />
                         <div>
                             <label className="text-xs font-semibold text-slate-700">Caption</label>
                             <textarea

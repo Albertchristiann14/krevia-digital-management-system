@@ -104,6 +104,7 @@ class MarketingController extends Controller
                 'code' => $c->code,
                 'platform' => $c->platform,
                 'category' => $c->category,
+                'content_format' => $c->content_format,
                 'title_topic' => $c->title_topic,
                 'production_date' => $c->production_date?->format('Y-m-d'),
                 'review_date' => $c->review_date?->format('Y-m-d'),
@@ -138,6 +139,7 @@ class MarketingController extends Controller
             'frequencyGuidelines' => ContentItem::FREQUENCY_GUIDELINES,
             'platforms' => ContentItem::PLATFORMS,
             'categories' => ContentItem::CATEGORIES,
+            'formats' => ContentItem::FORMATS,
             'statuses' => ContentItem::STATUSES,
             'demos' => $demos,
             'users' => $users,
@@ -161,8 +163,10 @@ class MarketingController extends Controller
         $data = $request->validate([
             'platform' => ['required', Rule::in(ContentItem::PLATFORMS)],
             'category' => ['required', Rule::in(ContentItem::CATEGORIES)],
+            'content_format' => ['nullable', Rule::in(ContentItem::FORMATS)],
             'title_topic' => ['required', 'string', 'max:1000'],
             'brief' => ['nullable', 'string', 'max:3000'],
+            'structured_brief' => ['nullable', 'array'],
             'demo_product_id' => ['nullable', 'exists:demo_products,id'],
             'pic_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'reviewer_user_id' => ['nullable', 'exists:users,id'],
@@ -171,6 +175,11 @@ class MarketingController extends Controller
             'publish_date' => ['required', 'date'],
             'is_reused_reel' => ['sometimes', 'boolean'],
         ]);
+
+        $structuredBrief = $this->validateAndNormalizeStructuredBrief(
+            $request,
+            $data['content_format'] ?? null
+        );
 
         $maxNum = ContentItem::withTrashed()
             ->where('code', 'like', 'C-%')
@@ -188,8 +197,10 @@ class MarketingController extends Controller
             'demo_product_id' => $data['demo_product_id'] ?? null,
             'platform' => $data['platform'],
             'category' => $data['category'],
+            'content_format' => $data['content_format'] ?? null,
             'title_topic' => $data['title_topic'],
             'brief' => $data['brief'] ?? null,
+            'structured_brief' => $structuredBrief,
             'pic_user_id' => $data['pic_user_id'],
             'reviewer_user_id' => $reviewerId,
             'production_date' => $data['production_date'] ?? now()->parse($data['publish_date'])->subDays(5)->toDateString(),
@@ -240,8 +251,10 @@ class MarketingController extends Controller
                 'code' => $contentItem->code,
                 'platform' => $contentItem->platform,
                 'category' => $contentItem->category,
+                'content_format' => $contentItem->content_format,
                 'title_topic' => $contentItem->title_topic,
                 'brief' => $contentItem->brief,
+                'structured_brief' => $contentItem->structured_brief,
                 'caption' => $contentItem->caption,
                 'hashtags' => $contentItem->hashtags,
                 'pic_user_id' => $contentItem->pic_user_id,
@@ -298,6 +311,7 @@ class MarketingController extends Controller
             'statuses' => ContentItem::STATUSES,
             'platforms' => ContentItem::PLATFORMS,
             'categories' => ContentItem::CATEGORIES,
+            'formats' => ContentItem::FORMATS,
             'demos' => $demos,
             'users' => $users,
             'permissions' => [
@@ -314,7 +328,9 @@ class MarketingController extends Controller
 
         $data = $request->validate([
             'title_topic' => ['sometimes', 'string', 'max:1000'],
+            'content_format' => ['sometimes', 'nullable', Rule::in(ContentItem::FORMATS)],
             'brief' => ['nullable', 'string', 'max:3000'],
+            'structured_brief' => ['sometimes', 'nullable', 'array'],
             'caption' => ['nullable', 'string', 'max:4000'],
             'hashtags' => ['nullable', 'string', 'max:1000'],
             'demo_product_id' => ['nullable', 'exists:demo_products,id'],
@@ -326,6 +342,18 @@ class MarketingController extends Controller
             'published_url' => ['nullable', 'url', 'max:500'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        if ($request->has('structured_brief') || $request->has('content_format')) {
+            $effectiveFormat = $request->has('content_format')
+                ? ($data['content_format'] ?? null)
+                : $contentItem->content_format;
+            if ($request->has('structured_brief') && $request->input('structured_brief') !== null) {
+                $data['structured_brief'] = $this->validateAndNormalizeStructuredBrief(
+                    $request,
+                    $effectiveFormat
+                );
+            }
+        }
 
         $oldPicId = $contentItem->pic_user_id;
         $contentItem->update($data);
@@ -461,5 +489,191 @@ class MarketingController extends Controller
         ]);
 
         return back()->with('success', 'Content performance metrics recorded.');
+    }
+
+    /**
+     * Validate and normalize structured brief payload according to content_format.
+     */
+    private function validateAndNormalizeStructuredBrief(Request $request, ?string $format): ?array
+    {
+        $raw = $request->input('structured_brief');
+        if (! $format || ! is_array($raw)) {
+            return null;
+        }
+
+        if ($format === 'Carousel') {
+            $validated = $request->validate([
+                'structured_brief.canvas_size' => ['nullable', 'string', 'max:100'],
+                'structured_brief.visual_direction' => ['nullable', 'string', 'max:2000'],
+                'structured_brief.slides' => ['required', 'array', 'min:1'],
+                'structured_brief.slides.*.role' => ['required', 'string', 'max:120'],
+                'structured_brief.slides.*.headline' => ['required', 'string', 'max:500'],
+                'structured_brief.slides.*.supporting_content' => ['nullable', 'string', 'max:2000'],
+                'structured_brief.slides.*.visual_direction' => ['required', 'string', 'max:1500'],
+                'structured_brief.slides.*.reference_image' => ['nullable', 'string', 'max:500'],
+                'structured_brief.slides.*.notes' => ['nullable', 'string', 'max:1000'],
+            ], [
+                'structured_brief.slides.required' => 'Carousel brief requires at least one slide.',
+                'structured_brief.slides.min' => 'Carousel brief requires at least one slide.',
+            ])['structured_brief'];
+
+            $slides = collect($validated['slides'] ?? [])->values()->map(fn (array $s, int $i) => [
+                'slide_number' => $i + 1,
+                'role' => $s['role'],
+                'headline' => $s['headline'],
+                'supporting_content' => $s['supporting_content'] ?? '',
+                'visual_direction' => $s['visual_direction'],
+                'reference_image' => $s['reference_image'] ?? '',
+                'notes' => $s['notes'] ?? '',
+            ])->all();
+
+            return [
+                'format' => 'Carousel',
+                'canvas_size' => $validated['canvas_size'] ?? '1080 × 1350 px',
+                'visual_direction' => $validated['visual_direction'] ?? '',
+                'slides' => $slides,
+            ];
+        }
+
+        if ($format === 'Single Image') {
+            $validated = $request->validate([
+                'structured_brief.headline' => ['required', 'string', 'max:500'],
+                'structured_brief.main_message' => ['required', 'string', 'max:2000'],
+                'structured_brief.supporting_info' => ['nullable', 'string', 'max:2000'],
+                'structured_brief.cta' => ['nullable', 'string', 'max:500'],
+                'structured_brief.visual_direction' => ['required', 'string', 'max:2000'],
+                'structured_brief.canvas_size' => ['nullable', 'string', 'max:100'],
+                'structured_brief.notes' => ['nullable', 'string', 'max:1500'],
+            ])['structured_brief'];
+
+            return [
+                'format' => 'Single Image',
+                'headline' => $validated['headline'],
+                'main_message' => $validated['main_message'],
+                'supporting_info' => $validated['supporting_info'] ?? '',
+                'cta' => $validated['cta'] ?? '',
+                'visual_direction' => $validated['visual_direction'],
+                'canvas_size' => $validated['canvas_size'] ?? '1080 × 1350 px',
+                'notes' => $validated['notes'] ?? '',
+            ];
+        }
+
+        if ($format === 'Reels') {
+            $validated = $request->validate([
+                'structured_brief.aspect_ratio' => ['nullable', 'string', 'max:50'],
+                'structured_brief.target_duration' => ['nullable', 'string', 'max:80'],
+                'structured_brief.music_reference' => ['nullable', 'string', 'max:500'],
+                'structured_brief.visual_style' => ['nullable', 'string', 'max:1500'],
+                'structured_brief.scenes' => ['required', 'array', 'min:1'],
+                'structured_brief.scenes.*.title' => ['required', 'string', 'max:300'],
+                'structured_brief.scenes.*.duration' => ['nullable', 'string', 'max:50'],
+                'structured_brief.scenes.*.visual_direction' => ['required', 'string', 'max:1500'],
+                'structured_brief.scenes.*.on_screen_text' => ['nullable', 'string', 'max:500'],
+                'structured_brief.scenes.*.voice_over' => ['nullable', 'string', 'max:1500'],
+                'structured_brief.scenes.*.transition' => ['nullable', 'string', 'max:200'],
+                'structured_brief.scenes.*.notes' => ['nullable', 'string', 'max:1000'],
+            ], [
+                'structured_brief.scenes.required' => 'Reels brief requires at least one scene.',
+                'structured_brief.scenes.min' => 'Reels brief requires at least one scene.',
+            ])['structured_brief'];
+
+            $scenes = collect($validated['scenes'] ?? [])->values()->map(fn (array $s, int $i) => [
+                'scene_number' => $i + 1,
+                'title' => $s['title'],
+                'duration' => $s['duration'] ?? '',
+                'visual_direction' => $s['visual_direction'],
+                'on_screen_text' => $s['on_screen_text'] ?? '',
+                'voice_over' => $s['voice_over'] ?? '',
+                'transition' => $s['transition'] ?? '',
+                'notes' => $s['notes'] ?? '',
+            ])->all();
+
+            return [
+                'format' => 'Reels',
+                'aspect_ratio' => $validated['aspect_ratio'] ?? '9:16',
+                'target_duration' => $validated['target_duration'] ?? '30–45s',
+                'music_reference' => $validated['music_reference'] ?? '',
+                'visual_style' => $validated['visual_style'] ?? '',
+                'scenes' => $scenes,
+            ];
+        }
+
+        if ($format === 'Video') {
+            $validated = $request->validate([
+                'structured_brief.hook' => ['required', 'string', 'max:1000'],
+                'structured_brief.narration' => ['nullable', 'string', 'max:3000'],
+                'structured_brief.visual_direction' => ['required', 'string', 'max:2000'],
+                'structured_brief.closing_cta' => ['nullable', 'string', 'max:500'],
+                'structured_brief.duration' => ['nullable', 'string', 'max:80'],
+                'structured_brief.aspect_ratio' => ['nullable', 'string', 'max:50'],
+                'structured_brief.notes' => ['nullable', 'string', 'max:1500'],
+                'structured_brief.scenes' => ['required', 'array', 'min:1'],
+                'structured_brief.scenes.*.title' => ['required', 'string', 'max:300'],
+                'structured_brief.scenes.*.duration' => ['nullable', 'string', 'max:50'],
+                'structured_brief.scenes.*.visual_direction' => ['required', 'string', 'max:1500'],
+                'structured_brief.scenes.*.on_screen_text' => ['nullable', 'string', 'max:500'],
+                'structured_brief.scenes.*.voice_over' => ['nullable', 'string', 'max:1500'],
+                'structured_brief.scenes.*.transition' => ['nullable', 'string', 'max:200'],
+                'structured_brief.scenes.*.notes' => ['nullable', 'string', 'max:1000'],
+            ], [
+                'structured_brief.scenes.required' => 'Video brief requires at least one scene.',
+                'structured_brief.scenes.min' => 'Video brief requires at least one scene.',
+            ])['structured_brief'];
+
+            $scenes = collect($validated['scenes'] ?? [])->values()->map(fn (array $s, int $i) => [
+                'scene_number' => $i + 1,
+                'title' => $s['title'],
+                'duration' => $s['duration'] ?? '',
+                'visual_direction' => $s['visual_direction'],
+                'on_screen_text' => $s['on_screen_text'] ?? '',
+                'voice_over' => $s['voice_over'] ?? '',
+                'transition' => $s['transition'] ?? '',
+                'notes' => $s['notes'] ?? '',
+            ])->all();
+
+            return [
+                'format' => 'Video',
+                'hook' => $validated['hook'],
+                'narration' => $validated['narration'] ?? '',
+                'visual_direction' => $validated['visual_direction'],
+                'closing_cta' => $validated['closing_cta'] ?? '',
+                'duration' => $validated['duration'] ?? '',
+                'aspect_ratio' => $validated['aspect_ratio'] ?? '16:9',
+                'notes' => $validated['notes'] ?? '',
+                'scenes' => $scenes,
+            ];
+        }
+
+        if ($format === 'Story') {
+            $validated = $request->validate([
+                'structured_brief.frames' => ['required', 'array', 'min:1'],
+                'structured_brief.frames.*.headline' => ['required', 'string', 'max:500'],
+                'structured_brief.frames.*.main_text' => ['nullable', 'string', 'max:1500'],
+                'structured_brief.frames.*.visual_direction' => ['required', 'string', 'max:1500'],
+                'structured_brief.frames.*.interactive_element' => ['nullable', 'string', 'max:120'],
+                'structured_brief.frames.*.cta' => ['nullable', 'string', 'max:300'],
+                'structured_brief.frames.*.notes' => ['nullable', 'string', 'max:1000'],
+            ], [
+                'structured_brief.frames.required' => 'Story brief requires at least one frame.',
+                'structured_brief.frames.min' => 'Story brief requires at least one frame.',
+            ])['structured_brief'];
+
+            $frames = collect($validated['frames'] ?? [])->values()->map(fn (array $f, int $i) => [
+                'frame_number' => $i + 1,
+                'headline' => $f['headline'],
+                'main_text' => $f['main_text'] ?? '',
+                'visual_direction' => $f['visual_direction'],
+                'interactive_element' => $f['interactive_element'] ?? 'None',
+                'cta' => $f['cta'] ?? '',
+                'notes' => $f['notes'] ?? '',
+            ])->all();
+
+            return [
+                'format' => 'Story',
+                'frames' => $frames,
+            ];
+        }
+
+        return null;
     }
 }

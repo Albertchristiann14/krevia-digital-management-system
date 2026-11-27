@@ -1,3 +1,10 @@
+import { ContentBriefBuilder } from '@/Components/marketing/ContentBriefBuilder';
+import {
+    createDefaultStructuredBrief,
+    suggestFormatForPlatform,
+    type ContentFormat,
+    type StructuredBrief,
+} from '@/Components/marketing/briefTypes';
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { UserPicker, type UserPickerOption } from '@/Components/shared/UserPicker';
@@ -141,11 +148,27 @@ export default function MarketingIndex({
     const [categoryFilter, setCategoryFilter] = useState(filters.category);
     const [statusFilter, setStatusFilter] = useState(filters.status);
 
-    const form = useForm({
-        platform: platforms[0] ?? 'Instagram Feed',
+    const initialPlatform = platforms[0] ?? 'Instagram Feed';
+    const initialFormat = suggestFormatForPlatform(initialPlatform);
+
+    const form = useForm<{
+        platform: string;
+        category: string;
+        content_format: ContentFormat;
+        title_topic: string;
+        brief: string;
+        structured_brief: StructuredBrief | null;
+        demo_product_id: string;
+        pic_user_id: string;
+        publish_date: string;
+        is_reused_reel: boolean;
+    }>({
+        platform: initialPlatform,
         category: categories[0] ?? 'Company Introduction',
+        content_format: initialFormat,
         title_topic: '',
         brief: '',
+        structured_brief: createDefaultStructuredBrief(initialFormat),
         demo_product_id: '',
         pic_user_id: '',
         publish_date: new Date().toISOString().slice(0, 10),
@@ -633,8 +656,8 @@ export default function MarketingIndex({
 
             {/* New Content Modal */}
             {showCreateModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#070B16]/75 p-4 backdrop-blur-md">
+                    <div className="krevia-glass-elevated max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl p-6">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                             <div className="flex items-center gap-2">
                                 <Megaphone className="h-5 w-5 text-[#101D35]" />
@@ -744,17 +767,15 @@ export default function MarketingIndex({
                                     error={form.errors.pic_user_id}
                                 />
                             </div>
-                            <div>
-                                <label className="text-xs font-semibold text-slate-700">
-                                    Content Brief
-                                </label>
-                                <textarea
-                                    rows={2}
-                                    value={form.data.brief}
-                                    onChange={(e) => form.setData('brief', e.target.value)}
-                                    className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                                />
-                            </div>
+                            <ContentBriefBuilder
+                                format={form.data.content_format}
+                                onFormatChange={(fmt) => form.setData('content_format', fmt)}
+                                value={form.data.structured_brief}
+                                onChange={(next) => form.setData('structured_brief', next)}
+                                legacyBrief={form.data.brief}
+                                onLegacyBriefChange={(val) => form.setData('brief', val)}
+                                errors={form.errors as Record<string, string>}
+                            />
                             <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
                                 <button
                                     type="button"
