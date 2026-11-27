@@ -27,6 +27,7 @@ use App\Http\Controllers\VirtualOfficeCommunicationController;
 use App\Http\Controllers\VirtualOfficeController;
 use App\Http\Controllers\VirtualOfficeMeetingController;
 use App\Http\Controllers\VirtualOfficeObjectController;
+use App\Http\Controllers\VirtualOfficeProductivityController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
 
@@ -186,6 +187,24 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/focus-mode', [VirtualOfficeObjectController::class, 'focusMode'])
             ->middleware('throttle:30,1')
             ->name('focus-mode');
+        Route::get('/standups', [VirtualOfficeProductivityController::class, 'standups'])
+            ->middleware('throttle:60,1')
+            ->name('standups.index');
+        Route::post('/standups/start', [VirtualOfficeProductivityController::class, 'startStandup'])
+            ->middleware('throttle:10,1')
+            ->name('standups.start');
+        Route::post('/standups', [VirtualOfficeProductivityController::class, 'submitStandup'])
+            ->middleware('throttle:20,1')
+            ->name('standups.store');
+        Route::get('/attendance-heatmap', [VirtualOfficeProductivityController::class, 'attendanceHeatmap'])
+            ->middleware('throttle:30,1')
+            ->name('attendance-heatmap');
+        Route::post('/summon', [VirtualOfficeProductivityController::class, 'summon'])
+            ->middleware('throttle:20,1')
+            ->name('summon');
+        Route::patch('/zones/{zone}', [VirtualOfficeProductivityController::class, 'updateZone'])
+            ->middleware('throttle:20,1')
+            ->name('zones.update');
     });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 

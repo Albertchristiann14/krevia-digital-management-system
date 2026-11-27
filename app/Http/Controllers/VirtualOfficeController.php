@@ -10,6 +10,7 @@ use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Domain\VirtualOffice\Services\CommunicationService;
 use App\Domain\VirtualOffice\Services\MeetingRoomService;
 use App\Domain\VirtualOffice\Services\PresenceService;
+use App\Domain\VirtualOffice\Services\TeamProductivityService;
 use App\Domain\VirtualOffice\Services\WorkspaceObjectService;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\Announcement;
@@ -27,7 +28,8 @@ class VirtualOfficeController extends Controller
         PresenceService $presenceService,
         CommunicationService $comms,
         MeetingRoomService $meetingRoomService,
-        WorkspaceObjectService $objectService
+        WorkspaceObjectService $objectService,
+        TeamProductivityService $productivityService
     ): Response {
         $user = $request->user();
 
@@ -164,6 +166,7 @@ class VirtualOfficeController extends Controller
             'recentEvents' => $meetingRoomService->listEvents(null, 40),
             'visitors' => $objectService->listActiveVisitors(),
             'crmOptions' => $objectService->crmQuickOptions(),
+            'standups' => $productivityService->listStandups(),
             'projects' => $canViewProjects
                 ? Project::query()->where('status', '!=', 'Completed')->orderBy('code')->get(['id', 'code', 'name'])->map(fn (Project $p) => [
                     'id' => $p->id,

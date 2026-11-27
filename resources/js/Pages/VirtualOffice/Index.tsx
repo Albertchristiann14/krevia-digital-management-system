@@ -14,6 +14,10 @@ import {
     type CrmQuickOptions,
     type OfficeVisitorData,
 } from '@/Components/virtual-office/OfficeInteractiveModals';
+import {
+    OfficeProductivityModal,
+    type OfficeStandupData,
+} from '@/Components/virtual-office/OfficeProductivityModal';
 import type {
     CameraCommand,
     VirtualMemberData,
@@ -28,8 +32,10 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import {
     Activity,
     ArrowUpRight,
+    BarChart3,
     BellRing,
     Box,
+    ClipboardList,
     Coffee,
     Compass,
     Crosshair,
@@ -40,11 +46,14 @@ import {
     Layers,
     Map,
     Maximize2,
+    Megaphone,
     MessageSquare,
     Minimize2,
     Phone,
     Radio,
     RotateCcw,
+    Search,
+    Settings2,
     Tag,
     Target,
     UserPlus,
@@ -96,6 +105,7 @@ interface VirtualOfficeProps extends PageProps {
     recentEvents?: OfficeEventData[];
     visitors?: OfficeVisitorData[];
     crmOptions?: CrmQuickOptions;
+    standups?: OfficeStandupData[];
     projects?: Array<{ id: number; code: string; name: string }>;
     reverbConfig: ReverbClientConfig;
     recentAnnouncements: Array<{
@@ -142,6 +152,7 @@ export default function VirtualOfficeIndex({
     recentEvents: initialEvents,
     visitors: initialVisitors,
     crmOptions: initialCrmOptions,
+    standups: initialStandups,
     projects: initialProjects,
     reverbConfig,
     recentAnnouncements,
@@ -166,6 +177,18 @@ export default function VirtualOfficeIndex({
     );
     const [events, setEvents] = useState<OfficeEventData[]>(initialEvents ?? []);
     const [visitors, setVisitors] = useState<OfficeVisitorData[]>(initialVisitors ?? []);
+    const [standups, setStandups] = useState<OfficeStandupData[]>(initialStandups ?? []);
+    const [productivityModal, setProductivityModal] = useState<
+        'standup' | 'heatmap' | 'zone_settings' | null
+    >(null);
+    const [memberSearch, setMemberSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'busy' | 'dnd'>('all');
+    const [incomingSummon, setIncomingSummon] = useState<{
+        from_name: string;
+        zone_slug: string;
+        zone_name: string;
+        note: string;
+    } | null>(null);
     const [interactiveModal, setInteractiveModal] = useState<
         'reception' | 'project_board' | 'coffee_machine' | null
     >(null);
@@ -309,6 +332,20 @@ export default function VirtualOfficeIndex({
                         if (json?.visitors) setVisitors(json.visitors);
                     })
                     .catch(() => {});
+            })
+            .listen('.standup.started', (payload: { payload?: { initiated_by?: string } }) => {
+                showToast(
+                    `${payload.payload?.initiated_by ?? 'Lead'} memulai Standup Harian! Silakan isi update Anda.`,
+                );
+                setProductivityModal('standup');
+            })
+            .listen('.standup.submitted', (payload: { payload?: OfficeStandupData }) => {
+                if (payload.payload) {
+                    setStandups((prev) => {
+                        const filtered = prev.filter((s) => s.user_id !== payload.payload!.user_id);
+                        return [payload.payload!, ...filtered];
+                    });
+                }
             });
 
         // Private DM & Knock channel
@@ -348,7 +385,15 @@ export default function VirtualOfficeIndex({
                           ? `${payload.knock.to_name} meminta nanti.`
                           : `${payload.knock.to_name} menolak ketukan.`;
                 showToast(statusLabel, payload.knock.status === 'accepted' ? 'info' : 'error');
-            });
+            })
+            .listen(
+                '.summon.received',
+                (payload: {
+                    payload?: { from_name: string; zone_slug: string; zone_name: string; note: string };
+                }) => {
+                    if (payload.payload) setIncomingSummon(payload.payload);
+                },
+            );
 
         return () => {
             echo.leave('office.presence');
@@ -575,6 +620,33 @@ export default function VirtualOfficeIndex({
             }
         },
         [myPresence.seat_id, showToast],
+    );
+
+    const summonMember = useCallback(
+        async (member: VirtualMemberData) => {
+            const zoneId = (selectedRoom as { zone_id?: number | null } | undefined)?.zone_id;
+            if (!zoneId) return;
+            const res = await fetch('/virtual-office/summon', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-XSRF-TOKEN': readXsrfToken(),
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    target_user_id: member.id,
+                    zone_id: zoneId,
+                }),
+            });
+            if (res.ok) {
+                showToast(`Panggilan ke zona dikirim ke ${member.name}.`);
+            } else {
+                const j = await res.json();
+                showToast(j?.message ?? 'Gagal memanggil anggota.', 'error');
+            }
+        },
+        [selectedRoomId, rooms],
     );
 
     const toggleFocusMode = useCallback(async () => {
@@ -927,6 +999,25 @@ export default function VirtualOfficeIndex({
                             </div>
                         )}
                     </div>
+
+                    <button
+                        type="button"
+                        onClick={() => setProductivityModal('standup')}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-blue-300 dark:border-white/[0.12] dark:bg-white/[0.055] dark:text-[#F4F7FF]"
+                    >
+                        <ClipboardList className="h-3.5 w-3.5 text-blue-600 dark:text-[#45D8E8]" />
+                        Standup
+                    </button>
+                    {isAdminUser && (
+                        <button
+                            type="button"
+                            onClick={() => setProductivityModal('heatmap')}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-emerald-300 dark:border-white/[0.12] dark:bg-white/[0.055] dark:text-[#F4F7FF]"
+                        >
+                            <BarChart3 className="h-3.5 w-3.5 text-emerald-600" />
+                            Heatmap
+                        </button>
+                    )}
 
                     <Link
                         href="/dashboard"
@@ -1517,6 +1608,16 @@ export default function VirtualOfficeIndex({
                                     <span className="inline-flex items-center gap-1.5">
                                         <Users className="h-3.5 w-3.5 text-blue-600 dark:text-[#45D8E8]" />
                                         Members in Zone
+                                        {isAdminUser && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setProductivityModal('zone_settings')}
+                                                title="Pengaturan Zona"
+                                                className="rounded p-0.5 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-white/10"
+                                            >
+                                                <Settings2 className="h-3 w-3" />
+                                            </button>
+                                        )}
                                     </span>
                                     <span className="font-mono text-slate-500 dark:text-[#71819C]">
                                         {roomMembers.length} / {selectedRoom.capacity}
@@ -1532,13 +1633,51 @@ export default function VirtualOfficeIndex({
                                     />
                                 </div>
 
+                                <div className="mb-2 flex gap-1.5">
+                                    <div className="relative flex-1">
+                                        <Search className="pointer-events-none absolute top-1/2 left-2 h-3 w-3 -translate-y-1/2 text-slate-400" />
+                                        <input
+                                            type="text"
+                                            value={memberSearch}
+                                            onChange={(e) => setMemberSearch(e.target.value)}
+                                            placeholder="Cari anggota..."
+                                            className="w-full rounded-lg border border-slate-200 bg-white py-1 pr-2 pl-6 text-[11px] dark:border-white/10 dark:bg-[#091020] dark:text-[#F4F7FF]"
+                                        />
+                                    </div>
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) =>
+                                            setStatusFilter(
+                                                e.target.value as 'all' | 'available' | 'busy' | 'dnd',
+                                            )
+                                        }
+                                        className="rounded-lg border border-slate-200 bg-white px-1.5 py-1 text-[11px] dark:border-white/10 dark:bg-[#091020] dark:text-[#F4F7FF]"
+                                    >
+                                        <option value="all">Semua</option>
+                                        <option value="available">Available</option>
+                                        <option value="busy">Busy</option>
+                                        <option value="dnd">DND</option>
+                                    </select>
+                                </div>
+
                                 {roomMembers.length === 0 ? (
                                     <p className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 text-[11px] text-slate-500 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-[#71819C]">
                                         No members currently stationed here.
                                     </p>
                                 ) : (
                                     <div className="space-y-1.5">
-                                        {roomMembers.map((member) => {
+                                        {roomMembers
+                                            .filter((m) => {
+                                                const q = memberSearch.trim().toLowerCase();
+                                                const matchQ =
+                                                    q === '' ||
+                                                    m.name.toLowerCase().includes(q) ||
+                                                    m.position.toLowerCase().includes(q);
+                                                const matchS =
+                                                    statusFilter === 'all' || m.status_key === statusFilter;
+                                                return matchQ && matchS;
+                                            })
+                                            .map((member) => {
                                             const isFocused = focusedMemberId === member.id;
                                             return (
                                                 <div
@@ -1619,6 +1758,16 @@ export default function VirtualOfficeIndex({
                                                                 >
                                                                     <Crosshair className="h-3.5 w-3.5" />
                                                                 </button>
+                                                                {isAdminUser && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => summonMember(member)}
+                                                                        title="Panggil ke zona ini"
+                                                                        className="rounded-lg p-1 text-slate-500 hover:bg-slate-200/70 hover:text-purple-600 dark:text-[#A7B4CB] dark:hover:bg-white/10"
+                                                                    >
+                                                                        <Megaphone className="h-3.5 w-3.5" />
+                                                                    </button>
+                                                                )}
                                                             </>
                                                         )}
                                                         <Link
@@ -1835,6 +1984,50 @@ export default function VirtualOfficeIndex({
                     onPresenceUpdated={(p) => setMyPresence((prev) => ({ ...prev, ...p }))}
                     onToast={showToast}
                 />
+
+                <OfficeProductivityModal
+                    activeModal={productivityModal}
+                    standups={standups}
+                    selectedZone={selectedRoom ?? null}
+                    projects={initialProjects ?? []}
+                    myUserId={myPresence.id}
+                    isAdmin={isAdminUser}
+                    readXsrfToken={readXsrfToken}
+                    onClose={() => setProductivityModal(null)}
+                    onStandupsChange={setStandups}
+                    onToast={showToast}
+                />
+
+                {incomingSummon && (
+                    <div className="fixed right-4 bottom-4 z-50 max-w-sm rounded-2xl border border-purple-300 bg-white p-3.5 shadow-2xl dark:border-purple-500/40 dark:bg-[#0D1628]">
+                        <p className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">
+                            📢 {incomingSummon.from_name} memanggil Anda ke {incomingSummon.zone_name}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-slate-500 dark:text-[#A7B4CB]">
+                            {incomingSummon.note}
+                        </p>
+                        <div className="mt-2.5 flex gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    moveToPosition(incomingSummon.zone_slug);
+                                    setSelectedRoomId(incomingSummon.zone_slug);
+                                    setIncomingSummon(null);
+                                }}
+                                className="rounded-lg bg-purple-600 px-3 py-1 text-xs font-semibold text-white hover:bg-purple-700"
+                            >
+                                Pindah ke Zona
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIncomingSummon(null)}
+                                className="rounded-lg border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-600 dark:border-white/10 dark:text-[#A7B4CB]"
+                            >
+                                Nanti
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
         </AppShell>
     );
