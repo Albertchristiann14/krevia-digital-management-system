@@ -8,6 +8,7 @@ use App\Domain\VirtualOffice\Models\OfficePresence;
 use App\Domain\VirtualOffice\Models\OfficeSeat;
 use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Domain\VirtualOffice\Services\CommunicationService;
+use App\Domain\VirtualOffice\Services\MeetingRoomService;
 use App\Domain\VirtualOffice\Services\PresenceService;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\Announcement;
@@ -20,8 +21,12 @@ use Inertia\Response;
 
 class VirtualOfficeController extends Controller
 {
-    public function index(Request $request, PresenceService $presenceService, CommunicationService $comms): Response
-    {
+    public function index(
+        Request $request,
+        PresenceService $presenceService,
+        CommunicationService $comms,
+        MeetingRoomService $meetingRoomService
+    ): Response {
         $user = $request->user();
 
         // Sweep stale/away sessions and register current user's live heartbeat
@@ -153,6 +158,15 @@ class VirtualOfficeController extends Controller
             'myPresence' => $presenceService->serializePresence($myPresence),
             'unread' => $comms->unreadCounts($user),
             'pendingKnocks' => $comms->pendingKnocksFor($user),
+            'meetings' => $meetingRoomService->listMeetingsForOffice(),
+            'recentEvents' => $meetingRoomService->listEvents(null, 40),
+            'projects' => $canViewProjects
+                ? Project::query()->where('status', '!=', 'Completed')->orderBy('code')->get(['id', 'code', 'name'])->map(fn (Project $p) => [
+                    'id' => $p->id,
+                    'code' => $p->code,
+                    'name' => $p->name,
+                ])->values()->all()
+                : [],
             'recentAnnouncements' => $recentAnnouncements,
             'reverbConfig' => [
                 'enabled' => config('broadcasting.default') === 'reverb' && ! empty($reverbAppKey),

@@ -74,6 +74,8 @@ interface OfficeScene3DProps {
     onSelectRoom: (roomId: string) => void;
     onClickFloor?: (roomId: string, x: number, z: number) => void;
     onClickSeat?: (seat: VirtualSeatData) => void;
+    hasLiveMeeting?: boolean;
+    onClickMeetingObject?: () => void;
     onSelectMember?: (member: VirtualMemberData) => void;
     onHoverMember?: (member: VirtualMemberData | null, pos: { x: number; y: number } | null) => void;
     cameraCommand: CameraCommand | null;
@@ -241,6 +243,8 @@ export default function OfficeScene3D({
     onSelectRoom,
     onClickFloor,
     onClickSeat,
+    hasLiveMeeting = false,
+    onClickMeetingObject,
     onSelectMember,
     onHoverMember,
     cameraCommand,
@@ -256,6 +260,8 @@ export default function OfficeScene3D({
     const onSelectRoomRef = useRef(onSelectRoom);
     const onClickFloorRef = useRef(onClickFloor);
     const onClickSeatRef = useRef(onClickSeat);
+    const hasLiveMeetingRef = useRef(hasLiveMeeting);
+    const onClickMeetingObjectRef = useRef(onClickMeetingObject);
     const onSelectMemberRef = useRef(onSelectMember);
     const onHoverMemberRef = useRef(onHoverMember);
     const controlsRef = useRef<OrbitControls | null>(null);
@@ -280,6 +286,8 @@ export default function OfficeScene3D({
     onSelectRoomRef.current = onSelectRoom;
     onClickFloorRef.current = onClickFloor;
     onClickSeatRef.current = onClickSeat;
+    hasLiveMeetingRef.current = hasLiveMeeting;
+    onClickMeetingObjectRef.current = onClickMeetingObject;
     onSelectMemberRef.current = onSelectMember;
     onHoverMemberRef.current = onHoverMember;
 
@@ -694,10 +702,13 @@ export default function OfficeScene3D({
                 mullion.position.set(3.68, 1.25, 0.02);
                 zoneGroup.add(wallL, wallF, mullion);
 
-                // Executive conference table
+                // Executive conference table (clickable -> Meeting Room panel)
                 const confTable = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 1.85), woodMat);
                 confTable.position.set(7.2, 0.78, -3.6);
                 confTable.castShadow = true;
+                confTable.userData.meetingObject = true;
+                confTable.userData.roomId = 'meeting';
+                interactiveMeshes.push(confTable);
                 const confLeg = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.72, 0.65), metalMat);
                 confLeg.position.set(7.2, 0.42, -3.6);
                 zoneGroup.add(confTable, confLeg);
@@ -711,17 +722,26 @@ export default function OfficeScene3D({
                     });
                 });
 
-                // Presentation wall screen
-                const screen = new THREE.Mesh(
-                    new THREE.BoxGeometry(3.2, 1.45, 0.08),
-                    new THREE.MeshStandardMaterial({
-                        color: isDark ? 0x101a30 : 0x1e293b,
-                        emissive: accentColor,
-                        emissiveIntensity: isDark ? 0.45 : 0.25,
-                    }),
-                );
+                // Presentation wall screen (clickable) + LIVE beacon
+                const screenMat = new THREE.MeshStandardMaterial({
+                    color: isDark ? 0x101a30 : 0x1e293b,
+                    emissive: accentColor,
+                    emissiveIntensity: isDark ? 0.45 : 0.25,
+                });
+                const screen = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.45, 0.08), screenMat);
                 screen.position.set(7.2, 1.6, -7.0);
-                zoneGroup.add(screen);
+                screen.userData.meetingObject = true;
+                screen.userData.roomId = 'meeting';
+                interactiveMeshes.push(screen);
+
+                const liveBeacon = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.16, 14, 14),
+                    new THREE.MeshBasicMaterial({ color: 0xe11d48 }),
+                );
+                liveBeacon.position.set(7.2, 2.55, -6.95);
+                liveBeacon.name = 'meetingLiveBeacon';
+                liveBeacon.visible = hasLiveMeetingRef.current;
+                zoneGroup.add(screen, liveBeacon);
                 addPlanter(zoneGroup, 10.1, -6.5, 1.0);
             }
 
@@ -976,6 +996,7 @@ export default function OfficeScene3D({
                 roomId: (obj?.userData?.roomId as string) ?? null,
                 memberId: (obj?.userData?.memberId as number) ?? null,
                 seatId: (obj?.userData?.seatId as number) ?? null,
+                meetingObject: Boolean(obj?.userData?.meetingObject),
                 point: firstHit?.point ?? null,
                 localX: clientX - rect.left,
                 localY: clientY - rect.top,
@@ -1004,9 +1025,13 @@ export default function OfficeScene3D({
         const handlePointerUp = (e: PointerEvent) => {
             const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
             if (dist > 6) return;
-            const { roomId, memberId, seatId, point } = pickHit(e.clientX, e.clientY);
+            const { roomId, memberId, seatId, meetingObject, point } = pickHit(e.clientX, e.clientY);
             if (seatId && seatMeshes[seatId]) {
                 onClickSeatRef.current?.(seatMeshes[seatId].data);
+                return;
+            }
+            if (meetingObject && onClickMeetingObjectRef.current) {
+                onClickMeetingObjectRef.current();
                 return;
             }
             if (memberId && showMembersRef.current) {
@@ -1064,6 +1089,15 @@ export default function OfficeScene3D({
             controls.target.x = THREE.MathUtils.clamp(controls.target.x, -12, 12);
             controls.target.z = THREE.MathUtils.clamp(controls.target.z, -9, 9);
             controls.target.y = 0;
+
+            const beacon = scene.getObjectByName('meetingLiveBeacon');
+            if (beacon) {
+                beacon.visible = hasLiveMeetingRef.current;
+                if (beacon.visible && !reducedMotion) {
+                    const pulse = 1 + Math.sin(t * 5) * 0.25;
+                    beacon.scale.setScalar(pulse);
+                }
+            }
 
             // Zone highlights & dimming of unselected zones
             const activeRoom = selectedRoomRef.current;

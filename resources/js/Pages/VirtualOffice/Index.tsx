@@ -3,6 +3,12 @@ import {
     OfficeChatPanel,
     type OfficeMessageData,
 } from '@/Components/virtual-office/OfficeChatPanel';
+import {
+    ActiveMeetingModal,
+    OfficeMeetingPanel,
+    type OfficeMeetingData,
+    type OfficeMeetingsPayload,
+} from '@/Components/virtual-office/OfficeMeetingPanel';
 import type {
     CameraCommand,
     VirtualMemberData,
@@ -15,6 +21,7 @@ import { useResolvedTheme } from '@/lib/theme';
 import type { PageProps } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
+    Activity,
     ArrowUpRight,
     BellRing,
     Box,
@@ -27,10 +34,12 @@ import {
     Maximize2,
     MessageSquare,
     Minimize2,
+    Phone,
     Radio,
     RotateCcw,
     Tag,
     Users,
+    Video,
     Wifi,
     WifiOff,
     X,
@@ -54,6 +63,18 @@ interface KnockData {
     expires_at: string | null;
 }
 
+interface OfficeEventData {
+    id: number;
+    type: string;
+    actor_name: string;
+    actor_avatar_url: string | null;
+    zone_id: number | null;
+    zone_name: string | null;
+    payload: Record<string, unknown>;
+    created_at: string | null;
+    created_human: string | null;
+}
+
 interface VirtualOfficeProps extends PageProps {
     rooms: (VirtualRoomData & { zone_id?: number | null })[];
     seats: VirtualSeatData[];
@@ -61,6 +82,9 @@ interface VirtualOfficeProps extends PageProps {
     myPresence: VirtualMemberData;
     unread?: { dm: Record<string, number>; zone: Record<string, number> };
     pendingKnocks?: KnockData[];
+    meetings?: OfficeMeetingsPayload;
+    recentEvents?: OfficeEventData[];
+    projects?: Array<{ id: number; code: string; name: string }>;
     reverbConfig: ReverbClientConfig;
     recentAnnouncements: Array<{
         id: number;
@@ -102,6 +126,9 @@ export default function VirtualOfficeIndex({
     myPresence: initialMyPresence,
     unread: initialUnread,
     pendingKnocks: initialPendingKnocks,
+    meetings: initialMeetings,
+    recentEvents: initialEvents,
+    projects: initialProjects,
     reverbConfig,
     recentAnnouncements,
 }: VirtualOfficeProps) {
@@ -118,8 +145,18 @@ export default function VirtualOfficeIndex({
     const [members, setMembers] = useState<VirtualMemberData[]>(initialMembers);
     const [seats, setSeats] = useState<VirtualSeatData[]>(initialSeats ?? []);
     const [myPresence, setMyPresence] = useState<VirtualMemberData>(initialMyPresence);
-    const [panelTab, setPanelTab] = useState<'summary' | 'chat'>('summary');
+    const [panelTab, setPanelTab] = useState<'summary' | 'chat' | 'meetings' | 'activity'>('summary');
     const [dmTarget, setDmTarget] = useState<VirtualMemberData | null>(null);
+    const [meetings, setMeetings] = useState<OfficeMeetingsPayload>(
+        initialMeetings ?? { live: [], upcoming: [], recent: [] },
+    );
+    const [events, setEvents] = useState<OfficeEventData[]>(initialEvents ?? []);
+    const [activeCallMeeting, setActiveCallMeeting] = useState<OfficeMeetingData | null>(null);
+    const [quickCall, setQuickCall] = useState<{
+        room_code: string;
+        join_url: string;
+        targetName: string;
+    } | null>(null);
     const [unread, setUnread] = useState<{ dm: Record<string, number>; zone: Record<string, number> }>(
         initialUnread ?? { dm: {}, zone: {} },
     );
@@ -226,6 +263,19 @@ export default function VirtualOfficeIndex({
             .listen('.member.seated', (payload: { presence?: VirtualMemberData }) => {
                 applyIncomingPresence(payload.presence);
                 resyncSnapshot();
+            })
+            .listen('.meeting.updated', () => {
+                fetch('/virtual-office/meetings', {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                })
+                    .then((res) => (res.ok ? res.json() : null))
+                    .then((json) => {
+                        if (json?.meetings) {
+                            setMeetings(json.meetings);
+                        }
+                    })
+                    .catch(() => {});
             });
 
         // Private DM & Knock channel
@@ -493,6 +543,41 @@ export default function VirtualOfficeIndex({
         },
         [myPresence.seat_id, showToast],
     );
+
+    const startQuickCall = useCallback(async (member: VirtualMemberData) => {
+        const res = await fetch(`/virtual-office/call/${member.id}`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-XSRF-TOKEN': readXsrfToken(),
+            },
+            credentials: 'same-origin',
+        });
+        const json = await res.json();
+        if (!res.ok) {
+            showToast(json?.message ?? 'Tidak dapat memulai panggilan.', 'error');
+            return;
+        }
+        if (json.call) {
+            setQuickCall({
+                room_code: json.call.room_code,
+                join_url: json.call.join_url,
+                targetName: member.name,
+            });
+        }
+    }, []);
+
+    useEffect(() => {
+        if (panelTab !== 'activity') return;
+        const zoneId = (selectedRoom as { zone_id?: number | null } | undefined)?.zone_id;
+        const url = zoneId ? `/virtual-office/events?zone_id=${zoneId}` : '/virtual-office/events';
+        fetch(url, { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((json) => {
+                if (json?.events) setEvents(json.events);
+            })
+            .catch(() => {});
+    }, [panelTab, selectedRoomId]);
 
     const sendKnock = useCallback(
         async (target: VirtualMemberData) => {
@@ -927,6 +1012,11 @@ export default function VirtualOfficeIndex({
                                 moveToPosition(roomId, x, z);
                             }}
                             onClickSeat={handleClickSeat}
+                            hasLiveMeeting={meetings.live.length > 0}
+                            onClickMeetingObject={() => {
+                                setSelectedRoomId('meeting');
+                                setPanelTab('meetings');
+                            }}
                             onSelectMember={focusMember}
                             onHoverMember={handleHoverMember}
                             cameraCommand={cameraCommand}
@@ -1223,8 +1313,8 @@ export default function VirtualOfficeIndex({
                             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-[#A7B4CB]">
                                 {selectedRoom.description}
                             </p>
-                            {/* Panel Tabs: Ringkasan | Chat Zona */}
-                            <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.06]">
+                            {/* Panel Tabs: Ringkasan | Chat | Rapat | Aktivitas */}
+                            <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.06]">
                                 <button
                                     type="button"
                                     onClick={() => setPanelTab('summary')}
@@ -1248,10 +1338,37 @@ export default function VirtualOfficeIndex({
                                     <MessageSquare className="h-3 w-3" />
                                     Chat
                                     {(unread.zone[String((selectedRoom as { zone_id?: number }).zone_id ?? '')] ?? 0) > 0 && (
-                                        <span className="rounded-full bg-rose-600 px-1.5 text-[9px] font-bold text-white">
+                                        <span className="rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white">
                                             {unread.zone[String((selectedRoom as { zone_id?: number }).zone_id ?? '')]}
                                         </span>
                                     )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPanelTab('meetings')}
+                                    className={`inline-flex items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold transition ${
+                                        panelTab === 'meetings'
+                                            ? 'bg-white text-slate-900 shadow-xs dark:bg-[#15223A] dark:text-[#F4F7FF]'
+                                            : 'text-slate-600 dark:text-[#A7B4CB]'
+                                    }`}
+                                >
+                                    <Video className="h-3 w-3" />
+                                    Rapat
+                                    {meetings.live.length > 0 && (
+                                        <span className="h-2 w-2 animate-pulse rounded-full bg-rose-600" />
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPanelTab('activity')}
+                                    className={`inline-flex items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold transition ${
+                                        panelTab === 'activity'
+                                            ? 'bg-white text-slate-900 shadow-xs dark:bg-[#15223A] dark:text-[#F4F7FF]'
+                                            : 'text-slate-600 dark:text-[#A7B4CB]'
+                                    }`}
+                                >
+                                    <Activity className="h-3 w-3" />
+                                    Aktivitas
                                 </button>
                             </div>
                         </div>
@@ -1269,6 +1386,56 @@ export default function VirtualOfficeIndex({
                                     deletedMessageId={deletedMsgId}
                                     onUnreadChange={setUnread}
                                 />
+                            ) : panelTab === 'meetings' ? (
+                                <OfficeMeetingPanel
+                                    meetings={meetings}
+                                    zoneId={(selectedRoom as { zone_id?: number | null }).zone_id ?? null}
+                                    members={members}
+                                    projects={initialProjects ?? []}
+                                    myUserId={myPresence.id}
+                                    isAdmin={isAdminUser}
+                                    readXsrfToken={readXsrfToken}
+                                    onMeetingsChange={setMeetings}
+                                    onOpenCallModal={(m) => setActiveCallMeeting(m)}
+                                    onToast={showToast}
+                                    onPresenceUpdated={(p) => setMyPresence((prev) => ({ ...prev, ...p }))}
+                                />
+                            ) : panelTab === 'activity' ? (
+                                <div className="space-y-2">
+                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-[#A7B4CB]">
+                                        Feed Aktivitas Zona
+                                    </p>
+                                    {events.length === 0 ? (
+                                        <p className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center text-xs text-slate-400 dark:border-white/10">
+                                            Belum ada aktivitas tercatat di zona ini.
+                                        </p>
+                                    ) : (
+                                        events.map((ev) => (
+                                            <div
+                                                key={ev.id}
+                                                className="flex items-start gap-2 rounded-xl border border-slate-200/70 bg-slate-50/70 px-3 py-2 text-xs dark:border-white/10 dark:bg-white/[0.04]"
+                                            >
+                                                <UserAvatar name={ev.actor_name} avatarUrl={ev.actor_avatar_url} size="xs" />
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="font-medium text-slate-800 dark:text-[#F4F7FF]">
+                                                        {ev.actor_name}{' '}
+                                                        <span className="font-normal text-slate-500 dark:text-[#A7B4CB]">
+                                                            · {ev.type.replace(/_/g, ' ')}
+                                                        </span>
+                                                    </p>
+                                                    {Boolean((ev.payload as { focus?: string })?.focus) && (
+                                                        <p className="truncate text-[11px] text-blue-600 dark:text-blue-400">
+                                                            {String((ev.payload as { focus?: string }).focus)}
+                                                        </p>
+                                                    )}
+                                                    <p className="text-[10px] text-slate-400">
+                                                        {ev.created_human ?? ev.created_at}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
                             ) : (
                                 <>
                             {/* Stat Cards */}
@@ -1368,6 +1535,14 @@ export default function VirtualOfficeIndex({
                                                                     className="rounded-lg p-1 text-slate-500 hover:bg-slate-200/70 hover:text-amber-600 dark:text-[#A7B4CB] dark:hover:bg-white/10"
                                                                 >
                                                                     <Hand className="h-3.5 w-3.5" />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => startQuickCall(member)}
+                                                                    title="Mulai Panggilan Video"
+                                                                    className="rounded-lg p-1 text-slate-500 hover:bg-slate-200/70 hover:text-emerald-600 dark:text-[#A7B4CB] dark:hover:bg-white/10"
+                                                                >
+                                                                    <Phone className="h-3.5 w-3.5" />
                                                                 </button>
                                                             </>
                                                         )}
@@ -1511,6 +1686,21 @@ export default function VirtualOfficeIndex({
                         </div>
                     </div>
                 )}
+
+                <ActiveMeetingModal
+                    meeting={activeCallMeeting}
+                    quickCall={quickCall}
+                    members={members}
+                    myUserId={myPresence.id}
+                    readXsrfToken={readXsrfToken}
+                    onClose={() => {
+                        setActiveCallMeeting(null);
+                        setQuickCall(null);
+                    }}
+                    onMeetingsChange={setMeetings}
+                    onMeetingUpdated={setActiveCallMeeting}
+                    onToast={showToast}
+                />
             </div>
         </AppShell>
     );

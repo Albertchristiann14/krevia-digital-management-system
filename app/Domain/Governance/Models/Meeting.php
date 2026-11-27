@@ -2,6 +2,9 @@
 
 namespace App\Domain\Governance\Models;
 
+use App\Domain\Project\Models\Project;
+use App\Domain\VirtualOffice\Models\OfficeMeetingParticipant;
+use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,8 +25,17 @@ class Meeting extends Model
         'focus',
         'scheduled_date',
         'scheduled_time',
+        'duration_minutes',
         'status',
+        'is_live',
+        'is_locked',
+        'live_room_code',
+        'started_at',
+        'ended_at',
+        'started_by',
         'pic_user_id',
+        'office_zone_id',
+        'project_id',
         'agenda',
         'agenda_sent_at',
         'participants_list',
@@ -35,6 +47,11 @@ class Meeting extends Model
         return [
             'scheduled_date' => 'date',
             'agenda_sent_at' => 'datetime',
+            'duration_minutes' => 'integer',
+            'is_live' => 'boolean',
+            'is_locked' => 'boolean',
+            'started_at' => 'datetime',
+            'ended_at' => 'datetime',
         ];
     }
 
@@ -61,5 +78,25 @@ class Meeting extends Model
     public function decisions(): HasMany
     {
         return $this->hasMany(Decision::class, 'source_meeting_id');
+    }
+
+    public function officeZone(): BelongsTo
+    {
+        return $this->belongsTo(OfficeZone::class, 'office_zone_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function startedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'started_by');
+    }
+
+    public function officeParticipants(): HasMany
+    {
+        return $this->hasMany(OfficeMeetingParticipant::class, 'meeting_id');
     }
 }

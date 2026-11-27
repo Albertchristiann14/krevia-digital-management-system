@@ -25,6 +25,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\VirtualOfficeCommunicationController;
 use App\Http\Controllers\VirtualOfficeController;
+use App\Http\Controllers\VirtualOfficeMeetingController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
 
@@ -124,6 +125,45 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/knocks/{knock}/respond', [VirtualOfficeCommunicationController::class, 'respondKnock'])
             ->middleware('throttle:30,1')
             ->name('knocks.respond');
+        Route::get('/meetings', [VirtualOfficeMeetingController::class, 'index'])
+            ->middleware('throttle:60,1')
+            ->name('meetings.index');
+        Route::get('/meetings/slots', [VirtualOfficeMeetingController::class, 'slots'])
+            ->middleware('throttle:60,1')
+            ->name('meetings.slots');
+        Route::post('/meetings/instant', [VirtualOfficeMeetingController::class, 'startInstant'])
+            ->middleware('throttle:20,1')
+            ->name('meetings.instant');
+        Route::post('/meetings/schedule', [VirtualOfficeMeetingController::class, 'schedule'])
+            ->middleware('throttle:20,1')
+            ->name('meetings.schedule');
+        Route::post('/meetings/{meeting}/join', [VirtualOfficeMeetingController::class, 'join'])
+            ->middleware('throttle:30,1')
+            ->name('meetings.join');
+        Route::post('/meetings/{meeting}/leave', [VirtualOfficeMeetingController::class, 'leave'])
+            ->middleware('throttle:30,1')
+            ->name('meetings.leave');
+        Route::post('/meetings/{meeting}/end', [VirtualOfficeMeetingController::class, 'end'])
+            ->middleware('throttle:20,1')
+            ->name('meetings.end');
+        Route::post('/meetings/{meeting}/rsvp', [VirtualOfficeMeetingController::class, 'rsvp'])
+            ->middleware('throttle:30,1')
+            ->name('meetings.rsvp');
+        Route::post('/meetings/{meeting}/notes', [VirtualOfficeMeetingController::class, 'saveNotes'])
+            ->middleware('throttle:30,1')
+            ->name('meetings.notes');
+        Route::post('/meetings/{meeting}/action-items', [VirtualOfficeMeetingController::class, 'addActionItem'])
+            ->middleware('throttle:30,1')
+            ->name('meetings.action-items');
+        Route::post('/action-items/{actionItem}/convert-task', [VirtualOfficeMeetingController::class, 'convertToTask'])
+            ->middleware('throttle:30,1')
+            ->name('action-items.convert-task');
+        Route::post('/call/{user}', [VirtualOfficeMeetingController::class, 'quickCall'])
+            ->middleware('throttle:20,1')
+            ->name('call.quick');
+        Route::get('/events', [VirtualOfficeMeetingController::class, 'events'])
+            ->middleware('throttle:60,1')
+            ->name('events.index');
     });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 
