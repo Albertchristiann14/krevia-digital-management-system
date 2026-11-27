@@ -1,5 +1,6 @@
 import { GlobalSearch } from '@/Components/shared/GlobalSearch';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { applyThemeToDocument, getStoredThemePreference, type ThemePreference } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Link, router, useForm, usePage } from '@inertiajs/react';
@@ -376,18 +377,18 @@ function SidebarContent({
     };
 
     return (
-        <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-[#0D1729] via-[#0B1424] to-[#080E1B] text-slate-200 select-none">
+        <div className="relative flex h-full flex-col overflow-hidden bg-white/85 text-slate-700 backdrop-blur-xl select-none transition-colors duration-250 dark:bg-gradient-to-b dark:from-[#0D1729] dark:via-[#0B1424] dark:to-[#080E1B] dark:text-slate-200">
             <div
-                className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full"
+                className="pointer-events-none absolute -top-24 -left-24 hidden h-72 w-72 rounded-full dark:block"
                 style={{ background: 'radial-gradient(circle, rgba(102,140,255,0.16) 0%, transparent 70%)' }}
             />
             <div
-                className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full"
+                className="pointer-events-none absolute -bottom-24 -right-24 hidden h-64 w-64 rounded-full dark:block"
                 style={{ background: 'radial-gradient(circle, rgba(69,216,232,0.12) 0%, transparent 70%)' }}
             />
             <div
                 className={cn(
-                    'relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.09]',
+                    'relative z-10 flex h-16 shrink-0 items-center border-b border-slate-200/80 dark:border-white/[0.09]',
                     compact ? 'justify-center px-2' : 'justify-between px-4',
                 )}
             >
@@ -406,14 +407,14 @@ function SidebarContent({
                         width={36}
                         height={36}
                         decoding="async"
-                        className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 shadow-sm"
+                        className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 shadow-xs ring-1 ring-slate-200/80 dark:ring-white/10"
                     />
                     {!compact && (
                         <div className="min-w-0">
-                            <div className="truncate font-display text-sm font-bold tracking-tight text-white">
+                            <div className="truncate font-display text-sm font-bold tracking-tight text-slate-900 dark:text-white">
                                 Krevia Digital
                             </div>
-                            <div className="truncate text-[11px] text-slate-400">
+                            <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                                 {appName} · {appTagline}
                             </div>
                         </div>
@@ -423,7 +424,7 @@ function SidebarContent({
                     <button
                         type="button"
                         onClick={onCloseMobile}
-                        className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
                         aria-label="Close navigation"
                     >
                         <X className="h-5 w-5" />
@@ -458,12 +459,12 @@ function SidebarContent({
                                     type="button"
                                     onClick={() => toggleGroup(group.title)}
                                     aria-expanded={!isGroupCollapsed}
-                                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-left text-[11px] font-semibold tracking-wider text-slate-400 uppercase transition hover:bg-white/[0.04] hover:text-slate-200"
+                                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-left text-[11px] font-semibold tracking-wider text-slate-400 uppercase transition hover:bg-slate-100/80 hover:text-slate-700 dark:hover:bg-white/[0.04] dark:hover:text-slate-200"
                                 >
                                     <span>{group.title}</span>
                                     <ChevronDown
                                         className={cn(
-                                            'h-3.5 w-3.5 text-slate-500 transition-transform duration-150',
+                                            'h-3.5 w-3.5 text-slate-400 transition-transform duration-150 dark:text-slate-500',
                                             isGroupCollapsed && '-rotate-90',
                                         )}
                                     />
@@ -492,11 +493,16 @@ function SidebarContent({
                                                         ? 'mx-auto h-10 w-10 justify-center p-0'
                                                         : 'gap-3 px-3 py-2',
                                                     active
-                                                        ? 'bg-gradient-to-r from-[#6C8CFF]/25 via-[#55D6E8]/10 to-transparent text-white shadow-[0_0_20px_rgba(108,140,255,0.16)] ring-1 ring-[#6C8CFF]/35'
-                                                        : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
+                                                        ? 'bg-blue-50/90 text-blue-700 shadow-xs ring-1 ring-blue-200/80 dark:bg-gradient-to-r dark:from-[#668CFF]/25 dark:via-[#45D8E8]/10 dark:to-transparent dark:text-white dark:shadow-[0_0_20px_rgba(102,140,255,0.16)] dark:ring-[#668CFF]/35'
+                                                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white',
                                                 )}
                                             >
-                                                <Icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-[#55D6E8]')} />
+                                                <Icon
+                                                    className={cn(
+                                                        'h-[18px] w-[18px] shrink-0',
+                                                        active ? 'text-blue-600 dark:text-[#45D8E8]' : 'text-slate-400 dark:text-slate-400',
+                                                    )}
+                                                />
                                                 {!compact && (
                                                     <span className="truncate">{item.label}</span>
                                                 )}
@@ -511,24 +517,24 @@ function SidebarContent({
             </nav>
 
             {user && (
-                <div className="relative z-10 shrink-0 border-t border-white/[0.09] p-3">
+                <div className="relative z-10 shrink-0 border-t border-slate-200/80 p-3 dark:border-white/[0.09]">
                     <div
                         className={cn(
-                            'flex items-center rounded-xl bg-white/[0.045] ring-1 ring-white/[0.09] backdrop-blur-md transition hover:bg-white/[0.07]',
+                            'flex items-center rounded-xl bg-slate-50/90 ring-1 ring-slate-200/80 transition hover:bg-slate-100/90 dark:bg-white/[0.045] dark:ring-white/[0.09] dark:hover:bg-white/[0.07]',
                             compact ? 'justify-center p-1.5' : 'gap-3 p-2.5',
                         )}
                     >
                         <UserAvatar
                             name={user.name}
                             avatarUrl={user.avatar_url}
-                            avatarColor={user.profile?.avatar_color ?? '#1E3A5F'}
+                            avatarColor={user.profile?.avatar_color ?? '#2563EB'}
                             size="sm"
-                            className="ring-1 ring-white/20"
+                            className="ring-1 ring-slate-200 dark:ring-white/20"
                         />
                         {!compact && (
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-semibold text-white">{user.name}</p>
-                                <p className="truncate text-[11px] text-slate-400">
+                                <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{user.name}</p>
+                                <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
                                     {user.profile?.position ?? user.roles[0] ?? 'Member'}
                                 </p>
                             </div>
@@ -538,7 +544,7 @@ function SidebarContent({
                                 type="button"
                                 onClick={onLogout}
                                 title="Sign out"
-                                className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                                className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
                             >
                                 <LogOut className="h-4 w-4" />
                             </button>
@@ -577,46 +583,29 @@ export function AppShell({
 
     const user = auth.user;
     const unreadCount = auth.unreadNotificationsCount ?? 0;
-    const activeTheme = user?.preferences?.theme ?? 'light';
+    const [themePref, setThemePref] = useState<ThemePreference>(() =>
+        getStoredThemePreference(user?.preferences?.theme ?? 'light'),
+    );
 
     useEffect(() => {
-        if (typeof document === 'undefined' || !user?.preferences) {
-            return;
+        if (typeof document === 'undefined') return;
+        applyThemeToDocument(themePref);
+        if (user?.preferences?.compact_mode) {
+            document.documentElement.setAttribute('data-density', user.preferences.compact_mode);
         }
-        const root = document.documentElement;
-        const theme = user.preferences.theme ?? 'light';
-        try {
-            localStorage.setItem('kdms_theme', theme);
-        } catch {
-            // Ignore storage errors
-        }
-
-        const applyTheme = () => {
-            root.classList.add('dark');
-        };
-
-        applyTheme();
-        root.setAttribute('data-density', user.preferences.compact_mode ?? 'comfortable');
-
-        if (theme === 'system' && typeof window !== 'undefined') {
+        if (themePref === 'system' && typeof window !== 'undefined') {
             const media = window.matchMedia('(prefers-color-scheme: dark)');
-            media.addEventListener('change', applyTheme);
-            return () => media.removeEventListener('change', applyTheme);
+            const onChange = () => applyThemeToDocument('system');
+            media.addEventListener('change', onChange);
+            return () => media.removeEventListener('change', onChange);
         }
-    }, [user?.preferences?.theme, user?.preferences?.compact_mode]);
+    }, [themePref, user?.preferences?.compact_mode]);
 
-    const cycleTheme = () => {
-        if (!user) {
-            return;
-        }
-        const order: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
-        const currentIdx = order.indexOf(activeTheme);
-        const nextTheme = order[(currentIdx + 1) % order.length];
-        try {
-            localStorage.setItem('kdms_theme', nextTheme);
-        } catch {
-            // Ignore
-        }
+    const toggleTheme = () => {
+        const nextTheme: ThemePreference = themePref === 'dark' ? 'light' : 'dark';
+        setThemePref(nextTheme);
+        applyThemeToDocument(nextTheme);
+        if (!user) return;
         router.patch(
             '/my-account/preferences',
             {
@@ -682,10 +671,10 @@ export function AppShell({
     };
 
     return (
-        <div className="krevia-glow-mesh flex min-h-screen bg-[#070B16] text-[#F4F7FF]">
+        <div className="krevia-glow-mesh flex min-h-screen text-[var(--text-primary)]">
             <aside
                 className={cn(
-                    'relative hidden shrink-0 border-r border-white/[0.11] transition-all duration-200 lg:block',
+                    'relative hidden shrink-0 border-r border-slate-200/80 transition-all duration-200 lg:block dark:border-white/[0.11]',
                     collapsed ? 'w-[72px]' : 'w-64',
                 )}
             >
@@ -728,12 +717,12 @@ export function AppShell({
             )}
 
             <div className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-white/[0.11] bg-[#0B1222]/75 px-4 shadow-[0_8px_32px_rgba(0,0,0,0.35)] backdrop-blur-2xl sm:px-6">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/80 px-4 shadow-xs backdrop-blur-xl transition-colors duration-250 sm:px-6 dark:border-white/[0.11] dark:bg-[#0B1222]/75 dark:shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
                             onClick={() => setMobileOpen(true)}
-                            className="rounded-xl border border-white/[0.11] bg-white/[0.055] p-2 text-[#A7B4CB] hover:bg-white/[0.1] hover:text-[#F4F7FF] lg:hidden"
+                            className="rounded-xl border border-slate-200/90 bg-white p-2 text-slate-600 hover:bg-slate-50 hover:text-slate-900 lg:hidden dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#A7B4CB] dark:hover:bg-white/[0.1] dark:hover:text-[#F4F7FF]"
                             aria-label="Open navigation"
                         >
                             <Menu className="h-5 w-5" />
@@ -741,7 +730,7 @@ export function AppShell({
                         <button
                             type="button"
                             onClick={toggleCollapsed}
-                            className="hidden h-8 w-8 items-center justify-center rounded-xl border border-white/[0.11] bg-white/[0.055] text-[#A7B4CB] transition hover:border-[#668CFF]/40 hover:bg-white/[0.1] hover:text-[#F4F7FF] lg:inline-flex"
+                            className="hidden h-8 w-8 items-center justify-center rounded-xl border border-slate-200/90 bg-white text-slate-600 transition hover:border-blue-300 hover:bg-slate-50 hover:text-slate-900 lg:inline-flex dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#A7B4CB] dark:hover:border-[#668CFF]/40 dark:hover:bg-white/[0.1] dark:hover:text-[#F4F7FF]"
                             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
@@ -751,65 +740,64 @@ export function AppShell({
                                 <PanelLeftClose className="h-4 w-4" />
                             )}
                         </button>
-                        <div className="flex items-center gap-2 text-xs text-[#71819C]">
-                            <span className="font-semibold text-[#F4F7FF]">KDMS</span>
+                        <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-[#71819C]">
+                            <span className="font-semibold text-slate-900 dark:text-[#F4F7FF]">KDMS</span>
                             <span>/</span>
-                            <span className="text-[#A7B4CB]">{title}</span>
+                            <span className="text-slate-600 dark:text-[#A7B4CB]">{title}</span>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-2.5">
                         <GlobalSearch />
-                        <div className="hidden items-center gap-1.5 rounded-xl border border-white/[0.11] bg-white/[0.055] px-3 py-1.5 text-xs font-medium text-[#A7B4CB] sm:inline-flex">
-                            <CalendarRange className="h-3.5 w-3.5 text-[#45D8E8]" />
+                        <div className="hidden items-center gap-1.5 rounded-xl border border-slate-200/90 bg-slate-50/90 px-3 py-1.5 text-xs font-medium text-slate-600 sm:inline-flex dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#A7B4CB]">
+                            <CalendarRange className="h-3.5 w-3.5 text-blue-600 dark:text-[#45D8E8]" />
                             <span>{app.period}</span>
                         </div>
 
-                        {user && (
-                            <button
-                                type="button"
-                                onClick={cycleTheme}
-                                title={`Theme: ${activeTheme} (click to switch)`}
-                                className="rounded-xl border border-white/[0.11] bg-white/[0.055] p-2 text-[#A7B4CB] transition hover:border-[#668CFF]/40 hover:bg-white/[0.1] hover:text-[#F4F7FF]"
-                            >
-                                {activeTheme === 'dark' ? (
-                                    <Moon className="h-4 w-4 text-[#668CFF]" />
-                                ) : activeTheme === 'system' ? (
-                                    <Monitor className="h-4 w-4 text-[#45D8E8]" />
-                                ) : (
-                                    <Sun className="h-4 w-4 text-[#F4B860]" />
-                                )}
-                            </button>
-                        )}
+                        <button
+                            type="button"
+                            onClick={toggleTheme}
+                            aria-label={themePref === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            title={themePref === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                            className="group rounded-xl border border-slate-200/90 bg-white p-2 text-slate-600 transition hover:border-blue-300 hover:bg-slate-50 hover:text-slate-900 dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#A7B4CB] dark:hover:border-[#668CFF]/40 dark:hover:bg-white/[0.1] dark:hover:text-[#F4F7FF]"
+                        >
+                            {themePref === 'dark' ? (
+                                <Moon className="h-4 w-4 text-[#668CFF] transition-transform duration-200 group-hover:-rotate-12" />
+                            ) : themePref === 'system' ? (
+                                <Monitor className="h-4 w-4 text-blue-600 transition-transform duration-200" />
+                            ) : (
+                                <Sun className="h-4 w-4 text-amber-500 transition-transform duration-200 group-hover:rotate-45" />
+                            )}
+                        </button>
 
                         <Link
                             href="/notifications"
                             prefetch
-                            className="relative rounded-xl border border-white/[0.11] bg-white/[0.055] p-2 text-[#A7B4CB] transition hover:border-[#668CFF]/40 hover:bg-white/[0.1] hover:text-[#F4F7FF]"
+                            className="relative rounded-xl border border-slate-200/90 bg-white p-2 text-slate-600 transition hover:border-blue-300 hover:bg-slate-50 hover:text-slate-900 dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#A7B4CB] dark:hover:border-[#668CFF]/40 dark:hover:bg-white/[0.1] dark:hover:text-[#F4F7FF]"
                             title="Notifications"
                         >
                             <Bell className="h-4 w-4" />
                             {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-[0_0_12px_rgba(240,113,131,0.6)]">
+                                <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white shadow-xs">
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </span>
                             )}
                         </Link>
 
                         {user && (
-                            <div className="flex items-center gap-2 rounded-xl border border-white/[0.11] bg-white/[0.055] px-2.5 py-1.5 backdrop-blur-md">
+                            <div className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-2.5 py-1.5 dark:border-white/[0.11] dark:bg-white/[0.055]">
                                 <Link href="/my-account" prefetch className="flex items-center gap-2 hover:opacity-85">
                                     <UserAvatar
                                         name={user.name}
                                         avatarUrl={user.avatar_url}
-                                        avatarColor={user.profile?.avatar_color ?? '#101D35'}
+                                        avatarColor={user.profile?.avatar_color ?? '#2563EB'}
                                         size="xs"
                                     />
                                     <div className="hidden text-left sm:block">
-                                        <p className="text-xs leading-none font-semibold text-[#F4F7FF]">
+                                        <p className="text-xs leading-none font-semibold text-slate-900 dark:text-[#F4F7FF]">
                                             {user.name}
                                         </p>
-                                        <p className="mt-0.5 text-[10px] leading-none text-[#71819C]">
+                                        <p className="mt-0.5 text-[10px] leading-none text-slate-500 dark:text-[#71819C]">
                                             {[user.profile?.position ?? user.roles[0], user.profile?.department]
                                                 .filter(Boolean)
                                                 .join(' · ')}
@@ -820,7 +808,7 @@ export function AppShell({
                                     type="button"
                                     onClick={() => setShowOwnPasswordModal(true)}
                                     title="Change my password"
-                                    className="ml-1 rounded-lg p-1 text-[#71819C] transition hover:bg-white/[0.09] hover:text-[#F4F7FF]"
+                                    className="ml-1 rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:text-[#71819C] dark:hover:bg-white/[0.09] dark:hover:text-[#F4F7FF]"
                                 >
                                     <KeyRound className="h-3.5 w-3.5" />
                                 </button>
@@ -831,14 +819,14 @@ export function AppShell({
 
                 <main className={cn('flex-1 px-4 py-6 transition-opacity duration-150 sm:px-6 lg:px-8', isNavigating && 'opacity-70')}>
                     {user?.must_change_password && (
-                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#F4B860]/35 bg-[#F4B860]/10 px-4 py-3 text-xs text-[#F4D9A6] backdrop-blur-md">
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-xs text-amber-900 dark:border-[#F4B860]/35 dark:bg-[#F4B860]/10 dark:text-[#F4D9A6]">
                             <span>
                                 <strong>Initial / Reset Password Active:</strong> Please update your personal login password.
                             </span>
                             <button
                                 type="button"
                                 onClick={() => setShowOwnPasswordModal(true)}
-                                className="rounded-xl bg-[#F4B860] px-3 py-1 font-semibold text-[#070B16] transition hover:brightness-110"
+                                className="rounded-xl bg-amber-600 px-3 py-1 font-semibold text-white transition hover:bg-amber-700 dark:bg-[#F4B860] dark:text-[#070B16]"
                             >
                                 Change Password Now
                             </button>
@@ -847,20 +835,20 @@ export function AppShell({
                     {(flash.success || flash.error || flash.warning) && (
                         <div className="mb-5 space-y-2">
                             {flash.success && (
-                                <div className="flex items-center gap-2.5 rounded-2xl border border-[#42C99A]/35 bg-[#42C99A]/10 px-4 py-3 text-sm font-medium text-[#A9F2D7] backdrop-blur-md">
-                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-[#42C99A]" />
+                                <div className="flex items-center gap-2.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800 dark:border-[#42C99A]/35 dark:bg-[#42C99A]/10 dark:text-[#A9F2D7]">
+                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600 dark:text-[#42C99A]" />
                                     <span>{flash.success}</span>
                                 </div>
                             )}
                             {flash.error && (
-                                <div className="flex items-center gap-2.5 rounded-2xl border border-[#F07183]/35 bg-[#F07183]/10 px-4 py-3 text-sm font-medium text-[#F9B4BE] backdrop-blur-md">
-                                    <AlertTriangle className="h-4 w-4 shrink-0 text-[#F07183]" />
+                                <div className="flex items-center gap-2.5 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-800 dark:border-[#F07183]/35 dark:bg-[#F07183]/10 dark:text-[#F9B4BE]">
+                                    <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600 dark:text-[#F07183]" />
                                     <span>{flash.error}</span>
                                 </div>
                             )}
                             {flash.warning && (
-                                <div className="flex items-center gap-2.5 rounded-2xl border border-[#F4B860]/35 bg-[#F4B860]/10 px-4 py-3 text-sm font-medium text-[#F4D9A6] backdrop-blur-md">
-                                    <AlertTriangle className="h-4 w-4 shrink-0 text-[#F4B860]" />
+                                <div className="flex items-center gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800 dark:border-[#F4B860]/35 dark:bg-[#F4B860]/10 dark:text-[#F4D9A6]">
+                                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-[#F4B860]" />
                                     <span>{flash.warning}</span>
                                 </div>
                             )}
@@ -869,10 +857,10 @@ export function AppShell({
 
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="font-display text-2xl font-bold tracking-tight text-[#F4F7FF]">
+                            <h1 className="font-display text-2xl font-bold tracking-tight text-slate-900 dark:text-[#F4F7FF]">
                                 {title}
                             </h1>
-                            {subtitle && <p className="mt-1 text-sm text-[#A7B4CB]">{subtitle}</p>}
+                            {subtitle && <p className="mt-1 text-sm text-slate-500 dark:text-[#A7B4CB]">{subtitle}</p>}
                         </div>
                         {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
                     </div>
@@ -882,14 +870,14 @@ export function AppShell({
             </div>
 
             {showOwnPasswordModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#070B16]/75 p-4 backdrop-blur-md">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm dark:bg-[#070B16]/75">
                     <div className="krevia-glass-elevated w-full max-w-md rounded-2xl p-6">
-                        <div className="flex items-center justify-between border-b border-white/[0.11] pb-3">
-                            <h2 className="text-base font-bold text-[#F4F7FF]">Change My Password</h2>
+                        <div className="flex items-center justify-between border-b border-slate-200 pb-3 dark:border-white/[0.11]">
+                            <h2 className="text-base font-bold text-slate-900 dark:text-[#F4F7FF]">Change My Password</h2>
                             <button
                                 type="button"
                                 onClick={() => setShowOwnPasswordModal(false)}
-                                className="rounded-lg p-1 text-[#A7B4CB] transition hover:bg-white/[0.08] hover:text-[#F4F7FF]"
+                                className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:text-[#A7B4CB] dark:hover:bg-white/[0.08] dark:hover:text-[#F4F7FF]"
                             >
                                 <X className="h-4 w-4" />
                             </button>

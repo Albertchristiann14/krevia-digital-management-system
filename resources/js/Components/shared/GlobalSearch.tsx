@@ -148,10 +148,10 @@ export function GlobalSearch() {
                     }}
                     onKeyDown={handleKeyDown}
                     placeholder="Search tasks, clients, projects... (Ctrl+K)"
-                    className="w-full rounded-xl border border-white/[0.11] bg-white/[0.055] py-1.5 pr-8 pl-8 text-xs text-[#F4F7FF] placeholder:text-[#71819C] backdrop-blur-md focus:border-[#668CFF]/60 focus:bg-[#101A30]/90 focus:outline-none"
+                    className="w-full rounded-xl border border-slate-200/90 bg-slate-50/90 py-1.5 pr-8 pl-8 text-xs text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none dark:border-white/[0.11] dark:bg-white/[0.055] dark:text-[#F4F7FF] dark:placeholder:text-[#71819C] dark:focus:border-[#668CFF]/60 dark:focus:bg-[#101A30]/90"
                 />
                 {loading ? (
-                    <Loader2 className="absolute right-2.5 h-3.5 w-3.5 animate-spin text-[#A7B4CB]" />
+                    <Loader2 className="absolute right-2.5 h-3.5 w-3.5 animate-spin text-slate-400 dark:text-[#A7B4CB]" />
                 ) : query ? (
                     <button
                         type="button"
@@ -159,7 +159,7 @@ export function GlobalSearch() {
                             setQuery('');
                             setGroups([]);
                         }}
-                        className="absolute right-2 rounded p-0.5 text-[#71819C] hover:text-[#F4F7FF]"
+                        className="absolute right-2 rounded p-0.5 text-slate-400 hover:text-slate-900 dark:text-[#71819C] dark:hover:text-[#F4F7FF]"
                     >
                         <X className="h-3.5 w-3.5" />
                     </button>
@@ -169,16 +169,16 @@ export function GlobalSearch() {
             {open && query.trim().length >= 2 && (
                 <div className="krevia-glass-elevated absolute right-0 left-0 z-50 mt-2 max-h-96 overflow-y-auto rounded-2xl p-2">
                     {loading && groups.length === 0 ? (
-                        <p className="px-3 py-4 text-center text-xs text-[#71819C]">Searching...</p>
+                        <p className="px-3 py-4 text-center text-xs text-slate-400 dark:text-[#71819C]">Searching...</p>
                     ) : groups.length === 0 ? (
-                        <p className="px-3 py-4 text-center text-xs text-[#A7B4CB]">
+                        <p className="px-3 py-4 text-center text-xs text-slate-500 dark:text-[#A7B4CB]">
                             No matching records found for &ldquo;{query}&rdquo;.
                         </p>
                     ) : (
                         <div className="space-y-2">
                             {groups.map((group) => (
                                 <div key={group.module}>
-                                    <p className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-[#71819C] uppercase">
+                                    <p className="px-2.5 py-1 text-[10px] font-bold tracking-wider text-slate-400 uppercase dark:text-[#71819C]">
                                         {group.module}
                                     </p>
                                     <div className="space-y-0.5">
@@ -192,8 +192,8 @@ export function GlobalSearch() {
                                                     onClick={() => navigateTo(item.url)}
                                                     className={`flex w-full items-center justify-between gap-2 rounded-xl px-2.5 py-2 text-left text-xs transition ${
                                                         isActive
-                                                            ? 'bg-gradient-to-r from-[#668CFF]/30 to-[#45D8E8]/15 text-[#F4F7FF] ring-1 ring-[#668CFF]/40'
-                                                            : 'text-[#A7B4CB] hover:bg-white/[0.06] hover:text-[#F4F7FF]'
+                                                            ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-gradient-to-r dark:from-[#668CFF]/30 dark:to-[#45D8E8]/15 dark:text-[#F4F7FF] dark:ring-[#668CFF]/40'
+                                                            : 'text-slate-700 hover:bg-slate-100/80 hover:text-slate-900 dark:text-[#A7B4CB] dark:hover:bg-white/[0.06] dark:hover:text-[#F4F7FF]'
                                                     }`}
                                                 >
                                                     <span className="truncate font-medium">

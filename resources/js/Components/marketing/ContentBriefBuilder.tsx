@@ -111,14 +111,14 @@ export function ContentBriefBuilder({
     const briefErrors = Object.entries(errors).filter(([k]) => k.startsWith('structured_brief'));
 
     return (
-        <div className="space-y-4 rounded-2xl border border-white/[0.11] bg-white/[0.035] p-4">
+        <div className="space-y-4 rounded-2xl border border-slate-200/90 dark:border-white/[0.11] bg-slate-50/80 dark:bg-white/[0.035] p-4">
             {/* Section Header + Format Selector */}
-            <div className="flex flex-col gap-3 border-b border-white/[0.09] pb-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border-b border-slate-200/80 dark:border-white/[0.09] pb-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h3 className="font-display text-sm font-bold text-[#F4F7FF]">
+                    <h3 className="font-display text-sm font-bold text-slate-900 dark:text-[#F4F7FF]">
                         Content Brief Builder
                     </h3>
-                    <p className="text-[11px] text-[#A7B4CB]">
+                    <p className="text-[11px] text-slate-600 dark:text-[#A7B4CB]">
                         Select a content format to configure its structured production brief.
                     </p>
                 </div>
@@ -134,8 +134,8 @@ export function ContentBriefBuilder({
                                 onClick={() => handleFormatSwitch(fmt)}
                                 className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition ${
                                     isActive
-                                        ? 'border-[#668CFF]/60 bg-gradient-to-r from-[#668CFF]/25 to-[#45D8E8]/15 text-[#F4F7FF] shadow-[0_0_16px_rgba(102,140,255,0.2)]'
-                                        : 'border-white/[0.1] bg-white/[0.04] text-[#A7B4CB] hover:bg-white/[0.08] hover:text-[#F4F7FF]'
+                                        ? 'border-[#668CFF]/60 bg-gradient-to-r from-[#668CFF]/25 to-[#45D8E8]/15 text-slate-900 dark:text-[#F4F7FF] shadow-[0_0_16px_rgba(102,140,255,0.2)]'
+                                        : 'border-slate-200/80 dark:border-white/[0.1] bg-white/[0.04] text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] hover:text-slate-900 dark:text-[#F4F7FF]'
                                 } disabled:opacity-50`}
                             >
                                 <Icon className="h-3.5 w-3.5 text-[#45D8E8]" />
@@ -157,7 +157,7 @@ export function ContentBriefBuilder({
                 <div className="space-y-4">
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         <div>
-                            <label className="text-xs font-semibold text-[#A7B4CB]">
+                            <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                 Canvas Size / Aspect Ratio
                             </label>
                             <input
@@ -168,11 +168,11 @@ export function ContentBriefBuilder({
                                     onChange({ ...brief, format: 'Carousel', canvas_size: e.target.value })
                                 }
                                 placeholder="1080 × 1350 px (4:5)"
-                                className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                             />
                         </div>
                         <div>
-                            <label className="text-xs font-semibold text-[#A7B4CB]">
+                            <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                 Overall Visual Direction
                             </label>
                             <input
@@ -187,14 +187,14 @@ export function ContentBriefBuilder({
                                     })
                                 }
                                 placeholder="Dark navy + cyan glassmorphic aesthetic, clean sans typography"
-                                className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                             />
                         </div>
                     </div>
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#F4F7FF]">Slides</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">Slides</span>
                             <span className="rounded-full border border-[#668CFF]/35 bg-[#668CFF]/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#8DA8FF]">
                                 {(brief.slides ?? []).length} slide{(brief.slides ?? []).length === 1 ? '' : 's'}
                             </span>
@@ -219,8 +219,8 @@ export function ContentBriefBuilder({
                     {(brief.slides ?? []).length === 0 ? (
                         <div className="rounded-xl border border-dashed border-white/[0.16] bg-white/[0.02] p-6 text-center">
                             <Layers className="mx-auto mb-2 h-6 w-6 text-[#668CFF]" />
-                            <p className="text-xs font-semibold text-[#F4F7FF]">No slides added yet</p>
-                            <p className="mt-0.5 text-[11px] text-[#71819C]">
+                            <p className="text-xs font-semibold text-slate-900 dark:text-[#F4F7FF]">No slides added yet</p>
+                            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-[#71819C]">
                                 Add at least one slide to structure this Carousel brief.
                             </p>
                         </div>
@@ -231,7 +231,7 @@ export function ContentBriefBuilder({
                                 return (
                                     <div
                                         key={idx}
-                                        className="rounded-xl border border-white/[0.11] bg-[#0B1222]/75 p-3.5"
+                                        className="rounded-xl border border-slate-200/90 dark:border-white/[0.11] bg-white dark:bg-[#0B1222]/75 p-3.5"
                                     >
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <button
@@ -242,16 +242,16 @@ export function ContentBriefBuilder({
                                                 <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#668CFF]/20 font-mono text-xs font-bold text-[#8DA8FF]">
                                                     {idx + 1}
                                                 </span>
-                                                <span className="text-xs font-bold text-[#F4F7FF]">
+                                                <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">
                                                     {slide.headline || `Slide ${idx + 1}`}
                                                 </span>
-                                                <span className="rounded-md border border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#45D8E8]">
+                                                <span className="rounded-md border border-slate-200/80 dark:border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#45D8E8]">
                                                     {slide.role}
                                                 </span>
                                                 {isCollapsed ? (
-                                                    <ChevronDown className="h-3.5 w-3.5 text-[#71819C]" />
+                                                    <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                                 ) : (
-                                                    <ChevronUp className="h-3.5 w-3.5 text-[#71819C]" />
+                                                    <ChevronUp className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                                 )}
                                             </button>
 
@@ -262,7 +262,7 @@ export function ContentBriefBuilder({
                                                         onClick={() => updateSlides(moveItem(brief.slides ?? [], idx, -1))}
                                                         disabled={idx === 0}
                                                         title="Move Up"
-                                                        className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                        className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                     >
                                                         <ArrowUp className="h-3.5 w-3.5" />
                                                     </button>
@@ -271,7 +271,7 @@ export function ContentBriefBuilder({
                                                         onClick={() => updateSlides(moveItem(brief.slides ?? [], idx, 1))}
                                                         disabled={idx === (brief.slides ?? []).length - 1}
                                                         title="Move Down"
-                                                        className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                        className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                     >
                                                         <ArrowDown className="h-3.5 w-3.5" />
                                                     </button>
@@ -283,7 +283,7 @@ export function ContentBriefBuilder({
                                                             updateSlides(copy);
                                                         }}
                                                         title="Duplicate Slide"
-                                                        className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08]"
+                                                        className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08]"
                                                     >
                                                         <Copy className="h-3.5 w-3.5" />
                                                     </button>
@@ -304,9 +304,9 @@ export function ContentBriefBuilder({
                                         </div>
 
                                         {!isCollapsed && (
-                                            <div className="mt-3 grid grid-cols-1 gap-3 border-t border-white/[0.08] pt-3 sm:grid-cols-2">
+                                            <div className="mt-3 grid grid-cols-1 gap-3 border-t border-slate-200/70 dark:border-white/[0.08] pt-3 sm:grid-cols-2">
                                                 <div>
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Slide Role / Structure *
                                                     </label>
                                                     <select
@@ -317,7 +317,7 @@ export function ContentBriefBuilder({
                                                             copy[idx] = { ...slide, role: e.target.value };
                                                             updateSlides(copy);
                                                         }}
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     >
                                                         {SLIDE_ROLES.map((r) => (
                                                             <option key={r} value={r}>
@@ -327,7 +327,7 @@ export function ContentBriefBuilder({
                                                     </select>
                                                 </div>
                                                 <div>
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Headline / Main Copy *
                                                     </label>
                                                     <input
@@ -341,11 +341,11 @@ export function ContentBriefBuilder({
                                                             updateSlides(copy);
                                                         }}
                                                         placeholder="Main headline for this slide"
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     />
                                                 </div>
                                                 <div className="sm:col-span-2">
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Supporting Content
                                                     </label>
                                                     <textarea
@@ -361,11 +361,11 @@ export function ContentBriefBuilder({
                                                             updateSlides(copy);
                                                         }}
                                                         placeholder="Body points, data, or explanation..."
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     />
                                                 </div>
                                                 <div className="sm:col-span-2">
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Visual Direction *
                                                     </label>
                                                     <textarea
@@ -382,11 +382,11 @@ export function ContentBriefBuilder({
                                                             updateSlides(copy);
                                                         }}
                                                         placeholder="Layout, UI mockup, icons, color emphasis..."
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Reference Image URL (optional)
                                                     </label>
                                                     <input
@@ -402,11 +402,11 @@ export function ContentBriefBuilder({
                                                             updateSlides(copy);
                                                         }}
                                                         placeholder="https://..."
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                    <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                         Additional Notes (optional)
                                                     </label>
                                                     <input
@@ -418,7 +418,7 @@ export function ContentBriefBuilder({
                                                             copy[idx] = { ...slide, notes: e.target.value };
                                                             updateSlides(copy);
                                                         }}
-                                                        className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                        className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                     />
                                                 </div>
                                             </div>
@@ -435,7 +435,7 @@ export function ContentBriefBuilder({
             {activeFormat === 'Single Image' && (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Main Headline *</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Main Headline *</label>
                         <input
                             type="text"
                             required
@@ -445,11 +445,11 @@ export function ContentBriefBuilder({
                                 onChange({ ...brief, format: 'Single Image', headline: e.target.value })
                             }
                             placeholder="Primary bold headline on the graphic"
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Main Message *</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Main Message *</label>
                         <textarea
                             rows={2}
                             required
@@ -459,11 +459,11 @@ export function ContentBriefBuilder({
                                 onChange({ ...brief, format: 'Single Image', main_message: e.target.value })
                             }
                             placeholder="Core takeaway for the audience"
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Supporting Information</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Supporting Information</label>
                         <textarea
                             rows={2}
                             disabled={disabled}
@@ -476,11 +476,11 @@ export function ContentBriefBuilder({
                                 })
                             }
                             placeholder="Sub-copy, bullet points, or stats"
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Call to Action (CTA)</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Call to Action (CTA)</label>
                         <input
                             type="text"
                             disabled={disabled}
@@ -489,11 +489,11 @@ export function ContentBriefBuilder({
                                 onChange({ ...brief, format: 'Single Image', cta: e.target.value })
                             }
                             placeholder="DM 'KREVIA' or visit link in bio"
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div>
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Canvas Size</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Canvas Size</label>
                         <input
                             type="text"
                             disabled={disabled}
@@ -501,11 +501,11 @@ export function ContentBriefBuilder({
                             onChange={(e) =>
                                 onChange({ ...brief, format: 'Single Image', canvas_size: e.target.value })
                             }
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Visual Direction *</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Visual Direction *</label>
                         <textarea
                             rows={2}
                             required
@@ -519,11 +519,11 @@ export function ContentBriefBuilder({
                                 })
                             }
                             placeholder="Composition, focal visual, typography hierarchy, brand accents"
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                     <div className="sm:col-span-2">
-                        <label className="text-xs font-semibold text-[#A7B4CB]">Additional Notes</label>
+                        <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Additional Notes</label>
                         <input
                             type="text"
                             disabled={disabled}
@@ -531,7 +531,7 @@ export function ContentBriefBuilder({
                             onChange={(e) =>
                                 onChange({ ...brief, format: 'Single Image', notes: e.target.value })
                             }
-                            className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     </div>
                 </div>
@@ -543,7 +543,7 @@ export function ContentBriefBuilder({
                     {activeFormat === 'Reels' ? (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Aspect Ratio</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Aspect Ratio</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -551,11 +551,11 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Reels', aspect_ratio: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Target Duration</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Target Duration</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -567,11 +567,11 @@ export function ContentBriefBuilder({
                                             target_duration: e.target.value,
                                         })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                     Background Music Reference
                                 </label>
                                 <input
@@ -586,11 +586,11 @@ export function ContentBriefBuilder({
                                         })
                                     }
                                     placeholder="Upbeat corporate lo-fi / trending audio link"
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                     Overall Visual Style
                                 </label>
                                 <input
@@ -601,14 +601,14 @@ export function ContentBriefBuilder({
                                         onChange({ ...brief, format: 'Reels', visual_style: e.target.value })
                                     }
                                     placeholder="Fast cuts, clean subtitles, dark UI screen recordings"
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="sm:col-span-2">
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Opening / Hook *</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Opening / Hook *</label>
                                 <input
                                     type="text"
                                     required
@@ -618,11 +618,11 @@ export function ContentBriefBuilder({
                                         onChange({ ...brief, format: 'Video', hook: e.target.value })
                                     }
                                     placeholder="First 3–5 seconds hook"
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Video Duration</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Video Duration</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -630,11 +630,11 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Video', duration: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Aspect Ratio</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Aspect Ratio</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -642,11 +642,11 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Video', aspect_ratio: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div className="sm:col-span-2">
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Narration / Script</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Narration / Script</label>
                                 <textarea
                                     rows={2}
                                     disabled={disabled}
@@ -654,11 +654,11 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Video', narration: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div className="sm:col-span-2">
-                                <label className="text-xs font-semibold text-[#A7B4CB]">
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                     Visual Direction *
                                 </label>
                                 <textarea
@@ -673,11 +673,11 @@ export function ContentBriefBuilder({
                                             visual_direction: e.target.value,
                                         })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Closing / CTA</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Closing / CTA</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -685,11 +685,11 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Video', closing_cta: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-semibold text-[#A7B4CB]">Additional Notes</label>
+                                <label className="text-xs font-semibold text-slate-600 dark:text-[#A7B4CB]">Additional Notes</label>
                                 <input
                                     type="text"
                                     disabled={disabled}
@@ -697,7 +697,7 @@ export function ContentBriefBuilder({
                                     onChange={(e) =>
                                         onChange({ ...brief, format: 'Video', notes: e.target.value })
                                     }
-                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                 />
                             </div>
                         </div>
@@ -706,7 +706,7 @@ export function ContentBriefBuilder({
                     {/* Scene Breakdown */}
                     <div className="flex items-center justify-between pt-1">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#F4F7FF]">Scene Breakdown</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">Scene Breakdown</span>
                             <span className="rounded-full border border-[#A17AFF]/35 bg-[#A17AFF]/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#A17AFF]">
                                 {(brief.scenes ?? []).length} scene{(brief.scenes ?? []).length === 1 ? '' : 's'}
                             </span>
@@ -734,7 +734,7 @@ export function ContentBriefBuilder({
                             return (
                                 <div
                                     key={idx}
-                                    className="rounded-xl border border-white/[0.11] bg-[#0B1222]/75 p-3.5"
+                                    className="rounded-xl border border-slate-200/90 dark:border-white/[0.11] bg-white dark:bg-[#0B1222]/75 p-3.5"
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <button
@@ -745,18 +745,18 @@ export function ContentBriefBuilder({
                                             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#A17AFF]/20 font-mono text-xs font-bold text-[#A17AFF]">
                                                 {idx + 1}
                                             </span>
-                                            <span className="text-xs font-bold text-[#F4F7FF]">
+                                            <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">
                                                 {scene.title || `Scene ${idx + 1}`}
                                             </span>
                                             {scene.duration && (
-                                                <span className="rounded-md border border-white/[0.1] bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] text-[#45D8E8]">
+                                                <span className="rounded-md border border-slate-200/80 dark:border-white/[0.1] bg-white/[0.05] px-2 py-0.5 font-mono text-[10px] text-[#45D8E8]">
                                                     {scene.duration}
                                                 </span>
                                             )}
                                             {isCollapsed ? (
-                                                <ChevronDown className="h-3.5 w-3.5 text-[#71819C]" />
+                                                <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                             ) : (
-                                                <ChevronUp className="h-3.5 w-3.5 text-[#71819C]" />
+                                                <ChevronUp className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                             )}
                                         </button>
 
@@ -766,7 +766,7 @@ export function ContentBriefBuilder({
                                                     type="button"
                                                     onClick={() => updateScenes(moveItem(brief.scenes ?? [], idx, -1))}
                                                     disabled={idx === 0}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                 >
                                                     <ArrowUp className="h-3.5 w-3.5" />
                                                 </button>
@@ -774,7 +774,7 @@ export function ContentBriefBuilder({
                                                     type="button"
                                                     onClick={() => updateScenes(moveItem(brief.scenes ?? [], idx, 1))}
                                                     disabled={idx === (brief.scenes ?? []).length - 1}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                 >
                                                     <ArrowDown className="h-3.5 w-3.5" />
                                                 </button>
@@ -785,7 +785,7 @@ export function ContentBriefBuilder({
                                                         copy.splice(idx + 1, 0, { ...scene });
                                                         updateScenes(copy);
                                                     }}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08]"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08]"
                                                 >
                                                     <Copy className="h-3.5 w-3.5" />
                                                 </button>
@@ -805,9 +805,9 @@ export function ContentBriefBuilder({
                                     </div>
 
                                     {!isCollapsed && (
-                                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-white/[0.08] pt-3 sm:grid-cols-2">
+                                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-slate-200/70 dark:border-white/[0.08] pt-3 sm:grid-cols-2">
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Scene Title *
                                                 </label>
                                                 <input
@@ -820,11 +820,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...scene, title: e.target.value };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Duration
                                                 </label>
                                                 <input
@@ -837,11 +837,11 @@ export function ContentBriefBuilder({
                                                         updateScenes(copy);
                                                     }}
                                                     placeholder="e.g. 5s"
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Visual Direction *
                                                 </label>
                                                 <textarea
@@ -857,11 +857,11 @@ export function ContentBriefBuilder({
                                                         };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     On-Screen Text
                                                 </label>
                                                 <input
@@ -876,11 +876,11 @@ export function ContentBriefBuilder({
                                                         };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Transition / Effect
                                                 </label>
                                                 <input
@@ -892,11 +892,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...scene, transition: e.target.value };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Voice-over / Narration
                                                 </label>
                                                 <textarea
@@ -908,11 +908,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...scene, voice_over: e.target.value };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Additional Notes
                                                 </label>
                                                 <input
@@ -924,7 +924,7 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...scene, notes: e.target.value };
                                                         updateScenes(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                         </div>
@@ -941,7 +941,7 @@ export function ContentBriefBuilder({
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-[#F4F7FF]">Story Frames</span>
+                            <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">Story Frames</span>
                             <span className="rounded-full border border-[#42C99A]/35 bg-[#42C99A]/15 px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#42C99A]">
                                 {(brief.frames ?? []).length} frame{(brief.frames ?? []).length === 1 ? '' : 's'}
                             </span>
@@ -969,7 +969,7 @@ export function ContentBriefBuilder({
                             return (
                                 <div
                                     key={idx}
-                                    className="rounded-xl border border-white/[0.11] bg-[#0B1222]/75 p-3.5"
+                                    className="rounded-xl border border-slate-200/90 dark:border-white/[0.11] bg-white dark:bg-[#0B1222]/75 p-3.5"
                                 >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <button
@@ -980,18 +980,18 @@ export function ContentBriefBuilder({
                                             <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-[#42C99A]/20 font-mono text-xs font-bold text-[#42C99A]">
                                                 {idx + 1}
                                             </span>
-                                            <span className="text-xs font-bold text-[#F4F7FF]">
+                                            <span className="text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">
                                                 {frame.headline || `Frame ${idx + 1}`}
                                             </span>
                                             {frame.interactive_element && frame.interactive_element !== 'None' && (
-                                                <span className="rounded-md border border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#F4B860]">
+                                                <span className="rounded-md border border-slate-200/80 dark:border-white/[0.1] bg-white/[0.05] px-2 py-0.5 text-[10px] text-[#F4B860]">
                                                     {frame.interactive_element}
                                                 </span>
                                             )}
                                             {isCollapsed ? (
-                                                <ChevronDown className="h-3.5 w-3.5 text-[#71819C]" />
+                                                <ChevronDown className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                             ) : (
-                                                <ChevronUp className="h-3.5 w-3.5 text-[#71819C]" />
+                                                <ChevronUp className="h-3.5 w-3.5 text-slate-500 dark:text-[#71819C]" />
                                             )}
                                         </button>
 
@@ -1001,7 +1001,7 @@ export function ContentBriefBuilder({
                                                     type="button"
                                                     onClick={() => updateFrames(moveItem(brief.frames ?? [], idx, -1))}
                                                     disabled={idx === 0}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                 >
                                                     <ArrowUp className="h-3.5 w-3.5" />
                                                 </button>
@@ -1009,7 +1009,7 @@ export function ContentBriefBuilder({
                                                     type="button"
                                                     onClick={() => updateFrames(moveItem(brief.frames ?? [], idx, 1))}
                                                     disabled={idx === (brief.frames ?? []).length - 1}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08] disabled:opacity-30"
                                                 >
                                                     <ArrowDown className="h-3.5 w-3.5" />
                                                 </button>
@@ -1020,7 +1020,7 @@ export function ContentBriefBuilder({
                                                         copy.splice(idx + 1, 0, { ...frame });
                                                         updateFrames(copy);
                                                     }}
-                                                    className="rounded-lg p-1 text-[#A7B4CB] hover:bg-white/[0.08]"
+                                                    className="rounded-lg p-1 text-slate-600 dark:text-[#A7B4CB] hover:bg-white/[0.08]"
                                                 >
                                                     <Copy className="h-3.5 w-3.5" />
                                                 </button>
@@ -1040,9 +1040,9 @@ export function ContentBriefBuilder({
                                     </div>
 
                                     {!isCollapsed && (
-                                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-white/[0.08] pt-3 sm:grid-cols-2">
+                                        <div className="mt-3 grid grid-cols-1 gap-3 border-t border-slate-200/70 dark:border-white/[0.08] pt-3 sm:grid-cols-2">
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Frame Headline *
                                                 </label>
                                                 <input
@@ -1055,11 +1055,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...frame, headline: e.target.value };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Interactive Element
                                                 </label>
                                                 <select
@@ -1073,7 +1073,7 @@ export function ContentBriefBuilder({
                                                         };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 >
                                                     {STORY_INTERACTIVE_ELEMENTS.map((el) => (
                                                         <option key={el} value={el}>
@@ -1083,7 +1083,7 @@ export function ContentBriefBuilder({
                                                 </select>
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Main Text
                                                 </label>
                                                 <textarea
@@ -1095,11 +1095,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...frame, main_text: e.target.value };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div className="sm:col-span-2">
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Visual Direction *
                                                 </label>
                                                 <textarea
@@ -1115,11 +1115,11 @@ export function ContentBriefBuilder({
                                                         };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     CTA
                                                 </label>
                                                 <input
@@ -1131,11 +1131,11 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...frame, cta: e.target.value };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="text-[11px] font-semibold text-[#A7B4CB]">
+                                                <label className="text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                                     Additional Notes
                                                 </label>
                                                 <input
@@ -1147,7 +1147,7 @@ export function ContentBriefBuilder({
                                                         copy[idx] = { ...frame, notes: e.target.value };
                                                         updateFrames(copy);
                                                     }}
-                                                    className="mt-1 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                                                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                                                 />
                                             </div>
                                         </div>
@@ -1161,11 +1161,11 @@ export function ContentBriefBuilder({
 
             {/* Optional Legacy / Summary Brief Field */}
             {onLegacyBriefChange && (
-                <div className="border-t border-white/[0.08] pt-3">
+                <div className="border-t border-slate-200/70 dark:border-white/[0.08] pt-3">
                     <button
                         type="button"
                         onClick={() => setShowLegacyNotes((v) => !v)}
-                        className="text-[11px] font-semibold text-[#71819C] hover:text-[#A7B4CB]"
+                        className="text-[11px] font-semibold text-slate-500 dark:text-[#71819C] hover:text-slate-600 dark:text-[#A7B4CB]"
                     >
                         {showLegacyNotes ? 'Hide' : 'Show'} General Brief Summary / Legacy Notes
                     </button>
@@ -1176,7 +1176,7 @@ export function ContentBriefBuilder({
                             value={legacyBrief ?? ''}
                             onChange={(e) => onLegacyBriefChange(e.target.value)}
                             placeholder="Optional overall brief summary..."
-                            className="mt-2 w-full rounded-xl border border-white/[0.12] px-3 py-2 text-xs"
+                            className="mt-2 w-full rounded-xl border border-slate-200 dark:border-white/[0.12] px-3 py-2 text-xs"
                         />
                     )}
                 </div>

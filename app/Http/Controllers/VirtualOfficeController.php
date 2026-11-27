@@ -98,8 +98,8 @@ class VirtualOfficeController extends Controller
                     'href' => $canViewTasks ? '/my-tasks' : '/dashboard',
                 ],
                 'metrics' => [
-                    ['label' => 'Active Tasks', 'value' => $activeTasksCount ?? '—'],
-                    ['label' => 'My Open Tasks', 'value' => $myOpenTasksCount ?? '—'],
+                    ['label' => 'In Progress / Review', 'value' => $activeTasksCount ?? '—', 'hint' => 'Team tasks currently in active execution or review'],
+                    ['label' => 'My Open Backlog', 'value' => $myOpenTasksCount ?? '—', 'hint' => 'All non-completed tasks assigned to you'],
                 ],
             ],
             [

@@ -87,78 +87,78 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
                 </div>
 
                 {/* Right Form Panel */}
-                <div className="krevia-glow-mesh flex flex-1 items-center justify-center bg-[#070B16] p-6 sm:p-12">
+                <div className="krevia-glow-mesh flex flex-1 items-center justify-center p-6 sm:p-12">
                     <div className="krevia-glass-elevated w-full max-w-md rounded-2xl p-8">
                         <div className="mb-6">
-                            <p className="mb-1 text-[10px] font-bold tracking-[0.2em] text-[#45D8E8] uppercase">
-                                Krevia Glow Workspace
+                            <p className="mb-1 text-[10px] font-bold tracking-[0.2em] text-blue-600 uppercase dark:text-[#45D8E8]">
+                                Krevia Digital Workspace
                             </p>
-                            <h2 className="font-display text-xl font-bold text-[#F4F7FF]">
+                            <h2 className="font-display text-xl font-bold text-slate-900 dark:text-[#F4F7FF]">
                                 Sign in to KDMS
                             </h2>
-                            <p className="mt-1 text-sm text-[#A7B4CB]">
+                            <p className="mt-1 text-sm text-slate-500 dark:text-[#A7B4CB]">
                                 Use your Krevia Digital team account credentials.
                             </p>
                         </div>
 
                         {serverErrors.email && (
-                            <div className="mb-4 rounded-xl border border-[#F07183]/35 bg-[#F07183]/10 px-3.5 py-2.5 text-xs font-medium text-[#F9B4BE]">
+                            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-xs font-medium text-rose-700 dark:border-[#F07183]/35 dark:bg-[#F07183]/10 dark:text-[#F9B4BE]">
                                 {serverErrors.email}
                             </div>
                         )}
 
                         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-[#A7B4CB]">
+                                <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-[#A7B4CB]">
                                     Email Address
                                 </label>
                                 <div className="relative">
-                                    <Mail className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#71819C]" />
+                                    <Mail className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#71819C]" />
                                     <input
                                         type="email"
                                         autoComplete="email"
                                         placeholder="name@kreviadigital.com"
                                         {...register('email')}
-                                        className="w-full rounded-xl border border-white/[0.12] bg-[#070B16]/75 py-2.5 pr-3 pl-9 text-sm text-[#F4F7FF] outline-none focus:border-[#668CFF] focus:ring-2 focus:ring-[#668CFF]/20"
+                                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-3 pl-9 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/[0.12] dark:bg-[#070B16]/75 dark:text-[#F4F7FF] dark:focus:border-[#668CFF]"
                                     />
                                 </div>
                                 {errors.email && (
-                                    <p className="mt-1 text-xs text-[#F07183]">{errors.email.message}</p>
+                                    <p className="mt-1 text-xs text-rose-600 dark:text-[#F07183]">{errors.email.message}</p>
                                 )}
                             </div>
 
                             <div>
-                                <label className="mb-1.5 block text-xs font-semibold text-[#A7B4CB]">
+                                <label className="mb-1.5 block text-xs font-semibold text-slate-700 dark:text-[#A7B4CB]">
                                     Password
                                 </label>
                                 <div className="relative">
-                                    <Lock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#71819C]" />
+                                    <Lock className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-[#71819C]" />
                                     <input
                                         type={showPassword ? 'text' : 'password'}
                                         autoComplete="current-password"
                                         placeholder="Enter your password"
                                         {...register('password')}
-                                        className="w-full rounded-xl border border-white/[0.12] bg-[#070B16]/75 py-2.5 pr-10 pl-9 text-sm text-[#F4F7FF] outline-none focus:border-[#668CFF] focus:ring-2 focus:ring-[#668CFF]/20"
+                                        className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pr-10 pl-9 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-white/[0.12] dark:bg-[#070B16]/75 dark:text-[#F4F7FF] dark:focus:border-[#668CFF]"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword((v) => !v)}
-                                        className="absolute top-1/2 right-3 -translate-y-1/2 text-[#71819C] hover:text-[#F4F7FF]"
+                                        className="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 hover:text-slate-700 dark:text-[#71819C] dark:hover:text-[#F4F7FF]"
                                         aria-label="Toggle password visibility"
                                     >
                                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </button>
                                 </div>
                                 {errors.password && (
-                                    <p className="mt-1 text-xs text-[#F07183]">{errors.password.message}</p>
+                                    <p className="mt-1 text-xs text-rose-600 dark:text-[#F07183]">{errors.password.message}</p>
                                 )}
                             </div>
 
-                            <label className="flex items-center gap-2 text-xs text-[#A7B4CB]">
+                            <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-[#A7B4CB]">
                                 <input
                                     type="checkbox"
                                     {...register('remember')}
-                                    className="h-4 w-4 rounded border-white/20 bg-[#070B16] text-[#668CFF] focus:ring-[#668CFF]"
+                                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 dark:border-white/20 dark:bg-[#070B16] dark:text-[#668CFF]"
                                 />
                                 Keep me signed in on this device
                             </label>
@@ -166,7 +166,7 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full rounded-xl bg-gradient-to-r from-[#668CFF] to-[#45D8E8] px-4 py-2.5 text-sm font-semibold text-[#070B16] shadow-[0_0_24px_rgba(102,140,255,0.35)] transition hover:brightness-110 disabled:opacity-60"
+                                className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:brightness-105 disabled:opacity-60 dark:from-[#668CFF] dark:to-[#45D8E8] dark:text-[#070B16]"
                             >
                                 {submitting ? 'Signing in...' : 'Sign In'}
                             </button>

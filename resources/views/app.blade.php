@@ -1,15 +1,38 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-theme="light">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#FFFFFF">
         <title inertia>{{ config('app.name', 'KDMS') }}</title>
         <link rel="icon" type="image/png" href="/favicon.png">
         <script>
             (function () {
                 try {
-                    document.documentElement.classList.add('dark');
-                    localStorage.setItem('kdms_theme', 'dark');
+                    var serverTheme = @json(auth()->user()?->preferences['theme'] ?? null);
+                    var stored = localStorage.getItem('kdms_theme');
+                    var theme = stored || serverTheme || 'light';
+                    if (theme !== 'light' && theme !== 'dark' && theme !== 'system') {
+                        theme = 'light';
+                    }
+                    var isDark =
+                        theme === 'dark' ||
+                        (theme === 'system' &&
+                            window.matchMedia &&
+                            window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    var resolved = isDark ? 'dark' : 'light';
+                    var root = document.documentElement;
+                    root.setAttribute('data-theme', resolved);
+                    root.style.colorScheme = resolved;
+                    if (isDark) {
+                        root.classList.add('dark');
+                    } else {
+                        root.classList.remove('dark');
+                    }
+                    var meta = document.querySelector('meta[name="theme-color"]');
+                    if (meta) {
+                        meta.setAttribute('content', isDark ? '#070B16' : '#FFFFFF');
+                    }
                 } catch (e) {}
             })();
         </script>
@@ -31,7 +54,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
         @inertiaHead
     </head>
-    <body class="bg-[#070B16] text-[#F4F7FF] antialiased selection:bg-[#668CFF]/35 selection:text-white">
+    <body class="antialiased selection:bg-blue-600/20 selection:text-blue-900 dark:selection:bg-[#668CFF]/35 dark:selection:text-white">
         @inertia
     </body>
 </html>

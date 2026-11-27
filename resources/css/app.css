@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
@@ -11,34 +11,82 @@
     --font-display: 'Plus Jakarta Sans', 'Inter', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    --color-krevia-navy: #101A30;
-    --color-krevia-navy-light: #15223A;
-    --color-krevia-navy-muted: #1E3152;
-    --color-krevia-canvas: #070B16;
-    --color-krevia-surface: #0B1222;
+    --color-krevia-navy: #101D35;
+    --color-krevia-navy-light: #1A2D4E;
+    --color-krevia-navy-muted: #243B61;
+    --color-krevia-canvas: #F7F9FC;
+    --color-krevia-surface: #FFFFFF;
 }
 
 /* ==========================================================================
-   KREVIA GLOW — Full Glossy Dark Glassmorphism Design System
+   KREVIA DMS DESIGN TOKENS — LIGHT (DEFAULT GLOSSY WHITE) & DARK (DEEP NAVY)
    ========================================================================== */
-:root {
-    --krevia-bg-main: #070B16;
-    --krevia-bg-secondary: #0B1222;
-    --krevia-surface-deep: #101A30;
-    --krevia-surface-elevated: #15223A;
-    --krevia-glass: rgba(255, 255, 255, 0.055);
-    --krevia-glass-elevated: rgba(255, 255, 255, 0.085);
-    --krevia-glass-border: rgba(255, 255, 255, 0.11);
-    --krevia-glass-highlight: rgba(255, 255, 255, 0.14);
-    --krevia-accent: #668CFF;
-    --krevia-cyan: #45D8E8;
-    --krevia-violet: #A17AFF;
-    --krevia-text-primary: #F4F7FF;
-    --krevia-text-secondary: #A7B4CB;
-    --krevia-text-muted: #71819C;
-    --krevia-success: #42C99A;
-    --krevia-warning: #F4B860;
-    --krevia-danger: #F07183;
+:root,
+html[data-theme='light'] {
+    --bg-app: linear-gradient(180deg, #FFFFFF 0%, #F7F9FC 100%);
+    --bg-app-solid: #F7F9FC;
+    --bg-surface: #FFFFFF;
+    --bg-surface-2: #F6F8FB;
+    --bg-glass: rgba(255, 255, 255, 0.78);
+    --bg-glass-elevated: rgba(255, 255, 255, 0.92);
+    --border: rgba(15, 23, 42, 0.08);
+    --border-strong: rgba(15, 23, 42, 0.14);
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --accent: #2563EB;
+    --accent-cyan: #0EA5E9;
+    --accent-violet: #7C3AED;
+    --accent-gradient: linear-gradient(135deg, #2563EB 0%, #22D3EE 100%);
+    --success: #16A34A;
+    --warning: #F59E0B;
+    --danger: #DC2626;
+    --info: #0EA5E9;
+    --shadow-glossy:
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        0 1px 2px rgba(15, 23, 42, 0.04),
+        0 8px 24px rgba(15, 23, 42, 0.06),
+        0 24px 48px rgba(15, 23, 42, 0.04);
+    --shadow-elevated:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 4px 12px rgba(15, 23, 42, 0.06),
+        0 18px 42px rgba(15, 23, 42, 0.1);
+    --sheen-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 48%);
+    color-scheme: light;
+}
+
+html.dark,
+html[data-theme='dark'] {
+    --bg-app:
+        radial-gradient(820px circle at 8% 0%, rgba(102, 140, 255, 0.16), transparent 54%),
+        radial-gradient(680px circle at 92% 4%, rgba(69, 216, 232, 0.12), transparent 52%),
+        radial-gradient(760px circle at 52% 100%, rgba(161, 122, 255, 0.12), transparent 58%),
+        linear-gradient(180deg, #070B16 0%, #0B1222 100%);
+    --bg-app-solid: #070B16;
+    --bg-surface: #101A30;
+    --bg-surface-2: #0B1222;
+    --bg-glass: rgba(16, 26, 48, 0.76);
+    --bg-glass-elevated: rgba(16, 26, 48, 0.92);
+    --border: rgba(255, 255, 255, 0.11);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --text-primary: #F4F7FF;
+    --text-secondary: #A7B4CB;
+    --text-muted: #71819C;
+    --accent: #668CFF;
+    --accent-cyan: #45D8E8;
+    --accent-violet: #A17AFF;
+    --accent-gradient: linear-gradient(135deg, #668CFF 0%, #45D8E8 100%);
+    --success: #42C99A;
+    --warning: #F4B860;
+    --danger: #F07183;
+    --info: #45D8E8;
+    --shadow-glossy:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        0 12px 28px -14px rgba(0, 0, 0, 0.65);
+    --shadow-elevated:
+        inset 0 1px 0 rgba(255, 255, 255, 0.16),
+        0 20px 48px -16px rgba(0, 0, 0, 0.78);
+    --sheen-gradient: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0) 45%);
     color-scheme: dark;
 }
 
@@ -46,8 +94,9 @@
     html,
     body {
         font-family: var(--font-sans);
-        background-color: var(--krevia-bg-main);
-        color: var(--krevia-text-primary);
+        background-color: var(--bg-app-solid);
+        color: var(--text-primary);
+        transition: background-color 250ms ease, color 250ms ease;
     }
 
     h1, h2, h3, .font-display {
@@ -59,418 +108,371 @@
     font-variant-numeric: tabular-nums;
 }
 
-/* Aurora Mesh Background (GPU-friendly without background-attachment: fixed) */
+/* Main App Canvas */
 .krevia-glow-mesh {
-    background-color: var(--krevia-bg-main);
-    background-image:
-        radial-gradient(820px circle at 8% 0%, rgba(102, 140, 255, 0.16), transparent 54%),
-        radial-gradient(680px circle at 92% 4%, rgba(69, 216, 232, 0.12), transparent 52%),
-        radial-gradient(760px circle at 52% 100%, rgba(161, 122, 255, 0.12), transparent 58%),
-        linear-gradient(180deg, #070B16 0%, #0B1222 100%);
+    background-color: var(--bg-app-solid);
+    background-image: var(--bg-app);
+    transition: background-color 250ms ease, color 250ms ease;
 }
 
-/* Glossy Glass Surfaces & Reflections (lightweight compositing for cards) */
+/* Glossy Glass Surfaces (White Glossy in Light Mode, Deep Navy Glass in Dark Mode) */
 .krevia-glass {
-    background: linear-gradient(145deg, rgba(21, 34, 58, 0.72) 0%, rgba(11, 18, 34, 0.82) 100%);
-    border: 1px solid var(--krevia-glass-border);
-    box-shadow:
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.12),
-        0 12px 28px -14px rgba(0, 0, 0, 0.65);
+    position: relative;
+    background: var(--bg-glass);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-glossy);
+    transition: background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease, color 250ms ease;
 }
 
-/* Floating Overlays (modals, dropdowns, sticky header) keep full backdrop blur */
+.krevia-glass::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: var(--sheen-gradient);
+}
+
 .krevia-glass-elevated {
-    background: linear-gradient(145deg, rgba(21, 34, 58, 0.88) 0%, rgba(11, 18, 34, 0.94) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.13);
-    box-shadow:
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
-        0 20px 48px -16px rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
+    background: var(--bg-glass-elevated);
+    border: 1px solid var(--border-strong);
+    box-shadow: var(--shadow-elevated);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+    transition: background-color 250ms ease, border-color 250ms ease, box-shadow 250ms ease, color 250ms ease;
 }
 
 .krevia-card-hover {
-    transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transition:
+        transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
         border-color 220ms ease,
         box-shadow 220ms ease,
-        background 220ms ease;
+        background-color 220ms ease;
 }
 
 .krevia-card-hover:hover {
     transform: translateY(-2px);
+    border-color: rgba(37, 99, 235, 0.28);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.95),
+        0 4px 12px rgba(15, 23, 42, 0.06),
+        0 14px 32px rgba(37, 99, 235, 0.09);
+}
+
+html.dark .krevia-card-hover:hover {
     border-color: rgba(102, 140, 255, 0.42);
     box-shadow:
-        inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
         0 18px 40px -14px rgba(102, 140, 255, 0.25),
         0 0 24px -8px rgba(69, 216, 232, 0.18);
 }
 
 .org-grid-bg {
-    background-color: var(--krevia-bg-main);
-    background-image: radial-gradient(rgba(167, 180, 203, 0.12) 1px, transparent 1px);
+    background-color: var(--bg-app-solid);
+    background-image: radial-gradient(rgba(15, 23, 42, 0.1) 1px, transparent 1px);
     background-size: 20px 20px;
 }
 
+html.dark .org-grid-bg {
+    background-image: radial-gradient(rgba(167, 180, 203, 0.12) 1px, transparent 1px);
+}
+
+/* Light Mode Glossy Refinement for Standard White Cards */
+html[data-theme='light'] :where(.bg-white) {
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 1px 2px rgba(15, 23, 42, 0.03),
+        0 6px 20px rgba(15, 23, 42, 0.04);
+}
+
 /* ==========================================================================
-   Global Surface, Text, Border, Table, Form, Modal & Dropdown Unification
-   Ensures EVERY module & component renders in Dark Glossy Glassmorphism
+   DARK MODE HARMONIZATION (Scoped strictly to html.dark)
    ========================================================================== */
-:where(.bg-white) {
+html.dark :where(.bg-white) {
     background-color: rgba(16, 26, 48, 0.82);
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-:where(.bg-white\/95, .bg-white\/90, .bg-white\/85, .bg-white\/80) {
-    background-color: rgba(16, 26, 48, 0.88);
+html.dark :where(.bg-white\/95, .bg-white\/90, .bg-white\/85, .bg-white\/80) {
+    background-color: rgba(16, 26, 48, 0.9);
 }
 
-:where(.bg-\[\#F8FAFC\], .bg-\[\#F4F7FC\], .bg-slate-50, .bg-slate-50\/50, .bg-slate-50\/60, .bg-slate-50\/70, .bg-slate-50\/80, .bg-gray-50) {
+html.dark :where(.bg-\[\#F8FAFC\], .bg-\[\#F4F7FC\], .bg-slate-50, .bg-slate-50\/50, .bg-slate-50\/60, .bg-slate-50\/70, .bg-slate-50\/80, .bg-gray-50) {
     background-color: rgba(255, 255, 255, 0.04);
 }
 
-:where(.bg-slate-100, .bg-gray-100, .bg-slate-200\/70) {
+html.dark :where(.bg-slate-100, .bg-gray-100, .bg-slate-200\/70) {
     background-color: rgba(255, 255, 255, 0.075);
 }
 
-:where(.bg-slate-200) {
+html.dark :where(.bg-slate-200) {
     background-color: rgba(255, 255, 255, 0.12);
 }
 
-:where(.border-slate-200, .border-slate-200\/80, .border-slate-200\/90, .border-slate-100, .border-slate-300, .border-gray-200, .border-gray-100, .divide-slate-100 > :not(:first-child), .divide-slate-200 > :not(:first-child)) {
+html.dark :where(.border-slate-200, .border-slate-200\/80, .border-slate-200\/90, .border-slate-100, .border-slate-300, .border-gray-200, .border-gray-100, .divide-slate-100 > :not(:first-child), .divide-slate-200 > :not(:first-child)) {
     border-color: rgba(255, 255, 255, 0.11);
 }
 
-:where(.text-\[\#101D35\], .text-slate-900, .text-slate-800, .text-gray-900, .text-gray-800) {
+html.dark :where(.text-\[\#101D35\], .text-slate-900, .text-slate-800, .text-gray-900, .text-gray-800) {
     color: #F4F7FF;
 }
 
-:where(.text-slate-700, .text-slate-600, .text-gray-700, .text-gray-600) {
+html.dark :where(.text-slate-700, .text-slate-600, .text-gray-700, .text-gray-600) {
     color: #A7B4CB;
 }
 
-:where(.text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400) {
+html.dark :where(.text-slate-500, .text-slate-400, .text-gray-500, .text-gray-400) {
     color: #71819C;
 }
 
-:where(.hover\:bg-slate-50:hover, .hover\:bg-slate-100:hover, .hover\:bg-gray-50:hover) {
+html.dark :where(.hover\:bg-slate-50:hover, .hover\:bg-slate-100:hover, .hover\:bg-gray-50:hover) {
     background-color: rgba(255, 255, 255, 0.085);
 }
 
-:where(.hover\:text-slate-900:hover, .hover\:text-\[\#101D35\]:hover) {
+html.dark :where(.hover\:text-slate-900:hover, .hover\:text-\[\#101D35\]:hover) {
     color: #F4F7FF;
 }
 
-/* Semantic Pastel Tints -> Translucent Glowing Dark Glass */
-:where(.bg-blue-50, .bg-blue-50\/70, .bg-blue-50\/80, .bg-sky-50, .bg-indigo-50) {
+/* Dark Mode Semantic Pastel Tints -> Glowing Translucent Surfaces */
+html.dark :where(.bg-blue-50, .bg-blue-50\/70, .bg-blue-50\/80, .bg-sky-50, .bg-indigo-50) {
     background-color: rgba(102, 140, 255, 0.12);
 }
-:where(.bg-emerald-50, .bg-emerald-50\/70, .bg-emerald-50\/80, .bg-teal-50) {
+html.dark :where(.bg-emerald-50, .bg-emerald-50\/70, .bg-emerald-50\/80, .bg-teal-50) {
     background-color: rgba(66, 201, 154, 0.12);
 }
-:where(.bg-amber-50, .bg-amber-50\/70, .bg-amber-50\/80) {
+html.dark :where(.bg-amber-50, .bg-amber-50\/70, .bg-amber-50\/80) {
     background-color: rgba(244, 184, 96, 0.12);
 }
-:where(.bg-rose-50, .bg-rose-50\/70, .bg-rose-50\/80, .bg-red-50) {
+html.dark :where(.bg-rose-50, .bg-rose-50\/70, .bg-rose-50\/80, .bg-red-50) {
     background-color: rgba(240, 113, 131, 0.12);
 }
-:where(.bg-violet-50, .bg-purple-50) {
+html.dark :where(.bg-violet-50, .bg-purple-50) {
     background-color: rgba(161, 122, 255, 0.12);
 }
 
-:where(.border-blue-200, .border-blue-300, .border-sky-200, .border-indigo-200) {
+html.dark :where(.border-blue-200, .border-blue-300, .border-sky-200, .border-indigo-200) {
     border-color: rgba(102, 140, 255, 0.3);
 }
-:where(.border-emerald-200, .border-emerald-300, .border-teal-200) {
+html.dark :where(.border-emerald-200, .border-emerald-300, .border-teal-200) {
     border-color: rgba(66, 201, 154, 0.3);
 }
-:where(.border-amber-200, .border-amber-300) {
+html.dark :where(.border-amber-200, .border-amber-300) {
     border-color: rgba(244, 184, 96, 0.3);
 }
-:where(.border-rose-200, .border-rose-300, .border-red-200) {
+html.dark :where(.border-rose-200, .border-rose-300, .border-red-200) {
     border-color: rgba(240, 113, 131, 0.3);
 }
-:where(.border-violet-200, .border-purple-200) {
+html.dark :where(.border-violet-200, .border-purple-200) {
     border-color: rgba(161, 122, 255, 0.3);
 }
 
-:where(.text-blue-700, .text-blue-800, .text-blue-900, .text-sky-700, .text-indigo-700) {
+html.dark :where(.text-blue-700, .text-blue-800, .text-blue-900, .text-sky-700, .text-indigo-700) {
     color: #8DA8FF;
 }
-:where(.text-emerald-700, .text-emerald-800, .text-emerald-900, .text-teal-700) {
+html.dark :where(.text-emerald-700, .text-emerald-800, .text-emerald-900, .text-teal-700) {
     color: #42C99A;
 }
-:where(.text-amber-700, .text-amber-800, .text-amber-900) {
+html.dark :where(.text-amber-700, .text-amber-800, .text-amber-900) {
     color: #F4B860;
 }
-:where(.text-rose-700, .text-rose-800, .text-rose-900, .text-red-700) {
+html.dark :where(.text-rose-700, .text-rose-800, .text-rose-900, .text-red-700) {
     color: #F07183;
 }
-:where(.text-violet-700, .text-purple-700) {
+html.dark :where(.text-violet-700, .text-purple-700) {
     color: #A17AFF;
 }
 
-/* Primary Navy Buttons -> Glossy Accent Gradient */
-:where(.bg-\[\#101D35\]) {
+/* Primary Buttons */
+html.dark :where(.bg-\[\#101D35\]) {
     background: linear-gradient(135deg, #668CFF 0%, #4D74F2 100%);
     color: #FFFFFF;
     box-shadow: 0 6px 20px -6px rgba(102, 140, 255, 0.55);
 }
 
-:where(.hover\:bg-\[\#1A2D4E\]:hover) {
+html.dark :where(.hover\:bg-\[\#1A2D4E\]:hover) {
     background: linear-gradient(135deg, #789AFF 0%, #5D82FF 100%);
 }
 
-/* Form Controls */
+/* Form Controls — Light & Dark */
 :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']), select, textarea) {
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+html.dark :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']), select, textarea) {
     background-color: rgba(7, 11, 22, 0.72);
     border-color: rgba(255, 255, 255, 0.13);
     color: #F4F7FF;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }
 
-:where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']):focus, select:focus, textarea:focus) {
+html.dark :where(input:not([type='checkbox']):not([type='radio']):not([type='color']):not([type='range']):focus, select:focus, textarea:focus) {
     border-color: rgba(102, 140, 255, 0.65);
     box-shadow: 0 0 0 3px rgba(102, 140, 255, 0.18);
     background-color: rgba(11, 18, 34, 0.9);
 }
 
-:where(input::placeholder, textarea::placeholder) {
+html.dark :where(input::placeholder, textarea::placeholder) {
     color: #71819C;
 }
 
-:where(select option) {
+html.dark :where(select option) {
     background-color: #0B1222;
     color: #F4F7FF;
 }
 
-/* Tables */
-:where(table thead, table thead tr) {
+/* Tables — Dark Mode */
+html.dark :where(table thead, table thead tr) {
     background-color: rgba(255, 255, 255, 0.045);
 }
-
-:where(table th) {
+html.dark :where(table th) {
     color: #A7B4CB;
     border-color: rgba(255, 255, 255, 0.1);
 }
-
-:where(table tbody tr) {
+html.dark :where(table tbody tr) {
     border-color: rgba(255, 255, 255, 0.075);
-    transition: background-color 150ms ease;
 }
-
-:where(table tbody tr:hover) {
+html.dark :where(table tbody tr:hover) {
     background-color: rgba(102, 140, 255, 0.075);
 }
 
-/* Recharts Dark Glass Styling */
+/* Recharts — Light & Dark */
 .recharts-cartesian-grid line {
+    stroke: rgba(15, 23, 42, 0.08);
+}
+.recharts-text {
+    fill: #64748B;
+}
+.recharts-default-tooltip {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(15, 23, 42, 0.1) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.1) !important;
+    color: #0F172A !important;
+}
+
+html.dark .recharts-cartesian-grid line {
     stroke: rgba(255, 255, 255, 0.08);
 }
-
-.recharts-text {
+html.dark .recharts-text {
     fill: #A7B4CB;
 }
-
-.recharts-default-tooltip {
+html.dark .recharts-default-tooltip {
     background: rgba(16, 26, 48, 0.94) !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
-    border-radius: 0.75rem !important;
     box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.75) !important;
-    backdrop-filter: blur(16px) !important;
     color: #F4F7FF !important;
 }
 
-/* FullCalendar Dark Glassmorphism */
+/* FullCalendar — Light & Dark */
 .kdms-calendar .fc {
-    --fc-border-color: rgba(255, 255, 255, 0.09);
-    --fc-today-bg-color: rgba(102, 140, 255, 0.14);
+    --fc-border-color: rgba(15, 23, 42, 0.08);
+    --fc-today-bg-color: rgba(37, 99, 235, 0.06);
     --fc-page-bg-color: transparent;
-    --fc-neutral-bg-color: rgba(255, 255, 255, 0.04);
+    --fc-neutral-bg-color: #F6F8FB;
     font-size: 12px;
 }
-
-.kdms-calendar .fc .fc-toolbar {
-    margin-bottom: 1rem !important;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-}
-
 .kdms-calendar .fc .fc-toolbar-title {
     font-size: 1rem;
     font-weight: 700;
-    color: #F4F7FF;
-    letter-spacing: -0.01em;
+    color: var(--text-primary);
 }
-
 .kdms-calendar .fc .fc-button-primary {
-    background-color: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    color: #F4F7FF;
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-primary);
     font-size: 0.75rem;
     font-weight: 600;
     padding: 0.35rem 0.65rem;
     border-radius: 0.5rem;
     text-transform: capitalize;
-    transition: background-color 150ms ease, border-color 150ms ease;
 }
-
-.kdms-calendar .fc .fc-button-primary:hover {
-    background-color: rgba(255, 255, 255, 0.11);
-    border-color: rgba(102, 140, 255, 0.45);
-}
-
-.kdms-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
-.kdms-calendar .fc .fc-button-primary:not(:disabled):active {
-    background: linear-gradient(135deg, #668CFF 0%, #45D8E8 100%);
+.kdms-calendar .fc .fc-button-primary:not(:disabled).fc-button-active {
+    background: var(--accent-gradient);
     border-color: transparent;
+    color: #FFFFFF;
+}
+.kdms-calendar .fc .fc-col-header-cell {
+    background-color: var(--bg-surface-2);
+    padding: 0.45rem 0;
+}
+.kdms-calendar .fc .fc-col-header-cell-cushion,
+.kdms-calendar .fc .fc-daygrid-day-number {
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+}
+html.dark .kdms-calendar .fc {
+    --fc-border-color: rgba(255, 255, 255, 0.09);
+    --fc-today-bg-color: rgba(102, 140, 255, 0.14);
+    --fc-neutral-bg-color: rgba(255, 255, 255, 0.04);
+}
+html.dark .kdms-calendar .fc .fc-button-primary {
+    background-color: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #F4F7FF;
+}
+html.dark .kdms-calendar .fc .fc-button-primary:not(:disabled).fc-button-active {
     color: #070B16;
 }
 
-.kdms-calendar .fc .fc-col-header-cell {
-    background-color: rgba(255, 255, 255, 0.04);
-    padding: 0.45rem 0;
-}
-
-.kdms-calendar .fc .fc-col-header-cell-cushion {
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #A7B4CB;
-}
-
-.kdms-calendar .fc .fc-daygrid-day-number {
-    font-size: 11px;
-    font-weight: 600;
-    color: #A7B4CB;
-    padding: 0.35rem 0.45rem;
-}
-
-.kdms-calendar .fc .fc-day-today .fc-daygrid-day-number {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 1.45rem;
-    height: 1.45rem;
-    margin: 0.2rem;
-    padding: 0 0.3rem;
-    border-radius: 9999px;
-    background-color: #668CFF;
-    color: #FFFFFF;
-}
-
-.kdms-calendar .fc .fc-daygrid-day-frame {
-    min-height: 5.75rem;
-    padding-bottom: 0.25rem;
-}
-
-.kdms-calendar .fc .fc-daygrid-event {
-    border-radius: 0.375rem;
-    border-width: 1px;
-    margin: 1.5px 3px !important;
-    cursor: pointer;
-    transition: transform 120ms ease, filter 120ms ease;
-}
-
-.kdms-calendar .fc .fc-daygrid-event:hover {
-    filter: brightness(1.1);
-}
-
-.kdms-calendar .fc .fc-event-main {
-    padding: 1px 3px !important;
-}
-
-.kdms-calendar .fc .fc-daygrid-more-link {
-    font-size: 11px;
-    font-weight: 600;
-    color: #A7B4CB;
-    padding: 1px 6px;
-    margin-top: 2px;
-    border-radius: 0.375rem;
-}
-
-.kdms-calendar .fc .fc-daygrid-more-link:hover {
-    background-color: rgba(255, 255, 255, 0.08);
-    color: #F4F7FF;
-}
-
-.kdms-calendar .fc .fc-popover {
-    border-radius: 0.75rem;
-    background-color: #101A30;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
-    overflow: hidden;
-}
-
-.kdms-calendar .fc .fc-popover-header {
-    background-color: #15223A;
-    font-size: 11px;
-    font-weight: 700;
-    color: #F4F7FF;
-    padding: 0.45rem 0.65rem;
-}
-
-/* Scrollbars */
+/* Scrollbars — Light & Dark */
 .sidebar-scroll {
     scrollbar-width: thin;
+    scrollbar-color: rgba(15, 23, 42, 0.14) transparent;
+}
+html.dark .sidebar-scroll {
     scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
-
 .sidebar-scroll::-webkit-scrollbar {
     width: 4px;
 }
-
 .sidebar-scroll::-webkit-scrollbar-track {
     background: transparent;
 }
-
 .sidebar-scroll::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.16);
+    background-color: rgba(15, 23, 42, 0.14);
     border-radius: 9999px;
 }
-
-.sidebar-scroll::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(255, 255, 255, 0.3);
+html.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.16);
 }
-
 .sidebar-scroll-collapsed {
     scrollbar-width: none;
 }
-
 .sidebar-scroll-collapsed::-webkit-scrollbar {
     display: none;
 }
 
 * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(167, 180, 203, 0.22) transparent;
+    scrollbar-color: rgba(15, 23, 42, 0.16) transparent;
 }
-
 *::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
-
-*::-webkit-scrollbar-track {
-    background: transparent;
-}
-
+*::-webkit-scrollbar-track,
 *::-webkit-scrollbar-corner {
     background: transparent;
 }
-
 *::-webkit-scrollbar-button {
     display: none;
     width: 0;
     height: 0;
 }
-
 *::-webkit-scrollbar-thumb {
-    background-color: rgba(167, 180, 203, 0.22);
+    background-color: rgba(15, 23, 42, 0.16);
     border-radius: 9999px;
 }
-
 *::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(15, 23, 42, 0.3);
+}
+html.dark * {
+    scrollbar-color: rgba(167, 180, 203, 0.22) transparent;
+}
+html.dark *::-webkit-scrollbar-thumb {
+    background-color: rgba(167, 180, 203, 0.22);
+}
+html.dark *::-webkit-scrollbar-thumb:hover {
     background-color: rgba(167, 180, 203, 0.4);
 }
 
