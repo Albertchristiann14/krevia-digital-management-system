@@ -9,6 +9,11 @@ import {
     type OfficeMeetingData,
     type OfficeMeetingsPayload,
 } from '@/Components/virtual-office/OfficeMeetingPanel';
+import {
+    OfficeInteractiveModals,
+    type CrmQuickOptions,
+    type OfficeVisitorData,
+} from '@/Components/virtual-office/OfficeInteractiveModals';
 import type {
     CameraCommand,
     VirtualMemberData,
@@ -25,10 +30,13 @@ import {
     ArrowUpRight,
     BellRing,
     Box,
+    Coffee,
     Compass,
+    Crosshair,
     Eye,
     EyeOff,
     Hand,
+    Kanban,
     Layers,
     Map,
     Maximize2,
@@ -38,6 +46,8 @@ import {
     Radio,
     RotateCcw,
     Tag,
+    Target,
+    UserPlus,
     Users,
     Video,
     Wifi,
@@ -84,6 +94,8 @@ interface VirtualOfficeProps extends PageProps {
     pendingKnocks?: KnockData[];
     meetings?: OfficeMeetingsPayload;
     recentEvents?: OfficeEventData[];
+    visitors?: OfficeVisitorData[];
+    crmOptions?: CrmQuickOptions;
     projects?: Array<{ id: number; code: string; name: string }>;
     reverbConfig: ReverbClientConfig;
     recentAnnouncements: Array<{
@@ -128,6 +140,8 @@ export default function VirtualOfficeIndex({
     pendingKnocks: initialPendingKnocks,
     meetings: initialMeetings,
     recentEvents: initialEvents,
+    visitors: initialVisitors,
+    crmOptions: initialCrmOptions,
     projects: initialProjects,
     reverbConfig,
     recentAnnouncements,
@@ -151,6 +165,11 @@ export default function VirtualOfficeIndex({
         initialMeetings ?? { live: [], upcoming: [], recent: [] },
     );
     const [events, setEvents] = useState<OfficeEventData[]>(initialEvents ?? []);
+    const [visitors, setVisitors] = useState<OfficeVisitorData[]>(initialVisitors ?? []);
+    const [interactiveModal, setInteractiveModal] = useState<
+        'reception' | 'project_board' | 'coffee_machine' | null
+    >(null);
+    const [followMemberId, setFollowMemberId] = useState<number | null>(null);
     const [activeCallMeeting, setActiveCallMeeting] = useState<OfficeMeetingData | null>(null);
     const [quickCall, setQuickCall] = useState<{
         room_code: string;
@@ -274,6 +293,20 @@ export default function VirtualOfficeIndex({
                         if (json?.meetings) {
                             setMeetings(json.meetings);
                         }
+                    })
+                    .catch(() => {});
+            })
+            .listen('.visitor.updated', (payload: { action?: string; visitor?: OfficeVisitorData }) => {
+                if (payload.action === 'checked_in' && payload.visitor?.host_user_id === myPresence.id) {
+                    showToast(`Tamu menunggu: ${payload.visitor.name}`);
+                }
+                fetch('/virtual-office/visitors', {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                })
+                    .then((res) => (res.ok ? res.json() : null))
+                    .then((json) => {
+                        if (json?.visitors) setVisitors(json.visitors);
                     })
                     .catch(() => {});
             });
@@ -543,6 +576,26 @@ export default function VirtualOfficeIndex({
         },
         [myPresence.seat_id, showToast],
     );
+
+    const toggleFocusMode = useCallback(async () => {
+        const isCurrentlyFocused =
+            myPresence.status_key === 'dnd' && myPresence.custom_status_text === 'Focus Mode';
+        const res = await fetch('/virtual-office/focus-mode', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
+                'X-XSRF-TOKEN': readXsrfToken(),
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ enabled: !isCurrentlyFocused }),
+        });
+        const json = await res.json();
+        if (res.ok && json.myPresence) {
+            setMyPresence((prev) => ({ ...prev, ...json.myPresence }));
+            showToast(!isCurrentlyFocused ? 'Focus Mode aktif (DND).' : 'Focus Mode dimatikan.');
+        }
+    }, [myPresence.status_key, myPresence.custom_status_text]);
 
     const startQuickCall = useCallback(async (member: VirtualMemberData) => {
         const res = await fetch(`/virtual-office/call/${member.id}`, {
@@ -1017,6 +1070,8 @@ export default function VirtualOfficeIndex({
                                 setSelectedRoomId('meeting');
                                 setPanelTab('meetings');
                             }}
+                            onClickInteractiveObject={(obj) => setInteractiveModal(obj)}
+                            followMemberId={followMemberId}
                             onSelectMember={focusMember}
                             onHoverMember={handleHoverMember}
                             cameraCommand={cameraCommand}
@@ -1544,6 +1599,26 @@ export default function VirtualOfficeIndex({
                                                                 >
                                                                     <Phone className="h-3.5 w-3.5" />
                                                                 </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() =>
+                                                                        setFollowMemberId((prev) =>
+                                                                            prev === member.id ? null : member.id,
+                                                                        )
+                                                                    }
+                                                                    title={
+                                                                        followMemberId === member.id
+                                                                            ? 'Berhenti mengikuti'
+                                                                            : 'Ikuti kamera avatar'
+                                                                    }
+                                                                    className={`rounded-lg p-1 ${
+                                                                        followMemberId === member.id
+                                                                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300'
+                                                                            : 'text-slate-500 hover:bg-slate-200/70 hover:text-blue-600 dark:text-[#A7B4CB] dark:hover:bg-white/10'
+                                                                    }`}
+                                                                >
+                                                                    <Crosshair className="h-3.5 w-3.5" />
+                                                                </button>
                                                             </>
                                                         )}
                                                         <Link
@@ -1625,6 +1700,51 @@ export default function VirtualOfficeIndex({
                                     </button>
                                 )}
                             </div>
+                            <div className="grid grid-cols-2 gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={toggleFocusMode}
+                                    className={`inline-flex items-center justify-center gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                                        myPresence.status_key === 'dnd' &&
+                                        myPresence.custom_status_text === 'Focus Mode'
+                                            ? 'border-purple-400 bg-purple-50 text-purple-700 dark:border-purple-500/40 dark:bg-purple-500/15 dark:text-purple-300'
+                                            : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.05] dark:text-[#A7B4CB]'
+                                    }`}
+                                >
+                                    <Target className="h-3 w-3" />
+                                    Focus Mode
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setInteractiveModal(
+                                            selectedRoom.id === 'project'
+                                                ? 'project_board'
+                                                : selectedRoom.id === 'lounge'
+                                                  ? 'coffee_machine'
+                                                  : 'reception',
+                                        )
+                                    }
+                                    className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 dark:border-white/10 dark:bg-white/[0.05] dark:text-[#A7B4CB]"
+                                >
+                                    {selectedRoom.id === 'project' ? (
+                                        <>
+                                            <Kanban className="h-3 w-3 text-amber-600" />
+                                            Kanban Board
+                                        </>
+                                    ) : selectedRoom.id === 'lounge' ? (
+                                        <>
+                                            <Coffee className="h-3 w-3 text-emerald-600" />
+                                            Ajak Ngopi
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserPlus className="h-3 w-3 text-teal-600" />
+                                            Tamu ({visitors.length})
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             <Link
                                 href={selectedRoom.primary_action.href}
                                 className="flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-105 dark:from-[#668CFF] dark:to-[#45D8E8] dark:text-[#070B16]"
@@ -1699,6 +1819,20 @@ export default function VirtualOfficeIndex({
                     }}
                     onMeetingsChange={setMeetings}
                     onMeetingUpdated={setActiveCallMeeting}
+                    onToast={showToast}
+                />
+
+                <OfficeInteractiveModals
+                    activeModal={interactiveModal}
+                    visitors={visitors}
+                    crmOptions={initialCrmOptions ?? { companies: [], contacts: [] }}
+                    members={members}
+                    myUserId={myPresence.id}
+                    isAdmin={isAdminUser}
+                    readXsrfToken={readXsrfToken}
+                    onClose={() => setInteractiveModal(null)}
+                    onVisitorsChange={setVisitors}
+                    onPresenceUpdated={(p) => setMyPresence((prev) => ({ ...prev, ...p }))}
                     onToast={showToast}
                 />
             </div>

@@ -26,6 +26,7 @@ use App\Http\Controllers\UserAccountController;
 use App\Http\Controllers\VirtualOfficeCommunicationController;
 use App\Http\Controllers\VirtualOfficeController;
 use App\Http\Controllers\VirtualOfficeMeetingController;
+use App\Http\Controllers\VirtualOfficeObjectController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
 
@@ -164,6 +165,27 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/events', [VirtualOfficeMeetingController::class, 'events'])
             ->middleware('throttle:60,1')
             ->name('events.index');
+        Route::get('/visitors', [VirtualOfficeObjectController::class, 'visitors'])
+            ->middleware('throttle:60,1')
+            ->name('visitors.index');
+        Route::post('/visitors', [VirtualOfficeObjectController::class, 'checkInVisitor'])
+            ->middleware('throttle:20,1')
+            ->name('visitors.store');
+        Route::post('/visitors/{visitor}/respond', [VirtualOfficeObjectController::class, 'respondVisitor'])
+            ->middleware('throttle:30,1')
+            ->name('visitors.respond');
+        Route::get('/project-kanban', [VirtualOfficeObjectController::class, 'projectKanban'])
+            ->middleware('throttle:60,1')
+            ->name('project-kanban');
+        Route::post('/coffee/{user}', [VirtualOfficeObjectController::class, 'inviteCoffee'])
+            ->middleware('throttle:20,1')
+            ->name('coffee.invite');
+        Route::post('/break-time', [VirtualOfficeObjectController::class, 'breakTime'])
+            ->middleware('throttle:20,1')
+            ->name('break-time');
+        Route::post('/focus-mode', [VirtualOfficeObjectController::class, 'focusMode'])
+            ->middleware('throttle:30,1')
+            ->name('focus-mode');
     });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 

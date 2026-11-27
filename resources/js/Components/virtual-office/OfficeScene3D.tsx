@@ -76,6 +76,8 @@ interface OfficeScene3DProps {
     onClickSeat?: (seat: VirtualSeatData) => void;
     hasLiveMeeting?: boolean;
     onClickMeetingObject?: () => void;
+    onClickInteractiveObject?: (obj: 'reception' | 'project_board' | 'coffee_machine') => void;
+    followMemberId?: number | null;
     onSelectMember?: (member: VirtualMemberData) => void;
     onHoverMember?: (member: VirtualMemberData | null, pos: { x: number; y: number } | null) => void;
     cameraCommand: CameraCommand | null;
@@ -245,6 +247,8 @@ export default function OfficeScene3D({
     onClickSeat,
     hasLiveMeeting = false,
     onClickMeetingObject,
+    onClickInteractiveObject,
+    followMemberId = null,
     onSelectMember,
     onHoverMember,
     cameraCommand,
@@ -262,6 +266,8 @@ export default function OfficeScene3D({
     const onClickSeatRef = useRef(onClickSeat);
     const hasLiveMeetingRef = useRef(hasLiveMeeting);
     const onClickMeetingObjectRef = useRef(onClickMeetingObject);
+    const onClickInteractiveObjectRef = useRef(onClickInteractiveObject);
+    const followMemberIdRef = useRef(followMemberId);
     const onSelectMemberRef = useRef(onSelectMember);
     const onHoverMemberRef = useRef(onHoverMember);
     const controlsRef = useRef<OrbitControls | null>(null);
@@ -288,6 +294,8 @@ export default function OfficeScene3D({
     onClickSeatRef.current = onClickSeat;
     hasLiveMeetingRef.current = hasLiveMeeting;
     onClickMeetingObjectRef.current = onClickMeetingObject;
+    onClickInteractiveObjectRef.current = onClickInteractiveObject;
+    followMemberIdRef.current = followMemberId;
     onSelectMemberRef.current = onSelectMember;
     onHoverMemberRef.current = onHoverMember;
 
@@ -661,6 +669,9 @@ export default function OfficeScene3D({
                     }),
                 );
                 logoMark.position.set(z.x, 1.32, z.z - 2.1);
+                counter.userData.interactiveObject = 'reception';
+                counter.userData.roomId = 'reception';
+                interactiveMeshes.push(counter);
                 zoneGroup.add(counter, accentStrip, sofa, coffee, wall, logoMark);
                 addPlanter(zoneGroup, z.x - 2.7, z.z - 1.9, 1.1);
                 addPlanter(zoneGroup, z.x + 2.7, z.z - 1.9, 1.0);
@@ -768,12 +779,17 @@ export default function OfficeScene3D({
                 beanBag.scale.set(1.1, 0.65, 1.1);
                 beanBag.position.set(z.x + 2.0, 0.32, z.z + 1.3);
                 beanBag.castShadow = true;
-                // Pantry counter + espresso machine
+                // Pantry counter + espresso machine (clickable -> Ajak Ngopi / Break Time)
                 const pantry = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.65), deskTopMat);
                 pantry.position.set(z.x + 2.2, 0.52, z.z - 1.8);
                 pantry.castShadow = true;
+                pantry.userData.interactiveObject = 'coffee_machine';
+                pantry.userData.roomId = 'lounge';
                 const espresso = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.3), metalMat);
                 espresso.position.set(z.x + 2.2, 1.15, z.z - 1.8);
+                espresso.userData.interactiveObject = 'coffee_machine';
+                espresso.userData.roomId = 'lounge';
+                interactiveMeshes.push(pantry, espresso);
                 zoneGroup.add(rug, sofaMain, sofaSide, coffeeTable, beanBag, pantry, espresso);
                 addPlanter(zoneGroup, z.x - 2.6, z.z + 1.8, 1.2);
             }
@@ -795,7 +811,7 @@ export default function OfficeScene3D({
                     });
                 });
 
-                // Kanban whiteboard with sticky notes
+                // Kanban whiteboard with sticky notes (clickable -> Project Kanban)
                 const board = new THREE.Mesh(
                     new THREE.BoxGeometry(3.0, 1.45, 0.08),
                     new THREE.MeshStandardMaterial({
@@ -805,6 +821,9 @@ export default function OfficeScene3D({
                 );
                 board.position.set(z.x, 1.55, z.z - 2.15);
                 board.castShadow = true;
+                board.userData.interactiveObject = 'project_board';
+                board.userData.roomId = 'project';
+                interactiveMeshes.push(board);
                 zoneGroup.add(board);
 
                 const stickyColors = [0xf59e0b, 0x2563eb, 0x16a34a, 0xec4899, 0x8b5cf6];
@@ -997,6 +1016,8 @@ export default function OfficeScene3D({
                 memberId: (obj?.userData?.memberId as number) ?? null,
                 seatId: (obj?.userData?.seatId as number) ?? null,
                 meetingObject: Boolean(obj?.userData?.meetingObject),
+                interactiveObject:
+                    (obj?.userData?.interactiveObject as 'reception' | 'project_board' | 'coffee_machine') ?? null,
                 point: firstHit?.point ?? null,
                 localX: clientX - rect.left,
                 localY: clientY - rect.top,
@@ -1025,13 +1046,20 @@ export default function OfficeScene3D({
         const handlePointerUp = (e: PointerEvent) => {
             const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
             if (dist > 6) return;
-            const { roomId, memberId, seatId, meetingObject, point } = pickHit(e.clientX, e.clientY);
+            const { roomId, memberId, seatId, meetingObject, interactiveObject, point } = pickHit(
+                e.clientX,
+                e.clientY,
+            );
             if (seatId && seatMeshes[seatId]) {
                 onClickSeatRef.current?.(seatMeshes[seatId].data);
                 return;
             }
             if (meetingObject && onClickMeetingObjectRef.current) {
                 onClickMeetingObjectRef.current();
+                return;
+            }
+            if (interactiveObject && onClickInteractiveObjectRef.current) {
+                onClickInteractiveObjectRef.current(interactiveObject);
                 return;
             }
             if (memberId && showMembersRef.current) {
@@ -1089,6 +1117,13 @@ export default function OfficeScene3D({
             controls.target.x = THREE.MathUtils.clamp(controls.target.x, -12, 12);
             controls.target.z = THREE.MathUtils.clamp(controls.target.z, -9, 9);
             controls.target.y = 0;
+
+            const followId = followMemberIdRef.current;
+            if (followId && avatarPositionsRef.current[followId] && !flyAnimRef.current) {
+                const targetVec = avatarPositionsRef.current[followId];
+                controls.target.x += (targetVec.x - controls.target.x) * 0.1;
+                controls.target.z += (targetVec.z - controls.target.z) * 0.1;
+            }
 
             const beacon = scene.getObjectByName('meetingLiveBeacon');
             if (beacon) {
