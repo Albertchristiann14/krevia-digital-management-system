@@ -1,4 +1,8 @@
 import { UserAvatar } from '@/Components/shared/UserAvatar';
+import {
+    OfficeChatPanel,
+    type OfficeMessageData,
+} from '@/Components/virtual-office/OfficeChatPanel';
 import type {
     CameraCommand,
     VirtualMemberData,
@@ -9,16 +13,19 @@ import { AppShell } from '@/Layouts/AppShell';
 import { createReverbEcho, type ReverbClientConfig } from '@/lib/echo';
 import { useResolvedTheme } from '@/lib/theme';
 import type { PageProps } from '@/types';
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowUpRight,
+    BellRing,
     Box,
     Compass,
     Eye,
     EyeOff,
+    Hand,
     Layers,
     Map,
     Maximize2,
+    MessageSquare,
     Minimize2,
     Radio,
     RotateCcw,
@@ -34,11 +41,26 @@ import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } fro
 
 const OfficeScene3D = lazy(() => import('@/Components/virtual-office/OfficeScene3D'));
 
+interface KnockData {
+    id: number;
+    from_user_id: number;
+    from_name: string;
+    from_avatar_url: string | null;
+    to_user_id: number;
+    to_name: string;
+    message: string | null;
+    status: string;
+    silent_dnd?: boolean;
+    expires_at: string | null;
+}
+
 interface VirtualOfficeProps extends PageProps {
-    rooms: VirtualRoomData[];
+    rooms: (VirtualRoomData & { zone_id?: number | null })[];
     seats: VirtualSeatData[];
     members: VirtualMemberData[];
     myPresence: VirtualMemberData;
+    unread?: { dm: Record<string, number>; zone: Record<string, number> };
+    pendingKnocks?: KnockData[];
     reverbConfig: ReverbClientConfig;
     recentAnnouncements: Array<{
         id: number;
@@ -78,9 +100,17 @@ export default function VirtualOfficeIndex({
     seats: initialSeats,
     members: initialMembers,
     myPresence: initialMyPresence,
+    unread: initialUnread,
+    pendingKnocks: initialPendingKnocks,
     reverbConfig,
     recentAnnouncements,
 }: VirtualOfficeProps) {
+    const { auth } = usePage<PageProps>().props;
+    const isAdminUser =
+        auth.user?.roles?.includes('Founder & Managing Director') ||
+        auth.user?.roles?.includes('Operations Director') ||
+        auth.user?.permissions?.includes('organization.manage') ||
+        false;
     const resolvedTheme = useResolvedTheme();
     const stageRef = useRef<HTMLDivElement | null>(null);
     const lastActivityRef = useRef<number>(Date.now());
@@ -88,6 +118,14 @@ export default function VirtualOfficeIndex({
     const [members, setMembers] = useState<VirtualMemberData[]>(initialMembers);
     const [seats, setSeats] = useState<VirtualSeatData[]>(initialSeats ?? []);
     const [myPresence, setMyPresence] = useState<VirtualMemberData>(initialMyPresence);
+    const [panelTab, setPanelTab] = useState<'summary' | 'chat'>('summary');
+    const [dmTarget, setDmTarget] = useState<VirtualMemberData | null>(null);
+    const [unread, setUnread] = useState<{ dm: Record<string, number>; zone: Record<string, number> }>(
+        initialUnread ?? { dm: {}, zone: {} },
+    );
+    const [pendingKnocks, setPendingKnocks] = useState<KnockData[]>(initialPendingKnocks ?? []);
+    const [incomingMsg, setIncomingMsg] = useState<OfficeMessageData | null>(null);
+    const [deletedMsgId, setDeletedMsgId] = useState<number | null>(null);
     const [toastMsg, setToastMsg] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
     const [wsState, setWsState] = useState<'connected' | 'reconnecting' | 'standby'>(
         reverbConfig.enabled ? 'reconnecting' : 'standby',
@@ -190,11 +228,87 @@ export default function VirtualOfficeIndex({
                 resyncSnapshot();
             });
 
+        // Private DM & Knock channel
+        echo.private(`office.dm.${myPresence.id}`)
+            .listen('.message.new', (payload: { message?: OfficeMessageData }) => {
+                if (!payload.message) return;
+                setIncomingMsg(payload.message);
+                if (payload.message.sender_id !== myPresence.id && !payload.message.silent_dnd) {
+                    setUnread((u) => ({
+                        ...u,
+                        dm: {
+                            ...u.dm,
+                            [String(payload.message!.sender_id)]:
+                                (u.dm[String(payload.message!.sender_id)] ?? 0) + 1,
+                        },
+                    }));
+                }
+            })
+            .listen('.message.edited', (payload: { message?: OfficeMessageData }) => {
+                if (payload.message) setIncomingMsg(payload.message);
+            })
+            .listen('.message.deleted', (payload: { message?: OfficeMessageData }) => {
+                if (payload.message) setDeletedMsgId(payload.message.id);
+            })
+            .listen('.knock.new', (payload: { knock?: KnockData }) => {
+                if (!payload.knock) return;
+                setPendingKnocks((prev) =>
+                    prev.some((k) => k.id === payload.knock!.id) ? prev : [payload.knock!, ...prev],
+                );
+            })
+            .listen('.knock.response', (payload: { knock?: KnockData }) => {
+                if (!payload.knock) return;
+                const statusLabel =
+                    payload.knock.status === 'accepted'
+                        ? `${payload.knock.to_name} menerima ketukan Anda!`
+                        : payload.knock.status === 'later'
+                          ? `${payload.knock.to_name} meminta nanti.`
+                          : `${payload.knock.to_name} menolak ketukan.`;
+                showToast(statusLabel, payload.knock.status === 'accepted' ? 'info' : 'error');
+            });
+
         return () => {
             echo.leave('office.presence');
+            echo.leave(`office.dm.${myPresence.id}`);
             echo.disconnect();
         };
     }, [reverbConfig, myPresence.id]);
+
+    // Subscribe to selected Zone Chat channel
+    useEffect(() => {
+        const room = rooms.find((r) => r.id === selectedRoomId);
+        const zoneId = room?.zone_id;
+        if (!zoneId) return;
+
+        const echo = createReverbEcho(reverbConfig);
+        if (!echo) return;
+
+        echo.private(`office.zone.${zoneId}`)
+            .listen('.message.new', (payload: { message?: OfficeMessageData }) => {
+                if (!payload.message) return;
+                setIncomingMsg(payload.message);
+                if (payload.message.sender_id !== myPresence.id && panelTab !== 'chat') {
+                    setUnread((u) => ({
+                        ...u,
+                        zone: {
+                            ...u.zone,
+                            [String(zoneId)]: (u.zone[String(zoneId)] ?? 0) + 1,
+                        },
+                    }));
+                }
+            })
+            .listen('.message.edited', (payload: { message?: OfficeMessageData }) => {
+                if (payload.message) setIncomingMsg(payload.message);
+            })
+            .listen('.message.deleted', (payload: { message?: OfficeMessageData }) => {
+                if (payload.message) setDeletedMsgId(payload.message.id);
+            });
+
+        return () => {
+            echo.leave(`office.zone.${zoneId}`);
+            echo.disconnect();
+        };
+    }, [selectedRoomId, rooms, reverbConfig, myPresence.id, panelTab]);
 
     // 30-second actual heartbeat + clean disconnect on page unload
     useEffect(() => {
@@ -378,6 +492,59 @@ export default function VirtualOfficeIndex({
             }
         },
         [myPresence.seat_id, showToast],
+    );
+
+    const sendKnock = useCallback(
+        async (target: VirtualMemberData) => {
+            try {
+                const res = await fetch('/virtual-office/knocks', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': readXsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        to_user_id: target.id,
+                        message: 'Permisi, boleh bicara sebentar?',
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast(`Ketukan terkirim ke ${target.name}.`, 'info');
+                } else {
+                    showToast(
+                        data?.errors?.to_user_id?.[0] ?? data?.message ?? 'Gagal mengirim ketukan.',
+                        'error',
+                    );
+                }
+            } catch {
+                showToast('Gagal mengirim ketukan.', 'error');
+            }
+        },
+        [showToast],
+    );
+
+    const respondToKnock = useCallback(
+        async (knock: KnockData, status: 'accepted' | 'declined' | 'later') => {
+            const res = await fetch(`/virtual-office/knocks/${knock.id}/respond`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': readXsrfToken(),
+                },
+                body: JSON.stringify({ status }),
+            });
+            setPendingKnocks((prev) => prev.filter((k) => k.id !== knock.id));
+            if (res.ok && status === 'accepted') {
+                const sender = members.find((m) => m.id === knock.from_user_id);
+                if (sender) setDmTarget(sender);
+            }
+        },
+        [members],
     );
 
     const nearbyMembers = useMemo(() => {
@@ -805,8 +972,52 @@ export default function VirtualOfficeIndex({
                     </div>
                 )}
 
-                {/* Toast & Proximity Banner */}
+                {/* Toast, Knock Banner & Proximity Banner */}
                 <div className="pointer-events-none absolute top-4 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
+                    {pendingKnocks
+                        .filter((k) => !(myPresence.status_key === 'dnd' && !k.silent_dnd === false))
+                        .slice(0, 1)
+                        .map((k) => (
+                            <div
+                                key={k.id}
+                                className="krevia-glass-elevated pointer-events-auto flex items-center gap-3 rounded-2xl px-3.5 py-2.5 text-xs shadow-lg"
+                            >
+                                <Hand className="h-4 w-4 shrink-0 text-amber-500" />
+                                <div className="min-w-0">
+                                    <p className="font-bold text-slate-900 dark:text-[#F4F7FF]">
+                                        {k.from_name} mengetuk
+                                    </p>
+                                    {k.message && (
+                                        <p className="truncate text-[11px] text-slate-500 dark:text-[#A7B4CB]">
+                                            {k.message}
+                                        </p>
+                                    )}
+                                </div>
+                                <div className="flex shrink-0 gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => respondToKnock(k, 'accepted')}
+                                        className="rounded-lg bg-emerald-600 px-2 py-1 text-[10px] font-semibold text-white"
+                                    >
+                                        Terima
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => respondToKnock(k, 'later')}
+                                        className="rounded-lg border border-slate-200 px-2 py-1 text-[10px] font-semibold dark:border-white/15"
+                                    >
+                                        Nanti
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => respondToKnock(k, 'declined')}
+                                        className="rounded-lg px-2 py-1 text-[10px] font-semibold text-rose-600"
+                                    >
+                                        Tolak
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
                     {toastMsg && (
                         <div
                             className={`pointer-events-auto rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-lg backdrop-blur-md ${
@@ -1012,10 +1223,54 @@ export default function VirtualOfficeIndex({
                             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-[#A7B4CB]">
                                 {selectedRoom.description}
                             </p>
+                            {/* Panel Tabs: Ringkasan | Chat Zona */}
+                            <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1 dark:bg-white/[0.06]">
+                                <button
+                                    type="button"
+                                    onClick={() => setPanelTab('summary')}
+                                    className={`rounded-lg py-1 text-[11px] font-semibold transition ${
+                                        panelTab === 'summary'
+                                            ? 'bg-white text-slate-900 shadow-xs dark:bg-[#15223A] dark:text-[#F4F7FF]'
+                                            : 'text-slate-600 dark:text-[#A7B4CB]'
+                                    }`}
+                                >
+                                    Ringkasan
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setPanelTab('chat')}
+                                    className={`inline-flex items-center justify-center gap-1 rounded-lg py-1 text-[11px] font-semibold transition ${
+                                        panelTab === 'chat'
+                                            ? 'bg-white text-slate-900 shadow-xs dark:bg-[#15223A] dark:text-[#F4F7FF]'
+                                            : 'text-slate-600 dark:text-[#A7B4CB]'
+                                    }`}
+                                >
+                                    <MessageSquare className="h-3 w-3" />
+                                    Chat
+                                    {(unread.zone[String((selectedRoom as { zone_id?: number }).zone_id ?? '')] ?? 0) > 0 && (
+                                        <span className="rounded-full bg-rose-600 px-1.5 text-[9px] font-bold text-white">
+                                            {unread.zone[String((selectedRoom as { zone_id?: number }).zone_id ?? '')]}
+                                        </span>
+                                    )}
+                                </button>
+                            </div>
                         </div>
 
                         {/* Scrollable Middle Content */}
                         <div className="flex-1 space-y-4 overflow-y-auto p-4">
+                            {panelTab === 'chat' ? (
+                                <OfficeChatPanel
+                                    scope="zone"
+                                    zoneId={(selectedRoom as { zone_id?: number | null }).zone_id ?? null}
+                                    myUserId={myPresence.id}
+                                    emptyLabel="Belum ada pesan di zona ini. Sapa tim Anda!"
+                                    readXsrfToken={readXsrfToken}
+                                    incomingMessage={incomingMsg}
+                                    deletedMessageId={deletedMsgId}
+                                    onUnreadChange={setUnread}
+                                />
+                            ) : (
+                                <>
                             {/* Stat Cards */}
                             <div className="grid grid-cols-2 gap-2">
                                 {selectedRoom.metrics.map((m) => (
@@ -1092,13 +1347,38 @@ export default function VirtualOfficeIndex({
                                                             </p>
                                                         </div>
                                                     </button>
-                                                    <Link
-                                                        href={`/people/${member.id}`}
-                                                        title="Open profile"
-                                                        className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 hover:underline dark:bg-[#42C99A]/15 dark:text-[#42C99A]"
-                                                    >
-                                                        {member.status}
-                                                    </Link>
+                                                    <div className="flex shrink-0 items-center gap-1">
+                                                        {member.id !== myPresence.id && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setDmTarget(member)}
+                                                                    title="Kirim DM"
+                                                                    className="relative rounded-lg p-1 text-slate-500 hover:bg-slate-200/70 hover:text-blue-600 dark:text-[#A7B4CB] dark:hover:bg-white/10"
+                                                                >
+                                                                    <MessageSquare className="h-3.5 w-3.5" />
+                                                                    {(unread.dm[String(member.id)] ?? 0) > 0 && (
+                                                                        <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-rose-600" />
+                                                                    )}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => sendKnock(member)}
+                                                                    title="Ketuk pintu (Knock)"
+                                                                    className="rounded-lg p-1 text-slate-500 hover:bg-slate-200/70 hover:text-amber-600 dark:text-[#A7B4CB] dark:hover:bg-white/10"
+                                                                >
+                                                                    <Hand className="h-3.5 w-3.5" />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                        <Link
+                                                            href={`/people/${member.id}`}
+                                                            title="Open profile"
+                                                            className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 hover:underline dark:bg-[#42C99A]/15 dark:text-[#42C99A]"
+                                                        >
+                                                            {member.status}
+                                                        </Link>
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -1128,6 +1408,8 @@ export default function VirtualOfficeIndex({
                                         ))}
                                     </div>
                                 </div>
+                            )}
+                                </>
                             )}
                         </div>
 
@@ -1184,6 +1466,50 @@ export default function VirtualOfficeIndex({
                             </Link>
                         </div>
                     </aside>
+                )}
+
+                {/* 1:1 Direct Message Drawer */}
+                {dmTarget && (
+                    <div className="krevia-glass-elevated absolute bottom-4 left-4 z-30 flex h-96 w-80 max-w-[calc(100%-2rem)] flex-col overflow-hidden rounded-2xl p-3.5 shadow-2xl">
+                        <div className="mb-2 flex items-center justify-between border-b border-slate-200/80 pb-2 dark:border-white/[0.1]">
+                            <div className="flex min-w-0 items-center gap-2">
+                                <UserAvatar
+                                    name={dmTarget.name}
+                                    avatarUrl={dmTarget.avatar_url}
+                                    avatarColor={dmTarget.avatar_color}
+                                    size="xs"
+                                />
+                                <div className="min-w-0">
+                                    <p className="truncate text-xs font-bold text-slate-900 dark:text-[#F4F7FF]">
+                                        {dmTarget.name}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 dark:text-[#71819C]">
+                                        Direct Message · {dmTarget.status}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDmTarget(null)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="min-h-0 flex-1">
+                            <OfficeChatPanel
+                                scope="dm"
+                                otherUserId={dmTarget.id}
+                                myUserId={myPresence.id}
+                                canSendUrgent={isAdminUser}
+                                emptyLabel={`Mulai percakapan pribadi dengan ${dmTarget.name}.`}
+                                readXsrfToken={readXsrfToken}
+                                incomingMessage={incomingMsg}
+                                deletedMessageId={deletedMsgId}
+                                onUnreadChange={setUnread}
+                            />
+                        </div>
+                    </div>
                 )}
             </div>
         </AppShell>

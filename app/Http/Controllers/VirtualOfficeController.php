@@ -7,6 +7,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\VirtualOffice\Models\OfficePresence;
 use App\Domain\VirtualOffice\Models\OfficeSeat;
 use App\Domain\VirtualOffice\Models\OfficeZone;
+use App\Domain\VirtualOffice\Services\CommunicationService;
 use App\Domain\VirtualOffice\Services\PresenceService;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\Announcement;
@@ -19,7 +20,7 @@ use Inertia\Response;
 
 class VirtualOfficeController extends Controller
 {
-    public function index(Request $request, PresenceService $presenceService): Response
+    public function index(Request $request, PresenceService $presenceService, CommunicationService $comms): Response
     {
         $user = $request->user();
 
@@ -150,6 +151,8 @@ class VirtualOfficeController extends Controller
             'seats' => $this->buildSeatsSnapshot($members),
             'members' => $members,
             'myPresence' => $presenceService->serializePresence($myPresence),
+            'unread' => $comms->unreadCounts($user),
+            'pendingKnocks' => $comms->pendingKnocksFor($user),
             'recentAnnouncements' => $recentAnnouncements,
             'reverbConfig' => [
                 'enabled' => config('broadcasting.default') === 'reverb' && ! empty($reverbAppKey),

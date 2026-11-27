@@ -23,6 +23,7 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RiskDecisionController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\UserAccountController;
+use App\Http\Controllers\VirtualOfficeCommunicationController;
 use App\Http\Controllers\VirtualOfficeController;
 use App\Http\Controllers\WorkplanController;
 use Illuminate\Support\Facades\Route;
@@ -94,6 +95,35 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/seat', [VirtualOfficeController::class, 'seat'])
             ->middleware('throttle:30,1')
             ->name('seat');
+    });
+    Route::prefix('virtual-office')->name('virtual-office.')->group(function () {
+        Route::get('/messages', [VirtualOfficeCommunicationController::class, 'messages'])
+            ->middleware('throttle:90,1')
+            ->name('messages.index');
+        Route::post('/messages', [VirtualOfficeCommunicationController::class, 'storeMessage'])
+            ->middleware('throttle:45,1')
+            ->name('messages.store');
+        Route::patch('/messages/{message}', [VirtualOfficeCommunicationController::class, 'updateMessage'])
+            ->middleware('throttle:30,1')
+            ->name('messages.update');
+        Route::delete('/messages/{message}', [VirtualOfficeCommunicationController::class, 'destroyMessage'])
+            ->middleware('throttle:30,1')
+            ->name('messages.destroy');
+        Route::post('/messages/{message}/react', [VirtualOfficeCommunicationController::class, 'reactMessage'])
+            ->middleware('throttle:60,1')
+            ->name('messages.react');
+        Route::post('/messages/read', [VirtualOfficeCommunicationController::class, 'markRead'])
+            ->middleware('throttle:60,1')
+            ->name('messages.read');
+        Route::get('/knocks', [VirtualOfficeCommunicationController::class, 'knocks'])
+            ->middleware('throttle:60,1')
+            ->name('knocks.index');
+        Route::post('/knocks', [VirtualOfficeCommunicationController::class, 'sendKnock'])
+            ->middleware('throttle:20,1')
+            ->name('knocks.store');
+        Route::post('/knocks/{knock}/respond', [VirtualOfficeCommunicationController::class, 'respondKnock'])
+            ->middleware('throttle:30,1')
+            ->name('knocks.respond');
     });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 
