@@ -377,18 +377,18 @@ function SidebarContent({
     };
 
     return (
-        <div className="relative flex h-full flex-col overflow-hidden bg-white/85 text-slate-700 backdrop-blur-xl select-none transition-colors duration-250 dark:bg-gradient-to-b dark:from-[#0D1729] dark:via-[#0B1424] dark:to-[#080E1B] dark:text-slate-200">
+        <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-[#0D1729] via-[#101D35] to-[#080E1B] text-slate-200 select-none">
             <div
-                className="pointer-events-none absolute -top-24 -left-24 hidden h-72 w-72 rounded-full dark:block"
-                style={{ background: 'radial-gradient(circle, rgba(102,140,255,0.16) 0%, transparent 70%)' }}
+                className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(102,140,255,0.18) 0%, transparent 70%)' }}
             />
             <div
-                className="pointer-events-none absolute -bottom-24 -right-24 hidden h-64 w-64 rounded-full dark:block"
-                style={{ background: 'radial-gradient(circle, rgba(69,216,232,0.12) 0%, transparent 70%)' }}
+                className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(69,216,232,0.14) 0%, transparent 70%)' }}
             />
             <div
                 className={cn(
-                    'relative z-10 flex h-16 shrink-0 items-center border-b border-slate-200/80 dark:border-white/[0.09]',
+                    'relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.09]',
                     compact ? 'justify-center px-2' : 'justify-between px-4',
                 )}
             >
@@ -407,14 +407,14 @@ function SidebarContent({
                         width={36}
                         height={36}
                         decoding="async"
-                        className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 shadow-xs ring-1 ring-slate-200/80 dark:ring-white/10"
+                        className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-0.5 shadow-sm ring-1 ring-white/15"
                     />
                     {!compact && (
                         <div className="min-w-0">
-                            <div className="truncate font-display text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+                            <div className="truncate font-display text-sm font-bold tracking-tight text-white">
                                 Krevia Digital
                             </div>
-                            <div className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                            <div className="truncate text-[11px] text-slate-400">
                                 {appName} · {appTagline}
                             </div>
                         </div>
@@ -424,7 +424,7 @@ function SidebarContent({
                     <button
                         type="button"
                         onClick={onCloseMobile}
-                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+                        className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
                         aria-label="Close navigation"
                     >
                         <X className="h-5 w-5" />
@@ -459,12 +459,12 @@ function SidebarContent({
                                     type="button"
                                     onClick={() => toggleGroup(group.title)}
                                     aria-expanded={!isGroupCollapsed}
-                                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-left text-[11px] font-semibold tracking-wider text-slate-400 uppercase transition hover:bg-slate-100/80 hover:text-slate-700 dark:hover:bg-white/[0.04] dark:hover:text-slate-200"
+                                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-left text-[11px] font-semibold tracking-wider text-slate-400 uppercase transition hover:bg-white/[0.05] hover:text-slate-200"
                                 >
                                     <span>{group.title}</span>
                                     <ChevronDown
                                         className={cn(
-                                            'h-3.5 w-3.5 text-slate-400 transition-transform duration-150 dark:text-slate-500',
+                                            'h-3.5 w-3.5 text-slate-500 transition-transform duration-150',
                                             isGroupCollapsed && '-rotate-90',
                                         )}
                                     />
@@ -493,14 +493,14 @@ function SidebarContent({
                                                         ? 'mx-auto h-10 w-10 justify-center p-0'
                                                         : 'gap-3 px-3 py-2',
                                                     active
-                                                        ? 'bg-blue-50/90 text-blue-700 shadow-xs ring-1 ring-blue-200/80 dark:bg-gradient-to-r dark:from-[#668CFF]/25 dark:via-[#45D8E8]/10 dark:to-transparent dark:text-white dark:shadow-[0_0_20px_rgba(102,140,255,0.16)] dark:ring-[#668CFF]/35'
-                                                        : 'text-slate-600 hover:bg-slate-100/80 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-white/[0.06] dark:hover:text-white',
+                                                        ? 'bg-gradient-to-r from-[#668CFF]/28 via-[#45D8E8]/12 to-transparent text-white shadow-[0_0_20px_rgba(102,140,255,0.18)] ring-1 ring-[#668CFF]/40'
+                                                        : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
                                                 )}
                                             >
                                                 <Icon
                                                     className={cn(
                                                         'h-[18px] w-[18px] shrink-0',
-                                                        active ? 'text-blue-600 dark:text-[#45D8E8]' : 'text-slate-400 dark:text-slate-400',
+                                                        active ? 'text-[#45D8E8]' : 'text-slate-400',
                                                     )}
                                                 />
                                                 {!compact && (
@@ -517,10 +517,10 @@ function SidebarContent({
             </nav>
 
             {user && (
-                <div className="relative z-10 shrink-0 border-t border-slate-200/80 p-3 dark:border-white/[0.09]">
+                <div className="relative z-10 shrink-0 border-t border-white/[0.09] p-3">
                     <div
                         className={cn(
-                            'flex items-center rounded-xl bg-slate-50/90 ring-1 ring-slate-200/80 transition hover:bg-slate-100/90 dark:bg-white/[0.045] dark:ring-white/[0.09] dark:hover:bg-white/[0.07]',
+                            'flex items-center rounded-xl bg-white/[0.05] ring-1 ring-white/[0.1] backdrop-blur-md transition hover:bg-white/[0.08]',
                             compact ? 'justify-center p-1.5' : 'gap-3 p-2.5',
                         )}
                     >
@@ -529,12 +529,12 @@ function SidebarContent({
                             avatarUrl={user.avatar_url}
                             avatarColor={user.profile?.avatar_color ?? '#2563EB'}
                             size="sm"
-                            className="ring-1 ring-slate-200 dark:ring-white/20"
+                            className="ring-1 ring-white/20"
                         />
                         {!compact && (
                             <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-semibold text-slate-900 dark:text-white">{user.name}</p>
-                                <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                                <p className="truncate text-xs font-semibold text-white">{user.name}</p>
+                                <p className="truncate text-[11px] text-slate-400">
                                     {user.profile?.position ?? user.roles[0] ?? 'Member'}
                                 </p>
                             </div>
@@ -544,7 +544,7 @@ function SidebarContent({
                                 type="button"
                                 onClick={onLogout}
                                 title="Sign out"
-                                className="rounded-md p-1.5 text-slate-400 hover:bg-slate-200/70 hover:text-slate-900 dark:hover:bg-white/10 dark:hover:text-white"
+                                className="rounded-md p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
                             >
                                 <LogOut className="h-4 w-4" />
                             </button>
