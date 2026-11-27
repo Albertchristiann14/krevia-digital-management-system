@@ -40,7 +40,7 @@ class VirtualOfficeController extends Controller
 
         $members = User::query()
             ->where('is_active', true)
-            ->with(['profile.department', 'profile.position'])
+            ->with(['employeeProfile.department', 'employeeProfile.position'])
             ->orderBy('name')
             ->get()
             ->map(function (User $member, int $index) {
@@ -52,9 +52,9 @@ class VirtualOfficeController extends Controller
                     'id' => $member->id,
                     'name' => $member->name,
                     'avatar_url' => $member->avatarUrl(),
-                    'avatar_color' => $member->profile?->avatar_color ?? '#668CFF',
-                    'position' => $member->profile?->position?->title ?? 'Team Member',
-                    'department' => $member->profile?->department?->name ?? 'Krevia Digital',
+                    'avatar_color' => $member->employeeProfile?->avatar_color ?? '#668CFF',
+                    'position' => $member->employeeProfile?->position?->title ?? 'Team Member',
+                    'department' => $member->employeeProfile?->department?->name ?? 'Krevia Digital',
                     'zone' => $zone,
                     'status' => $member->id === auth()->id() ? 'Online' : 'Available',
                 ];
