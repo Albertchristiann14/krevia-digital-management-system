@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -8,21 +8,8 @@
         <script>
             (function () {
                 try {
-                    var serverTheme = @json(auth()->user()?->preferences['theme'] ?? null);
-                    var theme = serverTheme || localStorage.getItem('kdms_theme') || 'light';
-                    if (serverTheme) {
-                        localStorage.setItem('kdms_theme', serverTheme);
-                    }
-                    var isDark =
-                        theme === 'dark' ||
-                        (theme === 'system' &&
-                            window.matchMedia &&
-                            window.matchMedia('(prefers-color-scheme: dark)').matches);
-                    if (isDark) {
-                        document.documentElement.classList.add('dark');
-                    } else {
-                        document.documentElement.classList.remove('dark');
-                    }
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('kdms_theme', 'dark');
                 } catch (e) {}
             })();
         </script>
@@ -33,7 +20,7 @@
         @vite(['resources/css/app.css', 'resources/js/app.tsx'])
         @inertiaHead
     </head>
-    <body class="bg-[#F8FAFC] text-slate-900 antialiased selection:bg-[#101D35] selection:text-white dark:bg-[#0B1220] dark:text-slate-100 dark:selection:bg-blue-600">
+    <body class="bg-[#070B16] text-[#F4F7FF] antialiased selection:bg-[#668CFF]/35 selection:text-white">
         @inertia
     </body>
 </html>

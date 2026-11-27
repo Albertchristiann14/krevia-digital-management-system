@@ -10,12 +10,32 @@ interface StatCardProps {
     dark?: boolean;
 }
 
-const ICON_TONE = {
-    navy: 'bg-[#101D35]/10 text-[#101D35] dark:bg-[#6C8CFF]/15 dark:text-[#6C8CFF]',
-    blue: 'bg-blue-50 text-blue-600 dark:bg-[#55D6E8]/15 dark:text-[#55D6E8]',
-    green: 'bg-emerald-50 text-emerald-600 dark:bg-[#42C99A]/15 dark:text-[#42C99A]',
-    amber: 'bg-amber-50 text-amber-600 dark:bg-[#F4B860]/15 dark:text-[#F4B860]',
-    red: 'bg-rose-50 text-rose-600 dark:bg-[#F07183]/15 dark:text-[#F07183]',
+const ACCENT_STYLES = {
+    navy: {
+        card: 'border-[#668CFF]/28 bg-gradient-to-br from-[#15223A]/90 via-[#101A30]/85 to-[#0B1222]/90',
+        glow: 'bg-[#668CFF]/25',
+        icon: 'bg-gradient-to-br from-[#668CFF]/25 to-[#A17AFF]/20 text-[#8DA8FF] ring-[#668CFF]/35 shadow-[0_0_18px_rgba(102,140,255,0.22)]',
+    },
+    blue: {
+        card: 'border-[#45D8E8]/22 bg-gradient-to-br from-white/[0.075] via-white/[0.045] to-[#0B1222]/75',
+        glow: 'bg-[#45D8E8]/22',
+        icon: 'bg-gradient-to-br from-[#45D8E8]/25 to-[#668CFF]/15 text-[#45D8E8] ring-[#45D8E8]/35 shadow-[0_0_18px_rgba(69,216,232,0.20)]',
+    },
+    green: {
+        card: 'border-[#42C99A]/22 bg-gradient-to-br from-white/[0.075] via-white/[0.045] to-[#0B1222]/75',
+        glow: 'bg-[#42C99A]/20',
+        icon: 'bg-gradient-to-br from-[#42C99A]/25 to-[#45D8E8]/15 text-[#42C99A] ring-[#42C99A]/35 shadow-[0_0_18px_rgba(66,201,154,0.20)]',
+    },
+    amber: {
+        card: 'border-[#F4B860]/22 bg-gradient-to-br from-white/[0.075] via-white/[0.045] to-[#0B1222]/75',
+        glow: 'bg-[#F4B860]/20',
+        icon: 'bg-gradient-to-br from-[#F4B860]/25 to-[#F07183]/15 text-[#F4B860] ring-[#F4B860]/35 shadow-[0_0_18px_rgba(244,184,96,0.20)]',
+    },
+    red: {
+        card: 'border-[#F07183]/22 bg-gradient-to-br from-white/[0.075] via-white/[0.045] to-[#0B1222]/75',
+        glow: 'bg-[#F07183]/22',
+        icon: 'bg-gradient-to-br from-[#F07183]/25 to-[#A17AFF]/15 text-[#F07183] ring-[#F07183]/35 shadow-[0_0_18px_rgba(240,113,131,0.20)]',
+    },
 };
 
 export function StatCard({
@@ -26,53 +46,43 @@ export function StatCard({
     accent = 'navy',
     dark = false,
 }: StatCardProps) {
+    const tone = dark ? ACCENT_STYLES.navy : ACCENT_STYLES[accent];
+
     return (
         <div
             className={cn(
-                'krevia-card-hover relative overflow-hidden rounded-2xl border p-5',
-                dark
-                    ? 'border-[#6C8CFF]/30 bg-gradient-to-br from-[#101D35] via-[#132442] to-[#0D1729] text-white shadow-[0_8px_30px_rgba(16,29,53,0.22)] dark:shadow-[0_8px_32px_rgba(108,140,255,0.14)]'
-                    : 'border-slate-200/90 bg-white/85 text-slate-900 shadow-[0_2px_10px_rgba(16,29,53,0.04)] backdrop-blur-md dark:border-white/[0.09] dark:bg-white/[0.045] dark:text-[#F4F7FF]',
+                'krevia-card-hover relative overflow-hidden rounded-2xl border p-5 text-[#F4F7FF] backdrop-blur-xl',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.14),0_14px_34px_-14px_rgba(0,0,0,0.72)]',
+                tone.card,
             )}
         >
             <div
                 className={cn(
-                    'pointer-events-none absolute -top-10 -right-10 h-24 w-24 rounded-full blur-2xl',
-                    dark ? 'bg-[#6C8CFF]/25' : 'bg-[#6C8CFF]/10 dark:bg-[#6C8CFF]/15',
+                    'pointer-events-none absolute -top-10 -right-10 h-28 w-28 rounded-full blur-2xl',
+                    tone.glow,
                 )}
             />
+            <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
             <div className="relative flex items-start justify-between gap-3">
                 <div>
-                    <p
-                        className={cn(
-                            'text-[11px] font-semibold tracking-wider uppercase',
-                            dark ? 'text-slate-300' : 'text-slate-500 dark:text-[#A4B0C5]',
-                        )}
-                    >
+                    <p className="text-[11px] font-semibold tracking-wider text-[#A7B4CB] uppercase">
                         {label}
                     </p>
-                    <p className="mt-2 font-display text-2xl font-bold tracking-tight tabular-nums">
+                    <p className="mt-2 font-display text-3xl font-bold tracking-tight text-[#F4F7FF] tabular-nums">
                         {value}
                     </p>
                 </div>
                 <div
                     className={cn(
                         'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset',
-                        dark
-                            ? 'bg-white/10 text-[#55D6E8] ring-white/15'
-                            : cn(ICON_TONE[accent], 'ring-black/5 dark:ring-white/10'),
+                        tone.icon,
                     )}
                 >
                     <Icon className="h-5 w-5" />
                 </div>
             </div>
             {subtitle && (
-                <p
-                    className={cn(
-                        'relative mt-3 text-xs',
-                        dark ? 'text-slate-300' : 'text-slate-500 dark:text-[#6F7D95]',
-                    )}
-                >
+                <p className="relative mt-3 text-xs text-[#71819C]">
                     {subtitle}
                 </p>
             )}
