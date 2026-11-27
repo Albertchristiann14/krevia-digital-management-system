@@ -91,8 +91,8 @@ export default function PeopleShow({ member, digitalIdentity, permissions }: Peo
                                             label={member.membership_status}
                                             tone={
                                                 member.membership_status === 'Active'
-                                                    ? 'emerald'
-                                                    : 'rose'
+                                                    ? 'green'
+                                                    : 'red'
                                             }
                                         />
                                     </div>

@@ -211,7 +211,7 @@ export default function PeopleIndex({
                                     />
                                     <StatusBadge
                                         label={member.membership_status}
-                                        tone={member.is_active ? 'emerald' : 'rose'}
+                                        tone={member.is_active ? 'green' : 'red'}
                                     />
                                 </div>
 

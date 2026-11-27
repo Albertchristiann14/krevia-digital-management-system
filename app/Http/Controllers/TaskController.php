@@ -16,6 +16,7 @@ use App\Http\Requests\Workplan\UpdateTaskRequest;
 use App\Models\User;
 use App\Notifications\TaskNotification;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,10 +38,10 @@ class TaskController extends Controller
 
         $query = Task::query()
             ->with([
-                'pic:id,name',
+                'pic:id,name,avatar_path,updated_at',
                 'pic.employeeProfile:id,user_id,avatar_color,department_id',
                 'pic.employeeProfile.department:id,name,color_hex',
-                'reviewer:id,name',
+                'reviewer:id,name,avatar_path,updated_at',
                 'annualRoadmap:id,month_label,period_month',
             ])
             ->withCount(['subtasks', 'evidences', 'comments']);
@@ -90,7 +91,12 @@ class TaskController extends Controller
             : 'deadline';
         $sortDir = $request->string('dir')->toString() === 'desc' ? 'desc' : 'asc';
 
-        $allMatching = (clone $query)->orderBy($sortField, $sortDir)->orderBy('code')->get();
+        $allMatching = (clone $query)
+            ->orderByRaw('CASE WHEN kanban_order > 0 THEN 0 ELSE 1 END')
+            ->orderBy('kanban_order')
+            ->orderBy($sortField, $sortDir)
+            ->orderBy('code')
+            ->get();
 
         $transform = fn (Task $t) => [
             'id' => $t->id,
@@ -111,6 +117,7 @@ class TaskController extends Controller
             'deadline' => $t->deadline?->format('Y-m-d'),
             'status' => $t->status,
             'progress_pct' => $t->progress_pct,
+            'kanban_order' => (int) $t->kanban_order,
             'is_blocked' => $t->is_blocked,
             'blocker_note' => $t->blocker_note,
             'deadline_status' => $t->deadlineStatus(),
@@ -161,9 +168,9 @@ class TaskController extends Controller
             'subtasks.completedBy:id,name',
             'dependencies:id,code,title,status,deadline',
             'dependents:id,code,title,status',
-            'comments.user:id,name',
-            'evidences.uploader:id,name',
-            'statusHistories.actor:id,name',
+            'comments.user:id,name,avatar_path,updated_at',
+            'evidences.uploader:id,name,avatar_path,updated_at',
+            'statusHistories.actor:id,name,avatar_path,updated_at',
         ]);
 
         $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
@@ -218,6 +225,7 @@ class TaskController extends Controller
                 'comments' => $task->comments->map(fn ($c) => [
                     'id' => $c->id,
                     'author' => $c->user?->name,
+                    'author_avatar_url' => $c->user?->avatarUrl(),
                     'body' => $c->body,
                     'created_at' => $c->created_at?->format('Y-m-d H:i'),
                 ]),
@@ -363,6 +371,70 @@ class TaskController extends Controller
         );
 
         return back()->with('success', "Task {$task->code} moved to {$data['status']}.");
+    }
+
+    public function reorder(
+        Request $request,
+        TaskTransitionService $service,
+        AuditLogger $audit
+    ): JsonResponse {
+        $data = $request->validate([
+            'task_id' => ['required', 'integer', 'exists:tasks,id'],
+            'status' => ['required', Rule::in(Task::STATUSES)],
+            'ordered_ids' => ['required', 'array', 'min:1'],
+            'ordered_ids.*' => ['integer', 'distinct', 'exists:tasks,id'],
+        ]);
+
+        $user = $request->user();
+        $task = Task::findOrFail($data['task_id']);
+        $this->authorize('update', $task);
+
+        $updated = DB::transaction(function () use ($data, $task, $user, $service, $audit): Task {
+            $lockedTasks = Task::query()
+                ->whereIn('id', $data['ordered_ids'])
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $targetTask = $lockedTasks->get($task->id) ?? Task::query()->lockForUpdate()->findOrFail($task->id);
+
+            if ($targetTask->status !== $data['status']) {
+                $targetTask = $service->transition(
+                    $targetTask,
+                    $data['status'],
+                    $user,
+                    'Moved via Kanban board'
+                );
+            }
+
+            foreach ($data['ordered_ids'] as $index => $taskId) {
+                $item = $lockedTasks->get($taskId);
+                if (! $item) {
+                    continue;
+                }
+                if ($item->id !== $targetTask->id && $item->status !== $data['status']) {
+                    continue;
+                }
+                if ($user->can('update', $item)) {
+                    $item->forceFill(['kanban_order' => $index + 1])->save();
+                }
+            }
+
+            $audit->log(
+                'task.kanban_reordered',
+                "Updated Kanban position for {$targetTask->code} in {$data['status']}.",
+                $targetTask
+            );
+
+            return $targetTask->fresh();
+        });
+
+        return response()->json([
+            'ok' => true,
+            'task_id' => $updated->id,
+            'status' => $updated->status,
+            'kanban_order' => (int) $updated->kanban_order,
+        ]);
     }
 
     public function destroy(Task $task, AuditLogger $audit): RedirectResponse

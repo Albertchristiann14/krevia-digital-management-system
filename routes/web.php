@@ -92,6 +92,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::prefix('tasks')->name('tasks.')->group(function () {
         Route::get('/', [TaskController::class, 'index'])->name('index');
         Route::post('/', [TaskController::class, 'store'])->name('store');
+        Route::post('/reorder', [TaskController::class, 'reorder'])->name('reorder');
         Route::get('/{task}', [TaskController::class, 'show'])->name('show');
         Route::patch('/{task}', [TaskController::class, 'update'])->name('update');
         Route::post('/{task}/transition', [TaskController::class, 'transition'])->name('transition');

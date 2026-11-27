@@ -609,7 +609,7 @@ export function AppShell({
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900">
+        <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 dark:bg-[#0B1220] dark:text-slate-100">
             <aside
                 className={cn(
                     'relative hidden shrink-0 border-r border-[#101D35] transition-all duration-200 lg:block',
@@ -655,12 +655,12 @@ export function AppShell({
             )}
 
             <div className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-xs sm:px-6">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-xs sm:px-6 dark:border-slate-800 dark:bg-[#111A2E]/95">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
                             onClick={() => setMobileOpen(true)}
-                            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 lg:hidden"
+                            className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50 lg:hidden dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
                             aria-label="Open navigation"
                         >
                             <Menu className="h-5 w-5" />
@@ -668,7 +668,7 @@ export function AppShell({
                         <button
                             type="button"
                             onClick={toggleCollapsed}
-                            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-[#101D35] lg:inline-flex"
+                            className="hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50 hover:text-[#101D35] lg:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white"
                             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                         >
@@ -678,10 +678,10 @@ export function AppShell({
                                 <PanelLeftClose className="h-4 w-4" />
                             )}
                         </button>
-                        <div className="flex items-center gap-2 text-xs text-slate-500">
-                            <span className="font-semibold text-[#101D35]">KDMS</span>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                            <span className="font-semibold text-[#101D35] dark:text-white">KDMS</span>
                             <span>/</span>
-                            <span>{title}</span>
+                            <span className="text-slate-600 dark:text-slate-300">{title}</span>
                         </div>
                     </div>
 
@@ -723,7 +723,7 @@ export function AppShell({
                         </Link>
 
                         {user && (
-                            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5">
+                            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-800">
                                 <Link href="/my-account" prefetch className="flex items-center gap-2 hover:opacity-85">
                                     <UserAvatar
                                         name={user.name}
@@ -732,10 +732,10 @@ export function AppShell({
                                         size="xs"
                                     />
                                     <div className="hidden text-left sm:block">
-                                        <p className="text-xs leading-none font-semibold text-slate-800">
+                                        <p className="text-xs leading-none font-semibold text-slate-800 dark:text-slate-100">
                                             {user.name}
                                         </p>
-                                        <p className="mt-0.5 text-[10px] leading-none text-slate-500">
+                                        <p className="mt-0.5 text-[10px] leading-none text-slate-500 dark:text-slate-400">
                                             {user.profile?.department ?? user.roles[0]}
                                         </p>
                                     </div>
@@ -744,7 +744,7 @@ export function AppShell({
                                     type="button"
                                     onClick={() => setShowOwnPasswordModal(true)}
                                     title="Change my password"
-                                    className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#101D35]"
+                                    className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#101D35] dark:hover:bg-slate-700 dark:hover:text-white"
                                 >
                                     <KeyRound className="h-3.5 w-3.5" />
                                 </button>
@@ -793,10 +793,10 @@ export function AppShell({
 
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <h1 className="font-display text-2xl font-bold tracking-tight text-[#101D35]">
+                            <h1 className="font-display text-2xl font-bold tracking-tight text-[#101D35] dark:text-white">
                                 {title}
                             </h1>
-                            {subtitle && <p className="mt-1 text-sm text-slate-500">{subtitle}</p>}
+                            {subtitle && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{subtitle}</p>}
                         </div>
                         {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
                     </div>
@@ -806,10 +806,10 @@ export function AppShell({
             </div>
 
             {showOwnPasswordModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <h2 className="text-base font-bold text-[#101D35]">Change My Password</h2>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-[#111A2E]">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                            <h2 className="text-base font-bold text-[#101D35] dark:text-white">Change My Password</h2>
                             <button
                                 type="button"
                                 onClick={() => setShowOwnPasswordModal(false)}

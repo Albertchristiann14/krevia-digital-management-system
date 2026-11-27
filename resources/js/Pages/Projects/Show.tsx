@@ -1,6 +1,7 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
-import { cn, formatRupiah, formatShortDate, getInitials } from '@/lib/utils';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { cn, formatRupiah, formatShortDate } from '@/lib/utils';
 import type { PageProps } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/react';
 import {
@@ -1216,11 +1217,14 @@ export default function ProjectsShow({
                         {project.members.map((m) => (
                             <div
                                 key={m.id}
-                                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4"
+                                className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
                             >
-                                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#101D35] text-xs font-bold text-white">
-                                    {m.name ? getInitials(m.name) : 'KD'}
-                                </span>
+                                <UserAvatar
+                                    name={m.name}
+                                    avatarUrl={(m as { avatar_url?: string | null }).avatar_url}
+                                    size="sm"
+                                    className="h-9 w-9"
+                                />
                                 <div>
                                     <p className="text-xs font-bold text-[#101D35]">{m.name}</p>
                                     <p className="text-[11px] text-slate-500">{m.project_role}</p>

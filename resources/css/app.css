@@ -289,3 +289,46 @@ html.dark .kdms-calendar .fc .fc-button-primary {
         color: #0f172a !important;
     }
 }
+
+/* Extended Dark Mode Text, Surface, & Chart Refinement */
+html.dark :where(.bg-white\/95, .bg-white\/90, .bg-white\/80) {
+    background-color: rgba(17, 26, 46, 0.95);
+}
+
+html.dark :where(.bg-gray-50, .bg-slate-50\/50, .bg-slate-50\/60, .bg-slate-50\/80) {
+    background-color: #0f172a;
+}
+
+html.dark :where(.bg-gray-100, .bg-slate-200\/70) {
+    background-color: #1e293b;
+}
+
+html.dark :where(.border-gray-200, .border-gray-100, .border-slate-300) {
+    border-color: #1e293b;
+}
+
+html.dark :where(.text-\[\#101D35\], .text-gray-900, .text-gray-800) {
+    color: #f1f5f9;
+}
+
+html.dark :where(.text-gray-700, .text-gray-600) {
+    color: #cbd5e1;
+}
+
+html.dark :where(.text-gray-500, .text-gray-400, .text-slate-400) {
+    color: #94a3b8;
+}
+
+html.dark .recharts-cartesian-grid line {
+    stroke: #1e293b;
+}
+
+html.dark .recharts-text {
+    fill: #94a3b8;
+}
+
+html.dark .recharts-default-tooltip {
+    background-color: #162238 !important;
+    border-color: #334155 !important;
+    color: #f1f5f9 !important;
+}

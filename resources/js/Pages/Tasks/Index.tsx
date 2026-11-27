@@ -1,4 +1,5 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
+import { KanbanBoard } from '@/Components/tasks/KanbanBoard';
 import { AppShell } from '@/Layouts/AppShell';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { cn } from '@/lib/utils';
@@ -515,80 +516,14 @@ export default function TasksIndex({
                 </div>
             )}
 
-            {/* VIEW 2: KANBAN BOARD (Ref 4 Cryta style) */}
+            {/* VIEW 2: KANBAN BOARD (Drag & Drop + Auto Save) */}
             {activeView === 'kanban' && (
-                <div className="flex gap-4 overflow-x-auto pb-4">
-                    {statuses.map((colStatus) => {
-                        const colTasks = tasks.filter((t) => t.status === colStatus);
-                        return (
-                            <div
-                                key={colStatus}
-                                className={cn(
-                                    'flex w-80 shrink-0 flex-col rounded-xl border border-slate-200 border-t-4 bg-slate-50/70 p-3',
-                                    KANBAN_TOP_COLORS[colStatus] ?? 'border-t-slate-400',
-                                )}
-                            >
-                                <div className="mb-3 flex items-center justify-between px-1">
-                                    <span className="text-xs font-bold text-[#101D35]">{colStatus}</span>
-                                    <span className="rounded-full bg-white px-2 py-0.5 font-mono text-xs font-semibold text-slate-600 shadow-2xs">
-                                        {colTasks.length}
-                                    </span>
-                                </div>
-                                <div className="max-h-[68vh] space-y-2.5 overflow-y-auto pr-1">
-                                    {colTasks.slice(0, 30).map((t) => (
-                                        <div
-                                            key={t.id}
-                                            className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs"
-                                        >
-                                            <div className="flex items-center justify-between gap-2">
-                                                <Link
-                                                    href={`/tasks/${t.id}`}
-                                                    className="font-mono text-[11px] font-bold text-[#101D35] hover:underline"
-                                                >
-                                                    {t.code}
-                                                </Link>
-                                                <StatusBadge label={t.priority} />
-                                            </div>
-                                            <Link
-                                                href={`/tasks/${t.id}`}
-                                                className="mt-1.5 block text-xs font-semibold text-slate-900 hover:text-blue-700"
-                                            >
-                                                {t.title}
-                                            </Link>
-                                            <div className="mt-2.5 flex items-center justify-between text-[11px] text-slate-500">
-                                                <span className="font-mono">{t.deadline}</span>
-                                                <span className="flex items-center gap-2">
-                                                    <span className="inline-flex items-center gap-0.5">
-                                                        <FileCheck2 className="h-3 w-3" /> {t.evidences_count}
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-0.5">
-                                                        <MessageSquare className="h-3 w-3" /> {t.comments_count}
-                                                    </span>
-                                                </span>
-                                            </div>
-                                            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                                                <span className="truncate text-[11px] font-medium text-slate-700">
-                                                    {t.pic_name}
-                                                </span>
-                                                <select
-                                                    value={t.status}
-                                                    onChange={(e) => handleQuickMove(t, e.target.value)}
-                                                    className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium"
-                                                >
-                                                    {statuses.map((s) => (
-                                                        <option key={s} value={s}>
-                                                            {s}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <KanbanBoard
+                    tasks={tasks}
+                    statuses={statuses}
+                    topColors={KANBAN_TOP_COLORS}
+                    onQuickMove={handleQuickMove}
+                />
             )}
 
             {/* VIEW 3: CALENDAR (FullCalendar - Minimalist) */}

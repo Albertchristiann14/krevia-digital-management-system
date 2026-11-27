@@ -233,17 +233,21 @@ class MyAccountController extends Controller
         ]);
 
         $user = $request->user();
+        $oldPath = $user->avatar_path;
         $file = $request->file('avatar');
         $ext = strtolower($file->getClientOriginalExtension() ?: 'png');
         $filename = sprintf('user-%d-%s.%s', $user->id, Str::uuid()->toString(), $ext);
 
         $path = Storage::disk('public')->putFileAs('avatars', $file, $filename);
-
-        if ($user->avatar_path && Storage::disk('public')->exists($user->avatar_path)) {
-            Storage::disk('public')->delete($user->avatar_path);
+        if (! $path) {
+            return back()->with('error', 'Failed to store profile photo.');
         }
 
         $user->update(['avatar_path' => $path]);
+
+        if ($oldPath && $oldPath !== $path && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
 
         $audit->log('account.avatar_updated', "User {$user->name} updated profile photo.", $user);
 

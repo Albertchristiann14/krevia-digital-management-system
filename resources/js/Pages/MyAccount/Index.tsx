@@ -762,7 +762,7 @@ export default function MyAccountIndex({
                                                 <StatusBadge
                                                     label={organizationIdentity.account_status}
                                                     tone={
-                                                        account.is_active ? 'emerald' : 'rose'
+                                                        account.is_active ? 'green' : 'red'
                                                     }
                                                 />
                                             </div>
@@ -837,7 +837,7 @@ export default function MyAccountIndex({
                                             }
                                             tone={
                                                 digitalIdentity?.status === 'active'
-                                                    ? 'emerald'
+                                                    ? 'green'
                                                     : 'amber'
                                             }
                                         />
@@ -1191,7 +1191,7 @@ export default function MyAccountIndex({
                                                             {session.is_current && (
                                                                 <StatusBadge
                                                                     label="This Device"
-                                                                    tone="emerald"
+                                                                    tone="green"
                                                                 />
                                                             )}
                                                         </div>

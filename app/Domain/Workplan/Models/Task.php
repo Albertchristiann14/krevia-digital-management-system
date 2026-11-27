@@ -47,6 +47,7 @@ class Task extends Model
         'deadline',
         'status',
         'progress_pct',
+        'kanban_order',
         'is_blocked',
         'blocker_note',
         'blocker_reported_at',
