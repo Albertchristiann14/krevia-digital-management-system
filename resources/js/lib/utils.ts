@@ -32,3 +32,20 @@ export function formatRupiah(val: number | string | null | undefined): string {
 
     return num < 0 ? `-Rp ${absFormatted}` : `Rp ${absFormatted}`;
 }
+
+export function formatPriorityLabel(priority: string | null | undefined): string {
+    if (!priority) return '—';
+    const map: Record<string, string> = {
+        Tinggi: 'High',
+        Sedang: 'Medium',
+        Rendah: 'Low',
+    };
+    return map[priority] ?? priority;
+}
+
+export function formatFileSize(bytes: number | null | undefined): string {
+    if (!bytes || bytes <= 0) return '';
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}

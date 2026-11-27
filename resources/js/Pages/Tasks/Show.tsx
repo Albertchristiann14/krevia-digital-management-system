@@ -1,4 +1,6 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { formatFileSize, formatPriorityLabel } from '@/lib/utils';
 import { AppShell } from '@/Layouts/AppShell';
 import type { PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
@@ -7,12 +9,16 @@ import {
     ArrowLeft,
     CheckCircle2,
     Download,
+    Eye,
     FileUp,
     GitCommit,
     Link2,
     MessageSquare,
+    Pencil,
     Plus,
+    RotateCcw,
     Trash2,
+    X,
 } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
@@ -20,6 +26,8 @@ interface TaskShowProps extends PageProps {
     task: {
         id: number;
         code: string;
+        project_id: number | null;
+        annual_roadmap_id: number | null;
         title: string;
         description: string | null;
         expected_result: string | null;
@@ -46,13 +54,15 @@ interface TaskShowProps extends PageProps {
         expected_evidence: string | null;
         subtasks: { id: number; title: string; is_completed: boolean; completed_by: string | null }[];
         dependencies: { id: number; code: string; title: string; status: string; deadline: string | null }[];
-        comments: { id: number; author: string | null; body: string; created_at: string | null }[];
+        comments: { id: number; author: string | null; author_avatar_url?: string | null; body: string; created_at: string | null }[];
         evidences: {
             id: number;
             type: string;
             title: string;
             url: string | null;
             original_name: string | null;
+            mime_type?: string | null;
+            file_size?: number | null;
             uploader: string | null;
             created_at: string | null;
         }[];
@@ -67,6 +77,8 @@ interface TaskShowProps extends PageProps {
     };
     users: { id: number; name: string }[];
     linkableTasks: { id: number; code: string; title: string; status: string }[];
+    projects?: { id: number; code: string; name: string }[];
+    roadmaps?: { id: number; month_label: string }[];
     statuses: string[];
     priorities: string[];
     permissions: {
@@ -81,6 +93,8 @@ export default function TaskShow({
     task,
     users,
     linkableTasks,
+    projects = [],
+    roadmaps = [],
     priorities,
     permissions,
     errors = {},
@@ -94,7 +108,22 @@ export default function TaskShow({
     const [evType, setEvType] = useState<'url' | 'commit' | 'file'>('url');
     const [evTitle, setEvTitle] = useState('');
     const [evUrl, setEvUrl] = useState('');
-    const [evFile, setEvFile] = useState<File | null>(null);
+    const [evFiles, setEvFiles] = useState<File[]>([]);
+    const [draggingFiles, setDraggingFiles] = useState(false);
+
+    // Edit Task modal
+    const [editOpen, setEditOpen] = useState(false);
+    const [editForm, setEditForm] = useState({
+        title: task.title,
+        description: task.description ?? '',
+        expected_result: task.expected_result ?? '',
+        pic_user_id: String(task.pic_user_id),
+        reviewer_user_id: task.reviewer_user_id ? String(task.reviewer_user_id) : '',
+        priority: task.priority,
+        deadline: task.deadline,
+        project_id: task.project_id ? String(task.project_id) : '',
+        annual_roadmap_id: task.annual_roadmap_id ? String(task.annual_roadmap_id) : '',
+    });
 
     // Edit metadata form
     const [progress, setProgress] = useState(task.progress_pct);
@@ -130,22 +159,46 @@ export default function TaskShow({
 
     const addEvidence = (e: FormEvent) => {
         e.preventDefault();
-        router.post(
-            `/tasks/${task.id}/evidences`,
+        const formData = new FormData();
+        formData.append('type', evType);
+        if (evTitle.trim()) {
+            formData.append('title', evTitle.trim());
+        }
+        if (evType === 'file') {
+            evFiles.forEach((f) => formData.append('files[]', f));
+        } else {
+            formData.append('url', evUrl);
+        }
+
+        router.post(`/tasks/${task.id}/evidences`, formData, {
+            forceFormData: true,
+            preserveScroll: true,
+            onSuccess: () => {
+                setEvTitle('');
+                setEvUrl('');
+                setEvFiles([]);
+            },
+        });
+    };
+
+    const saveEditTask = (e: FormEvent) => {
+        e.preventDefault();
+        router.patch(
+            `/tasks/${task.id}`,
             {
-                type: evType,
-                title: evTitle,
-                url: evType !== 'file' ? evUrl : null,
-                file: evType === 'file' ? evFile : null,
+                title: editForm.title,
+                description: editForm.description || null,
+                expected_result: editForm.expected_result || null,
+                pic_user_id: Number(editForm.pic_user_id),
+                reviewer_user_id: editForm.reviewer_user_id ? Number(editForm.reviewer_user_id) : null,
+                priority: editForm.priority,
+                deadline: editForm.deadline,
+                project_id: editForm.project_id ? Number(editForm.project_id) : null,
+                annual_roadmap_id: editForm.annual_roadmap_id ? Number(editForm.annual_roadmap_id) : null,
             },
             {
-                forceFormData: true,
                 preserveScroll: true,
-                onSuccess: () => {
-                    setEvTitle('');
-                    setEvUrl('');
-                    setEvFile(null);
-                },
+                onSuccess: () => setEditOpen(false),
             },
         );
     };
@@ -187,13 +240,25 @@ export default function TaskShow({
             title={`${task.code} · ${task.title}`}
             subtitle={`${task.month_label ?? 'Workplan'} ${task.stage_label ? `· ${task.stage_label}` : ''}`}
             actions={
-                <Link
-                    href="/tasks"
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back to Tracker
-                </Link>
+                <div className="flex flex-wrap items-center gap-2">
+                    {permissions.canUpdate && (
+                        <button
+                            type="button"
+                            onClick={() => setEditOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[#101D35] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E] dark:bg-blue-600 dark:hover:bg-blue-700"
+                        >
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit Task
+                        </button>
+                    )}
+                    <Link
+                        href="/tasks"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Tracker
+                    </Link>
+                </div>
             }
         >
             <Head title={`${task.code} — ${task.title}`} />
@@ -262,6 +327,16 @@ export default function TaskShow({
                                             Submit for Review
                                         </button>
                                     )}
+                                    {task.status === 'Under Review' && permissions.canApprove && (
+                                        <button
+                                            type="button"
+                                            onClick={() => transition('In Progress')}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 dark:border-rose-800/60 dark:bg-rose-950/60 dark:text-rose-300"
+                                        >
+                                            <RotateCcw className="h-3.5 w-3.5" />
+                                            Request Revision
+                                        </button>
+                                    )}
                                     {task.status !== 'Completed' && permissions.canApprove && (
                                         <button
                                             type="button"
@@ -325,18 +400,34 @@ export default function TaskShow({
                                             </span>
                                         </div>
                                         <p className="mt-1 truncate text-[11px] text-slate-500">
-                                            {ev.url ?? ev.original_name} · by {ev.uploader} ({ev.created_at})
+                                            {ev.url ?? ev.original_name}
+                                            {ev.file_size ? ` (${formatFileSize(ev.file_size)})` : ''} · by{' '}
+                                            {ev.uploader} ({ev.created_at})
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         {ev.type === 'file' ? (
-                                            <a
-                                                href={`/tasks/${task.id}/evidences/${ev.id}/download`}
-                                                className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-[#101D35] hover:bg-slate-50"
-                                            >
-                                                <Download className="h-3.5 w-3.5" />
-                                                Download
-                                            </a>
+                                            <>
+                                                {(ev.mime_type?.startsWith('image/') ||
+                                                    ev.mime_type === 'application/pdf') && (
+                                                    <a
+                                                        href={`/tasks/${task.id}/evidences/${ev.id}/preview`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-blue-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-blue-300"
+                                                    >
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                        Preview
+                                                    </a>
+                                                )}
+                                                <a
+                                                    href={`/tasks/${task.id}/evidences/${ev.id}/download`}
+                                                    className="inline-flex items-center gap-1 rounded border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-[#101D35] hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                                >
+                                                    <Download className="h-3.5 w-3.5" />
+                                                    Download
+                                                </a>
+                                            </>
                                         ) : (
                                             ev.url && (
                                                 <a
@@ -371,53 +462,93 @@ export default function TaskShow({
                         {permissions.canUpdate && (
                             <form
                                 onSubmit={addEvidence}
-                                className="mt-4 grid grid-cols-1 gap-2.5 border-t border-slate-100 pt-4 sm:grid-cols-4"
+                                className="mt-4 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-800"
                             >
-                                <select
-                                    value={evType}
-                                    onChange={(e) => setEvType(e.target.value as 'url' | 'commit' | 'file')}
-                                    className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium"
-                                >
-                                    <option value="url">Link / URL</option>
-                                    <option value="commit">Git Commit / PR</option>
-                                    <option value="file">Private File Upload</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    required
-                                    value={evTitle}
-                                    onChange={(e) => setEvTitle(e.target.value)}
-                                    placeholder="Evidence title..."
-                                    className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
-                                />
-                                {evType === 'file' ? (
-                                    <input
-                                        type="file"
-                                        required
-                                        onChange={(e) => setEvFile(e.target.files?.[0] ?? null)}
-                                        className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"
-                                    />
-                                ) : (
+                                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-4">
+                                    <select
+                                        value={evType}
+                                        onChange={(e) => setEvType(e.target.value as 'url' | 'commit' | 'file')}
+                                        className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium"
+                                    >
+                                        <option value="url">Link / URL</option>
+                                        <option value="commit">Git Commit / PR</option>
+                                        <option value="file">File Upload (PDF, Image, Office)</option>
+                                    </select>
                                     <input
                                         type="text"
-                                        required
-                                        value={evUrl}
-                                        onChange={(e) => setEvUrl(e.target.value)}
-                                        placeholder={evType === 'commit' ? 'Commit hash / PR URL' : 'https://...'}
+                                        required={evType !== 'file'}
+                                        value={evTitle}
+                                        onChange={(e) => setEvTitle(e.target.value)}
+                                        placeholder={
+                                            evType === 'file'
+                                                ? 'Optional title (defaults to filename)...'
+                                                : 'Evidence title...'
+                                        }
                                         className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
                                     />
-                                )}
-                                <button
-                                    type="submit"
-                                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#101D35] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
-                                >
-                                    {evType === 'file' ? (
-                                        <FileUp className="h-3.5 w-3.5" />
-                                    ) : (
-                                        <GitCommit className="h-3.5 w-3.5" />
+                                    {evType !== 'file' && (
+                                        <input
+                                            type="text"
+                                            required
+                                            value={evUrl}
+                                            onChange={(e) => setEvUrl(e.target.value)}
+                                            placeholder={evType === 'commit' ? 'Commit hash / PR URL' : 'https://...'}
+                                            className="rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                        />
                                     )}
-                                    Attach
-                                </button>
+                                    <button
+                                        type="submit"
+                                        disabled={evType === 'file' && evFiles.length === 0}
+                                        className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#101D35] px-3 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E] disabled:opacity-50"
+                                    >
+                                        {evType === 'file' ? (
+                                            <FileUp className="h-3.5 w-3.5" />
+                                        ) : (
+                                            <GitCommit className="h-3.5 w-3.5" />
+                                        )}
+                                        {evType === 'file' ? `Upload (${evFiles.length})` : 'Attach'}
+                                    </button>
+                                </div>
+
+                                {evType === 'file' && (
+                                    <label
+                                        onDragOver={(e) => {
+                                            e.preventDefault();
+                                            setDraggingFiles(true);
+                                        }}
+                                        onDragLeave={() => setDraggingFiles(false)}
+                                        onDrop={(e) => {
+                                            e.preventDefault();
+                                            setDraggingFiles(false);
+                                            const dropped = Array.from(e.dataTransfer.files ?? []);
+                                            if (dropped.length > 0) {
+                                                setEvFiles(dropped);
+                                            }
+                                        }}
+                                        className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-5 text-center transition ${
+                                            draggingFiles
+                                                ? 'border-blue-500 bg-blue-50/60 dark:bg-blue-950/30'
+                                                : 'border-slate-200 bg-slate-50/60 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-800/40'
+                                        }`}
+                                    >
+                                        <FileUp className="h-5 w-5 text-slate-400" />
+                                        <p className="mt-1.5 text-xs font-medium text-slate-700 dark:text-slate-200">
+                                            {evFiles.length > 0
+                                                ? `${evFiles.length} file(s) selected: ${evFiles.map((f) => f.name).join(', ')}`
+                                                : 'Drag & drop files here or click to browse (multiple supported)'}
+                                        </p>
+                                        <p className="mt-0.5 text-[11px] text-slate-400">
+                                            PDF, JPG, PNG, WebP, DOC/DOCX, XLS/XLSX, PPT/PPTX • Max 10 MB per file
+                                        </p>
+                                        <input
+                                            type="file"
+                                            multiple
+                                            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+                                            onChange={(e) => setEvFiles(Array.from(e.target.files ?? []))}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                )}
                             </form>
                         )}
                     </div>
@@ -570,14 +701,21 @@ export default function TaskShow({
                         </form>
                         <div className="space-y-3">
                             {task.comments.map((c) => (
-                                <div key={c.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3">
+                                <div key={c.id} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 dark:border-slate-800 dark:bg-slate-800/50">
                                     <div className="flex items-center justify-between text-xs">
-                                        <span className="font-semibold text-slate-900">{c.author}</span>
+                                        <div className="flex items-center gap-2">
+                                            <UserAvatar
+                                                name={c.author}
+                                                avatarUrl={c.author_avatar_url}
+                                                size="xs"
+                                            />
+                                            <span className="font-semibold text-slate-900 dark:text-slate-100">{c.author}</span>
+                                        </div>
                                         <span className="font-mono text-[11px] text-slate-400">
                                             {c.created_at}
                                         </span>
                                     </div>
-                                    <p className="mt-1 text-xs text-slate-700">{c.body}</p>
+                                    <p className="mt-1.5 pl-8 text-xs text-slate-700 dark:text-slate-300">{c.body}</p>
                                 </div>
                             ))}
                         </div>
@@ -598,6 +736,12 @@ export default function TaskShow({
                             <div className="flex justify-between">
                                 <span className="text-slate-500">Primary PIC</span>
                                 <span className="font-semibold text-slate-900">{task.pic_name}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-slate-500">Assigned Reviewer</span>
+                                <span className="font-semibold text-slate-900">
+                                    {task.reviewer_name ?? 'No assigned reviewer'}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-slate-500">Start Date</span>
@@ -664,7 +808,7 @@ export default function TaskShow({
                             >
                                 {priorities.map((p) => (
                                     <option key={p} value={p}>
-                                        {p}
+                                        {formatPriorityLabel(p)}
                                     </option>
                                 ))}
                             </select>
@@ -728,6 +872,182 @@ export default function TaskShow({
                     </div>
                 </div>
             </div>
+
+            {/* Edit Task Modal */}
+            {editOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+                    <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-[#111A2E]">
+                        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                            <h2 className="font-display text-base font-bold text-[#101D35] dark:text-white">
+                                Edit Task {task.code}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setEditOpen(false)}
+                                className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={saveEditTask} className="space-y-4">
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Task Title
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editForm.title}
+                                    onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Description
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    value={editForm.description}
+                                    onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Primary PIC
+                                    </label>
+                                    <select
+                                        value={editForm.pic_user_id}
+                                        onChange={(e) => setEditForm({ ...editForm, pic_user_id: e.target.value })}
+                                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                                    >
+                                        {users.map((u) => (
+                                            <option key={u.id} value={String(u.id)}>
+                                                {u.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Reviewer
+                                    </label>
+                                    <select
+                                        value={editForm.reviewer_user_id}
+                                        onChange={(e) =>
+                                            setEditForm({ ...editForm, reviewer_user_id: e.target.value })
+                                        }
+                                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                                    >
+                                        <option value="">No assigned reviewer</option>
+                                        {users.map((u) => (
+                                            <option key={u.id} value={String(u.id)}>
+                                                {u.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Priority
+                                    </label>
+                                    <select
+                                        value={editForm.priority}
+                                        onChange={(e) => setEditForm({ ...editForm, priority: e.target.value })}
+                                        className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                                    >
+                                        {priorities.map((p) => (
+                                            <option key={p} value={p}>
+                                                {formatPriorityLabel(p)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Deadline
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={editForm.deadline}
+                                        onChange={(e) => setEditForm({ ...editForm, deadline: e.target.value })}
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                    />
+                                </div>
+
+                                {projects.length > 0 && (
+                                    <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                            Related Project
+                                        </label>
+                                        <select
+                                            value={editForm.project_id}
+                                            onChange={(e) =>
+                                                setEditForm({ ...editForm, project_id: e.target.value })
+                                            }
+                                            className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                                        >
+                                            <option value="">None</option>
+                                            {projects.map((pr) => (
+                                                <option key={pr.id} value={String(pr.id)}>
+                                                    {pr.code} — {pr.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {roadmaps.length > 0 && (
+                                    <div>
+                                        <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                            Annual Roadmap Month
+                                        </label>
+                                        <select
+                                            value={editForm.annual_roadmap_id}
+                                            onChange={(e) =>
+                                                setEditForm({ ...editForm, annual_roadmap_id: e.target.value })
+                                            }
+                                            className="w-full rounded-lg border border-slate-200 px-2.5 py-2 text-xs"
+                                        >
+                                            <option value="">Unscheduled</option>
+                                            {roadmaps.map((rm) => (
+                                                <option key={rm.id} value={String(rm.id)}>
+                                                    {rm.month_label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditOpen(false)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
+                                >
+                                    Save Task Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppShell>
     );
 }

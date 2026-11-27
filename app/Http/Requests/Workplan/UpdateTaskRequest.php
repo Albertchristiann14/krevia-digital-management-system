@@ -24,6 +24,8 @@ class UpdateTaskRequest extends FormRequest
             'title' => ['sometimes', 'required', 'string', 'max:255'],
             'description' => ['nullable', 'string', 'max:3000'],
             'expected_result' => ['nullable', 'string', 'max:2000'],
+            'project_id' => ['nullable', 'exists:projects,id'],
+            'annual_roadmap_id' => ['nullable', 'exists:annual_roadmaps,id'],
             'pic_user_id' => ['sometimes', 'required', 'exists:users,id'],
             'reviewer_user_id' => ['nullable', 'exists:users,id'],
             'priority' => ['sometimes', 'required', Rule::in(Task::PRIORITIES)],

@@ -17,15 +17,23 @@ class CashflowService
      *
      * @return array<string, mixed>
      */
-    public function getSummary(): array
+    public function getSummary(?Carbon $from = null, ?Carbon $to = null): array
     {
         $setting = FinancialSetting::query()->first();
         $openingCash = $setting?->opening_cash_balance !== null
             ? (float) $setting->opening_cash_balance
             : null;
 
-        // Single conditional-aggregate query for both income & expense
-        $txTotals = Transaction::query()
+        // Period-scoped income & expense
+        $txQuery = Transaction::query();
+        if ($from !== null) {
+            $txQuery->whereDate('transaction_date', '>=', $from->toDateString());
+        }
+        if ($to !== null) {
+            $txQuery->whereDate('transaction_date', '<=', $to->toDateString());
+        }
+
+        $txTotals = $txQuery
             ->selectRaw(
                 'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as revenue_received, '
                 .'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as total_expenses',
@@ -35,6 +43,19 @@ class CashflowService
 
         $revenueReceived = (float) ($txTotals->revenue_received ?? 0);
         $totalExpenses = (float) ($txTotals->total_expenses ?? 0);
+
+        // Point-in-time Cash Balance (opening + cumulative income - cumulative expenses up to $to)
+        $cashQuery = Transaction::query();
+        if ($to !== null) {
+            $cashQuery->whereDate('transaction_date', '<=', $to->toDateString());
+        }
+        $cashTotals = $cashQuery
+            ->selectRaw(
+                'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as cum_income, '
+                .'COALESCE(SUM(CASE WHEN type = ? THEN amount ELSE 0 END), 0) as cum_expense',
+                [Transaction::TYPE_INCOME, Transaction::TYPE_EXPENSE]
+            )
+            ->first();
 
         // Single aggregate query for active invoices
         $invoiceTotals = Invoice::query()
@@ -46,7 +67,9 @@ class CashflowService
         $totalPaidInvoices = (float) ($invoiceTotals->total_paid ?? 0);
         $receivables = max(0.0, round($totalInvoiced - $totalPaidInvoices, 2));
 
-        $cashBalance = ($openingCash ?? 0.0) + $revenueReceived - $totalExpenses;
+        $cashBalance = ($openingCash ?? 0.0)
+            + (float) ($cashTotals->cum_income ?? 0)
+            - (float) ($cashTotals->cum_expense ?? 0);
 
         // Single aggregate query for budget targets
         $budgetStats = Budget::query()

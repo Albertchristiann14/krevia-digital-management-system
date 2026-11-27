@@ -3,7 +3,7 @@ import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
 import type { AnnualRoadmapItem, PageProps } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Calendar, CheckCircle2, Compass, Edit3, Target, TrendingUp, X } from 'lucide-react';
+import { Calendar, CheckCircle2, Compass, Edit3, Plus, Target, Trash2, TrendingUp, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 interface RoadmapProps extends PageProps {
@@ -14,6 +14,19 @@ interface RoadmapProps extends PageProps {
 
 export default function RoadmapIndex({ roadmaps, users, canEdit }: RoadmapProps) {
     const [editing, setEditing] = useState<AnnualRoadmapItem | null>(null);
+    const [createOpen, setCreateOpen] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        period_month: '2027-01-01',
+        month_label: '',
+        phase_label: '',
+        primary_focus: '',
+        target_contacts: 0,
+        target_meetings: 0,
+        target_proposals: 0,
+        target_won: 0,
+        target_status: 'Usulan',
+        pic_user_id: '',
+    });
     const [form, setForm] = useState({
         target_contacts: 0,
         target_meetings: 0,
@@ -70,13 +83,25 @@ export default function RoadmapIndex({ roadmaps, users, canEdit }: RoadmapProps)
             title="Annual Roadmap (Dec 2026 – Dec 2027)"
             subtitle="Sheet 05 source of truth · Numeric targets marked Usulan until confirmed by leadership (D-11)"
             actions={
-                <Link
-                    href="/workplan/monthly"
-                    className="inline-flex items-center gap-2 rounded-lg bg-[#101D35] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
-                >
-                    <Calendar className="h-4 w-4" />
-                    Monthly Workplan
-                </Link>
+                <div className="flex flex-wrap gap-2">
+                    {canEdit && (
+                        <button
+                            type="button"
+                            onClick={() => setCreateOpen(true)}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-[#101D35] hover:bg-slate-50"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Roadmap Month
+                        </button>
+                    )}
+                    <Link
+                        href="/workplan/monthly"
+                        className="inline-flex items-center gap-2 rounded-lg bg-[#101D35] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
+                    >
+                        <Calendar className="h-4 w-4" />
+                        Monthly Workplan
+                    </Link>
+                </div>
             }
         >
             <Head title="Annual Roadmap" />
@@ -183,13 +208,31 @@ export default function RoadmapIndex({ roadmaps, users, canEdit }: RoadmapProps)
                                         </td>
                                         {canEdit && (
                                             <td className="px-4 py-3.5 text-right">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEdit(r)}
-                                                    className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
-                                                >
-                                                    <Edit3 className="h-3.5 w-3.5" />
-                                                </button>
+                                                <div className="inline-flex items-center gap-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(r)}
+                                                        className="inline-flex items-center rounded-lg border border-slate-200 bg-white p-1.5 text-slate-600 hover:bg-slate-50"
+                                                    >
+                                                        <Edit3 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    {r.tasks_count === 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                if (window.confirm(`Delete roadmap month ${r.month_label}?`)) {
+                                                                    router.delete(`/workplan/roadmap/${r.id}`, {
+                                                                        preserveScroll: true,
+                                                                    });
+                                                                }
+                                                            }}
+                                                            title="Delete empty roadmap month"
+                                                            className="inline-flex items-center rounded-lg border border-rose-200 bg-rose-50 p-1.5 text-rose-600 hover:bg-rose-100"
+                                                        >
+                                                            <Trash2 className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </td>
                                         )}
                                     </tr>
@@ -340,6 +383,119 @@ export default function RoadmapIndex({ roadmaps, users, canEdit }: RoadmapProps)
                                     className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
                                 >
                                     Save Targets
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {createOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h3 className="font-display text-lg font-bold text-[#101D35]">
+                                Add Roadmap Month
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => setCreateOpen(false)}
+                                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100"
+                            >
+                                <X className="h-5 w-5" />
+                            </button>
+                        </div>
+                        <form
+                            onSubmit={(e: FormEvent) => {
+                                e.preventDefault();
+                                router.post(
+                                    '/workplan/roadmap',
+                                    {
+                                        ...createForm,
+                                        pic_user_id: createForm.pic_user_id
+                                            ? Number(createForm.pic_user_id)
+                                            : null,
+                                    },
+                                    {
+                                        preserveScroll: true,
+                                        onSuccess: () => setCreateOpen(false),
+                                    },
+                                );
+                            }}
+                            className="space-y-3"
+                        >
+                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Period Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        required
+                                        value={createForm.period_month}
+                                        onChange={(e) =>
+                                            setCreateForm({ ...createForm, period_month: e.target.value })
+                                        }
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                        Month Label
+                                    </label>
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="e.g. Jan 2028"
+                                        value={createForm.month_label}
+                                        onChange={(e) =>
+                                            setCreateForm({ ...createForm, month_label: e.target.value })
+                                        }
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Phase Label
+                                </label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. Scale & Enterprise"
+                                    value={createForm.phase_label}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, phase_label: e.target.value })
+                                    }
+                                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                />
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Primary Focus
+                                </label>
+                                <textarea
+                                    rows={2}
+                                    required
+                                    value={createForm.primary_focus}
+                                    onChange={(e) =>
+                                        setCreateForm({ ...createForm, primary_focus: e.target.value })
+                                    }
+                                    className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setCreateOpen(false)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white"
+                                >
+                                    Create Month
                                 </button>
                             </div>
                         </form>

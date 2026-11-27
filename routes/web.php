@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DigitalIdentityController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\GlobalSearchController;
 use App\Http\Controllers\ImportExportController;
 use App\Http\Controllers\KpiController;
 use App\Http\Controllers\MarketingController;
@@ -72,9 +73,12 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/search', GlobalSearchController::class)->name('search.global');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::post('/announcements', [AnnouncementController::class, 'store'])->name('announcements.store');
+    Route::patch('/announcements/{announcement}', [AnnouncementController::class, 'update'])->name('announcements.update');
+    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy'])->name('announcements.destroy');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
@@ -82,7 +86,9 @@ Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::prefix('workplan')->name('workplan.')->group(function () {
         Route::get('/roadmap', [WorkplanController::class, 'roadmap'])->name('roadmap');
+        Route::post('/roadmap', [WorkplanController::class, 'storeRoadmap'])->name('roadmap.store');
         Route::patch('/roadmap/{roadmap}', [WorkplanController::class, 'updateRoadmap'])->name('roadmap.update');
+        Route::delete('/roadmap/{roadmap}', [WorkplanController::class, 'destroyRoadmap'])->name('roadmap.destroy');
         Route::get('/monthly', [WorkplanController::class, 'monthly'])->name('monthly');
         Route::patch('/monthly/{monthlyWorkplan}/evaluation', [WorkplanController::class, 'updateMonthlyEvaluation'])->name('monthly.evaluation');
     });
@@ -108,6 +114,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/{task}/comments', [TaskController::class, 'storeComment'])->name('comments.store');
 
         Route::post('/{task}/evidences', [TaskController::class, 'storeEvidence'])->name('evidences.store');
+        Route::get('/{task}/evidences/{evidence}/preview', [TaskController::class, 'previewEvidence'])->name('evidences.preview');
         Route::get('/{task}/evidences/{evidence}/download', [TaskController::class, 'downloadEvidence'])->name('evidences.download');
         Route::delete('/{task}/evidences/{evidence}', [TaskController::class, 'destroyEvidence'])->name('evidences.destroy');
     });

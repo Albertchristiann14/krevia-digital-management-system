@@ -12,6 +12,7 @@ use App\Domain\Workplan\Models\AnnualRoadmap;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\Announcement;
 use App\Domain\Workspace\Models\AuditLog;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -107,6 +108,8 @@ class DashboardController extends Controller
                 'deadline_status' => $t->deadlineStatus($today),
             ]);
 
+        $pendingTaskApprovalsCount = $allTasks->where('status', 'Under Review')->count();
+
         $pendingApprovals = $allTasks
             ->where('status', 'Under Review')
             ->take(6)
@@ -140,7 +143,17 @@ class DashboardController extends Controller
             + $profiles->where('coordination_status', '!=', 'Sesuai arahan')->count()
             + RaciActivity::where('data_status', '!=', 'Disepakati')->count();
 
-        $leadAgg = Lead::query()
+        [$periodKey, $periodFrom, $periodTo, $periodLabel, $dateFromStr, $dateToStr] = $this->resolvePeriodFilter($request);
+
+        $leadQuery = Lead::query();
+        if ($periodFrom !== null) {
+            $leadQuery->where('created_at', '>=', $periodFrom->copy()->startOfDay());
+        }
+        if ($periodTo !== null) {
+            $leadQuery->where('created_at', '<=', $periodTo->copy()->endOfDay());
+        }
+
+        $leadAgg = $leadQuery
             ->selectRaw(
                 "COUNT(*) as total_prospects, "
                 ."COUNT(discovery_meeting_at) as discovery_meetings, "
@@ -171,7 +184,7 @@ class DashboardController extends Controller
             ]);
 
         $canViewFinance = $user->hasPermissionTo('finance.view');
-        $financeSummary = $canViewFinance ? $cashflow->getSummary() : null;
+        $financeSummary = $canViewFinance ? $cashflow->getSummary($periodFrom, $periodTo) : null;
 
         $userDepartmentId = $user->employeeProfile?->department_id;
         $recentAnnouncements = Announcement::query()
@@ -219,11 +232,18 @@ class DashboardController extends Controller
                 'departments' => $refs->departmentCount(),
                 'raci_activities' => $refs->raciActivityCount(),
                 'pending_confirmations' => $pendingConfirmations,
+                'pending_task_approvals_count' => $pendingTaskApprovalsCount,
                 'roadmap_months' => $monthlyRoadmap->count(),
                 ...$pipelineSummary,
                 'revenue_received' => $financeSummary ? $financeSummary['revenue_received'] : null,
                 'total_expenses' => $financeSummary ? $financeSummary['total_expenses'] : null,
                 'cash_balance' => $financeSummary ? $financeSummary['cash_balance'] : null,
+            ],
+            'periodFilter' => [
+                'period' => $periodKey,
+                'date_from' => $dateFromStr,
+                'date_to' => $dateToStr,
+                'label' => $periodLabel,
             ],
             'canViewFinance' => $canViewFinance,
             'tasksByStatus' => $tasksByStatus,
@@ -235,5 +255,81 @@ class DashboardController extends Controller
             'recentAudits' => $recentAudits,
             'recentAnnouncements' => $recentAnnouncements,
         ]);
+    }
+
+    /**
+     * @return array{0: string, 1: ?Carbon, 2: ?Carbon, 3: string, 4: string, 5: string}
+     */
+    private function resolvePeriodFilter(Request $request): array
+    {
+        $period = $request->string('period', 'all')->toString();
+        $now = now();
+
+        return match ($period) {
+            'this_month' => [
+                'this_month',
+                $now->copy()->startOfMonth(),
+                $now->copy()->endOfMonth(),
+                'This Month ('.$now->format('M Y').')',
+                $now->copy()->startOfMonth()->toDateString(),
+                $now->copy()->endOfMonth()->toDateString(),
+            ],
+            'last_month' => (function () use ($now): array {
+                $prev = $now->copy()->subMonthNoOverflow();
+
+                return [
+                    'last_month',
+                    $prev->copy()->startOfMonth(),
+                    $prev->copy()->endOfMonth(),
+                    'Last Month ('.$prev->format('M Y').')',
+                    $prev->copy()->startOfMonth()->toDateString(),
+                    $prev->copy()->endOfMonth()->toDateString(),
+                ];
+            })(),
+            'this_quarter' => [
+                'this_quarter',
+                $now->copy()->firstOfQuarter(),
+                $now->copy()->lastOfQuarter(),
+                'This Quarter (Q'.$now->quarter.' '.$now->year.')',
+                $now->copy()->firstOfQuarter()->toDateString(),
+                $now->copy()->lastOfQuarter()->toDateString(),
+            ],
+            'last_quarter' => (function () use ($now): array {
+                $prevQ = $now->copy()->subQuarterNoOverflow();
+
+                return [
+                    'last_quarter',
+                    $prevQ->copy()->firstOfQuarter(),
+                    $prevQ->copy()->lastOfQuarter(),
+                    'Last Quarter (Q'.$prevQ->quarter.' '.$prevQ->year.')',
+                    $prevQ->copy()->firstOfQuarter()->toDateString(),
+                    $prevQ->copy()->lastOfQuarter()->toDateString(),
+                ];
+            })(),
+            'this_year' => [
+                'this_year',
+                $now->copy()->startOfYear(),
+                $now->copy()->endOfYear(),
+                'This Year ('.$now->year.')',
+                $now->copy()->startOfYear()->toDateString(),
+                $now->copy()->endOfYear()->toDateString(),
+            ],
+            'custom' => (function () use ($request): array {
+                $fromRaw = $request->string('date_from')->toString();
+                $toRaw = $request->string('date_to')->toString();
+                $from = $fromRaw !== '' ? Carbon::parse($fromRaw)->startOfDay() : null;
+                $to = $toRaw !== '' ? Carbon::parse($toRaw)->endOfDay() : null;
+
+                return [
+                    'custom',
+                    $from,
+                    $to,
+                    'Custom: '.($from?->format('d M Y') ?? 'Start').' – '.($to?->format('d M Y') ?? 'Now'),
+                    $from?->toDateString() ?? '',
+                    $to?->toDateString() ?? '',
+                ];
+            })(),
+            default => ['all', null, null, 'All Time', '', ''],
+        };
     }
 }

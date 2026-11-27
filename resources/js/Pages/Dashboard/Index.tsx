@@ -4,7 +4,8 @@ import { AppShell } from '@/Layouts/AppShell';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { getInitials } from '@/lib/utils';
 import type { PageProps } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
+import { useState } from 'react';
 import {
     Activity,
     AlertTriangle,
@@ -45,6 +46,7 @@ interface DashboardProps extends PageProps {
         team_members: number;
         departments: number;
         pending_confirmations: number;
+        pending_task_approvals_count?: number;
         roadmap_months: number;
         raci_activities: number;
         total_prospects: number;
@@ -131,6 +133,12 @@ interface DashboardProps extends PageProps {
         publisher: string;
         published_at: string | null;
     }[];
+    periodFilter?: {
+        period: string;
+        date_from: string;
+        date_to: string;
+        label: string;
+    };
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -152,10 +160,29 @@ export default function DashboardIndex({
     myTasks,
     recentAudits,
     recentAnnouncements = [],
+    periodFilter = { period: 'all', date_from: '', date_to: '', label: 'All Time' },
     canViewFinance,
 }: DashboardProps) {
     const { auth } = usePage<PageProps>().props;
     const user = auth.user;
+    const [selectedPeriod, setSelectedPeriod] = useState(periodFilter.period);
+    const [dateFrom, setDateFrom] = useState(periodFilter.date_from);
+    const [dateTo, setDateTo] = useState(periodFilter.date_to);
+
+    const applyPeriod = (nextPeriod: string, nextFrom = dateFrom, nextTo = dateTo) => {
+        setSelectedPeriod(nextPeriod);
+        if (nextPeriod === 'custom' && !nextFrom && !nextTo) {
+            return;
+        }
+        router.get(
+            '/dashboard',
+            {
+                period: nextPeriod,
+                ...(nextPeriod === 'custom' ? { date_from: nextFrom, date_to: nextTo } : {}),
+            },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    };
 
     return (
         <AppShell
@@ -249,41 +276,103 @@ export default function DashboardIndex({
 
             {/* Top Row: Live Database Metrics */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-                <StatCard
-                    dark
-                    label="Total Tasks"
-                    value={metrics.total_tasks}
-                    subtitle={`Avg progress ${metrics.avg_progress}% across ${metrics.roadmap_months} months`}
-                    icon={Layers}
-                />
-                <StatCard
-                    label="Completed"
-                    value={metrics.completed_tasks}
-                    subtitle="Evidence-verified & approved"
-                    icon={CheckCircle2}
-                    accent="green"
-                />
-                <StatCard
-                    label="Active Tasks"
-                    value={metrics.in_progress_tasks}
-                    subtitle="In Progress + Under Review"
-                    icon={Clock}
-                    accent="blue"
-                />
-                <StatCard
-                    label="Overdue / Due Soon"
-                    value={`${metrics.overdue_tasks} / ${metrics.due_soon_tasks}`}
-                    subtitle={`${metrics.blocked_tasks} blocked tasks flagged`}
-                    icon={AlertTriangle}
-                    accent={metrics.overdue_tasks > 0 ? 'red' : 'amber'}
-                />
-                <StatCard
-                    label="Pending Approvals"
-                    value={pendingApprovals.length}
-                    subtitle={`${metrics.pending_confirmations} management items pending`}
-                    icon={CalendarClock}
-                    accent="amber"
-                />
+                <Link href="/tasks" className="block transition hover:opacity-95">
+                    <StatCard
+                        dark
+                        label="Total Tasks"
+                        value={metrics.total_tasks}
+                        subtitle={`Avg progress ${metrics.avg_progress}% across ${metrics.roadmap_months} months`}
+                        icon={Layers}
+                    />
+                </Link>
+                <Link href="/tasks?status=Completed" className="block transition hover:opacity-95">
+                    <StatCard
+                        label="Completed"
+                        value={metrics.completed_tasks}
+                        subtitle="Evidence-verified & approved"
+                        icon={CheckCircle2}
+                        accent="green"
+                    />
+                </Link>
+                <Link href="/tasks?status=In+Progress" className="block transition hover:opacity-95">
+                    <StatCard
+                        label="Active Tasks"
+                        value={metrics.in_progress_tasks}
+                        subtitle="In Progress + Under Review"
+                        icon={Clock}
+                        accent="blue"
+                    />
+                </Link>
+                <Link href="/tasks?overdue_only=1" className="block transition hover:opacity-95">
+                    <StatCard
+                        label="Overdue / Due Soon"
+                        value={`${metrics.overdue_tasks} / ${metrics.due_soon_tasks}`}
+                        subtitle={`${metrics.blocked_tasks} blocked tasks flagged`}
+                        icon={AlertTriangle}
+                        accent={metrics.overdue_tasks > 0 ? 'red' : 'amber'}
+                    />
+                </Link>
+                <Link href="/tasks?status=Under+Review" className="block transition hover:opacity-95">
+                    <StatCard
+                        label="Pending Approvals"
+                        value={metrics.pending_task_approvals_count ?? pendingApprovals.length}
+                        subtitle={`Tasks in Under Review · ${metrics.pending_confirmations} org items pending`}
+                        icon={CalendarClock}
+                        accent="amber"
+                    />
+                </Link>
+            </div>
+
+            {/* Period Filter Bar for Commercial & Financial Metrics */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs dark:border-slate-800 dark:bg-slate-900">
+                <div className="text-xs">
+                    <span className="font-semibold text-[#101D35] dark:text-white">
+                        Commercial &amp; Financial Period:
+                    </span>{' '}
+                    <span className="font-medium text-slate-500 dark:text-slate-400">
+                        {periodFilter.label}
+                    </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <select
+                        value={selectedPeriod}
+                        onChange={(e) => applyPeriod(e.target.value)}
+                        className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium"
+                    >
+                        <option value="all">All Time</option>
+                        <option value="this_month">This Month</option>
+                        <option value="last_month">Last Month</option>
+                        <option value="this_quarter">This Quarter</option>
+                        <option value="last_quarter">Last Quarter</option>
+                        <option value="this_year">This Year</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+
+                    {selectedPeriod === 'custom' && (
+                        <>
+                            <input
+                                type="date"
+                                value={dateFrom}
+                                onChange={(e) => setDateFrom(e.target.value)}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+                            />
+                            <span className="text-xs text-slate-400">to</span>
+                            <input
+                                type="date"
+                                value={dateTo}
+                                onChange={(e) => setDateTo(e.target.value)}
+                                className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => applyPeriod('custom', dateFrom, dateTo)}
+                                className="rounded-lg bg-[#101D35] px-3 py-1.5 text-xs font-semibold text-white"
+                            >
+                                Apply
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             {/* Commercial & Project Delivery Snapshot */}

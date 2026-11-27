@@ -162,6 +162,53 @@ class AnnouncementController extends Controller
         return back()->with('success', "Announcement {$announcement->code} sent to {$recipients->count()} active member(s).");
     }
 
+    public function update(Request $request, Announcement $announcement, AuditLogger $audit): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor->canManageAccounts() || $actor->hasPermissionTo('announcements.manage'), 403);
+
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'body' => ['required', 'string', 'max:5000'],
+            'priority' => ['required', Rule::in(Announcement::PRIORITIES)],
+        ]);
+
+        $old = $announcement->only(['title', 'body', 'priority']);
+        $announcement->update($data);
+
+        $audit->log(
+            'announcements.updated',
+            "Updated announcement {$announcement->code}: {$announcement->title}.",
+            $announcement,
+            $old,
+            $data,
+            $actor->id
+        );
+
+        return back()->with('success', "Announcement {$announcement->code} updated.");
+    }
+
+    public function destroy(Request $request, Announcement $announcement, AuditLogger $audit): RedirectResponse
+    {
+        $actor = $request->user();
+        abort_unless($actor->canManageAccounts() || $actor->hasPermissionTo('announcements.manage'), 403);
+
+        $code = $announcement->code;
+        $title = $announcement->title;
+        $announcement->delete();
+
+        $audit->log(
+            'announcements.deleted',
+            "Archived announcement {$code}: {$title}.",
+            $announcement,
+            null,
+            null,
+            $actor->id
+        );
+
+        return back()->with('success', "Announcement {$code} archived.");
+    }
+
     public function settings(Request $request): Response
     {
         abort_unless($request->user()?->canManageAccounts(), 403);

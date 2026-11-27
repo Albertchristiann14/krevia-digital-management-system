@@ -1,4 +1,4 @@
-import { cn } from '@/lib/utils';
+import { cn, formatPriorityLabel } from '@/lib/utils';
 
 type BadgeTone = 'navy' | 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'slate';
 
@@ -111,7 +111,7 @@ export function StatusBadge({
                 className,
             )}
         >
-            {label}
+            {formatPriorityLabel(label)}
         </span>
     );
 }

@@ -1,8 +1,8 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
 import type { PageProps } from '@/types';
-import { Head, Link, useForm } from '@inertiajs/react';
-import { Mail, MessageCircle, Plus, Radio, Settings, X } from 'lucide-react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
+import { Mail, MessageCircle, Pencil, Plus, Radio, Settings, Trash2, X } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 
 interface AnnouncementRow {
@@ -48,6 +48,31 @@ export default function AnnouncementsIndex({
     canPublish,
 }: AnnouncementsProps) {
     const [showModal, setShowModal] = useState(false);
+    const [editingAnn, setEditingAnn] = useState<AnnouncementRow | null>(null);
+
+    const editForm = useForm({
+        title: '',
+        body: '',
+        priority: 'Normal',
+    });
+
+    const openEditAnn = (a: AnnouncementRow) => {
+        setEditingAnn(a);
+        editForm.setData({
+            title: a.title,
+            body: a.body,
+            priority: a.priority,
+        });
+    };
+
+    const handleUpdateAnn = (e: FormEvent) => {
+        e.preventDefault();
+        if (!editingAnn) return;
+        editForm.patch(`/announcements/${editingAnn.id}`, {
+            preserveScroll: true,
+            onSuccess: () => setEditingAnn(null),
+        });
+    };
 
     const form = useForm({
         title: '',
@@ -148,9 +173,37 @@ export default function AnnouncementsIndex({
                                         : 'All Active Members'}
                                 </span>
                             </div>
-                            <span className="text-[11px] text-slate-400">
-                                By {a.publisher} • {a.published_at}
-                            </span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[11px] text-slate-400">
+                                    By {a.publisher} • {a.published_at}
+                                </span>
+                                {canPublish && (
+                                    <>
+                                        <button
+                                            type="button"
+                                            onClick={() => openEditAnn(a)}
+                                            title="Edit announcement"
+                                            className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-[#101D35]"
+                                        >
+                                            <Pencil className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (window.confirm(`Archive announcement ${a.code}?`)) {
+                                                    router.delete(`/announcements/${a.id}`, {
+                                                        preserveScroll: true,
+                                                    });
+                                                }
+                                            }}
+                                            title="Archive announcement"
+                                            className="rounded p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </>
+                                )}
+                            </div>
                         </div>
                         <h3 className="mt-2 text-base font-bold text-[#101D35]">{a.title}</h3>
                         <p className="mt-1 whitespace-pre-line text-xs leading-relaxed text-slate-600">
@@ -285,6 +338,65 @@ export default function AnnouncementsIndex({
                                     className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white"
                                 >
                                     Broadcast Now
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+            {editingAnn && canPublish && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+                    <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                            <h2 className="text-base font-bold text-[#101D35]">
+                                Edit Announcement {editingAnn.code}
+                            </h2>
+                            <button
+                                type="button"
+                                onClick={() => setEditingAnn(null)}
+                                className="rounded p-1 text-slate-400"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleUpdateAnn} className="mt-4 space-y-3">
+                            <input
+                                type="text"
+                                required
+                                value={editForm.data.title}
+                                onChange={(e) => editForm.setData('title', e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                            />
+                            <select
+                                value={editForm.data.priority}
+                                onChange={(e) => editForm.setData('priority', e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                            >
+                                <option value="Normal">Normal</option>
+                                <option value="Penting">Penting</option>
+                                <option value="Mendesak">Mendesak</option>
+                            </select>
+                            <textarea
+                                rows={4}
+                                required
+                                value={editForm.data.body}
+                                onChange={(e) => editForm.setData('body', e.target.value)}
+                                className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs"
+                            />
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingAnn(null)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={editForm.processing}
+                                    className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white"
+                                >
+                                    Save Changes
                                 </button>
                             </div>
                         </form>

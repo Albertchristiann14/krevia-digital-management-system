@@ -179,12 +179,22 @@ class TaskController extends Controller
             ->orderBy('code')
             ->get(['id', 'code', 'title', 'status']);
 
+        $projects = \App\Domain\Project\Models\Project::query()
+            ->orderBy('name')
+            ->get(['id', 'code', 'name']);
+
+        $roadmaps = AnnualRoadmap::query()
+            ->orderBy('period_month')
+            ->get(['id', 'month_label']);
+
         $user = $request->user();
 
         return Inertia::render('Tasks/Show', [
             'task' => [
                 'id' => $task->id,
                 'code' => $task->code,
+                'project_id' => $task->project_id,
+                'annual_roadmap_id' => $task->annual_roadmap_id,
                 'title' => $task->title,
                 'description' => $task->description,
                 'expected_result' => $task->expected_result,
@@ -235,6 +245,8 @@ class TaskController extends Controller
                     'title' => $ev->title,
                     'url' => $ev->url,
                     'original_name' => $ev->original_name,
+                    'mime_type' => $ev->mime_type,
+                    'file_size' => $ev->file_size,
                     'uploader' => $ev->uploader?->name,
                     'created_at' => $ev->created_at?->format('Y-m-d H:i'),
                 ]),
@@ -249,6 +261,8 @@ class TaskController extends Controller
             ],
             'users' => $users,
             'linkableTasks' => $linkableTasks,
+            'projects' => $projects,
+            'roadmaps' => $roadmaps,
             'statuses' => Task::STATUSES,
             'priorities' => Task::PRIORITIES,
             'permissions' => [
@@ -343,8 +357,23 @@ class TaskController extends Controller
             }
         }
 
+        $oldReviewerId = $task->reviewer_user_id;
         $task->update($data);
         $audit->log('task.updated', "Updated task {$task->code}.", $task, $old, $data);
+
+        if (
+            array_key_exists('reviewer_user_id', $data)
+            && (int) ($data['reviewer_user_id'] ?? 0) !== (int) ($oldReviewerId ?? 0)
+            && $task->reviewer_user_id
+            && $task->reviewer_user_id !== $request->user()->id
+        ) {
+            $task->reviewer?->notify(new TaskNotification(
+                category: 'task',
+                priority: 'normal',
+                task: $task,
+                message: "{$request->user()->name} assigned you as reviewer for task {$task->code} ({$task->title})."
+            ));
+        }
 
         return back()->with('success', "Task {$task->code} updated.");
     }
@@ -540,41 +569,83 @@ class TaskController extends Controller
     {
         $this->authorize('update', $task);
 
+        $allowedMimes = 'pdf,jpg,jpeg,png,webp,doc,docx,xls,xlsx,ppt,pptx';
+
         $data = $request->validate([
             'type' => ['required', Rule::in(['file', 'url', 'commit'])],
-            'title' => ['required', 'string', 'max:255'],
+            'title' => ['nullable', 'string', 'max:255', 'required_unless:type,file'],
             'url' => ['nullable', 'string', 'max:500', 'required_if:type,url,commit'],
-            'file' => ['nullable', 'file', 'max:10240', 'required_if:type,file'],
+            'file' => ['nullable', 'file', "mimes:{$allowedMimes}", 'max:10240'],
+            'files' => ['nullable', 'array', 'max:10'],
+            'files.*' => ['file', "mimes:{$allowedMimes}", 'max:10240'],
         ]);
 
-        $filePath = null;
-        $originalName = null;
-        $mimeType = null;
-        $fileSize = null;
+        if ($data['type'] === 'file') {
+            $uploadedFiles = [];
+            if ($request->hasFile('files')) {
+                $uploadedFiles = $request->file('files');
+            } elseif ($request->hasFile('file')) {
+                $uploadedFiles = [$request->file('file')];
+            }
 
-        if ($data['type'] === 'file' && $request->hasFile('file')) {
-            $uploaded = $request->file('file');
-            $filePath = $uploaded->store("task-evidences/{$task->id}", 'local');
-            $originalName = $uploaded->getClientOriginalName();
-            $mimeType = $uploaded->getClientMimeType();
-            $fileSize = $uploaded->getSize();
+            if ($uploadedFiles === []) {
+                throw ValidationException::withMessages([
+                    'file' => 'Please choose at least one valid file to upload.',
+                ]);
+            }
+
+            DB::transaction(function () use ($uploadedFiles, $data, $task, $request, $audit): void {
+                foreach ($uploadedFiles as $uploaded) {
+                    $filePath = $uploaded->store("task-evidences/{$task->id}", 'local');
+                    $originalName = $uploaded->getClientOriginalName();
+                    $title = trim((string) ($data['title'] ?? '')) !== ''
+                        ? (count($uploadedFiles) > 1 ? "{$data['title']} ({$originalName})" : $data['title'])
+                        : pathinfo($originalName, PATHINFO_FILENAME);
+
+                    $evidence = TaskEvidence::create([
+                        'task_id' => $task->id,
+                        'type' => 'file',
+                        'title' => $title,
+                        'url' => null,
+                        'file_path' => $filePath,
+                        'original_name' => $originalName,
+                        'mime_type' => $uploaded->getClientMimeType(),
+                        'file_size' => $uploaded->getSize(),
+                        'uploaded_by' => $request->user()->id,
+                    ]);
+
+                    $audit->log('task.evidence_added', "Uploaded evidence '{$evidence->title}' to {$task->code}.", $task);
+                }
+            });
+
+            $count = count($uploadedFiles);
+
+            return back()->with('success', $count > 1 ? "{$count} evidence files uploaded." : 'Completion evidence attached.');
         }
 
         $evidence = TaskEvidence::create([
             'task_id' => $task->id,
             'type' => $data['type'],
-            'title' => $data['title'],
+            'title' => (string) $data['title'],
             'url' => $data['url'] ?? null,
-            'file_path' => $filePath,
-            'original_name' => $originalName,
-            'mime_type' => $mimeType,
-            'file_size' => $fileSize,
             'uploaded_by' => $request->user()->id,
         ]);
 
         $audit->log('task.evidence_added', "Added evidence '{$evidence->title}' to {$task->code}.", $task);
 
         return back()->with('success', 'Completion evidence attached.');
+    }
+
+    public function previewEvidence(Task $task, TaskEvidence $evidence): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $this->authorize('view', $task);
+        abort_unless($evidence->task_id === $task->id && $evidence->file_path, 404);
+        abort_unless(Storage::disk('local')->exists($evidence->file_path), 404);
+
+        return response()->file(
+            Storage::disk('local')->path($evidence->file_path),
+            ['Content-Disposition' => 'inline; filename="'.($evidence->original_name ?? basename($evidence->file_path)).'"']
+        );
     }
 
     public function downloadEvidence(Task $task, TaskEvidence $evidence): StreamedResponse

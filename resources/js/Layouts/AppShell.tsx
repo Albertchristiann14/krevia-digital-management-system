@@ -1,3 +1,4 @@
+import { GlobalSearch } from '@/Components/shared/GlobalSearch';
 import { UserAvatar } from '@/Components/shared/UserAvatar';
 import { cn } from '@/lib/utils';
 import type { PageProps } from '@/types';
@@ -17,6 +18,7 @@ import {
     Compass,
     FileSpreadsheet,
     FolderLock,
+    Gavel,
     Handshake,
     KeyRound,
     LayoutDashboard,
@@ -210,6 +212,13 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
                 href: '/governance/risks-decisions',
                 matchPrefix: '/governance/risks-decisions',
                 icon: ShieldAlert,
+                permission: 'risks.view',
+            },
+            {
+                label: 'Decision Log',
+                href: '/governance/risks-decisions?tab=decisions',
+                matchPrefix: '/governance/risks-decisions?tab=decisions',
+                icon: Gavel,
                 permission: 'risks.view',
             },
             {
@@ -451,7 +460,7 @@ function SidebarContent({
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-xs font-semibold text-white">{user.name}</p>
                                 <p className="truncate text-[11px] text-slate-400">
-                                    {user.roles[0] ?? 'Member'}
+                                    {user.profile?.position ?? user.roles[0] ?? 'Member'}
                                 </p>
                             </div>
                         )}
@@ -686,6 +695,7 @@ export function AppShell({
                     </div>
 
                     <div className="flex items-center gap-2.5">
+                        <GlobalSearch />
                         <div className="hidden items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 sm:inline-flex dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                             <CalendarRange className="h-3.5 w-3.5 text-[#101D35] dark:text-blue-400" />
                             <span>{app.period}</span>
@@ -736,7 +746,9 @@ export function AppShell({
                                             {user.name}
                                         </p>
                                         <p className="mt-0.5 text-[10px] leading-none text-slate-500 dark:text-slate-400">
-                                            {user.profile?.department ?? user.roles[0]}
+                                            {[user.profile?.position ?? user.roles[0], user.profile?.department]
+                                                .filter(Boolean)
+                                                .join(' · ')}
                                         </p>
                                     </div>
                                 </Link>

@@ -119,6 +119,14 @@ class TaskTransitionService
                     task: $task,
                     message: "{$actor->name} approved and completed {$task->code} ({$task->title})."
                 ));
+            } elseif ($oldStatus === 'Under Review' && $newStatus === 'In Progress' && $task->pic && $task->pic_user_id !== $actor->id) {
+                $reason = $note ? " Note: {$note}" : '';
+                $task->pic->notify(new TaskNotification(
+                    category: 'task',
+                    priority: 'high',
+                    task: $task,
+                    message: "{$actor->name} requested revision on {$task->code} ({$task->title}).{$reason}"
+                ));
             }
 
             return $task->fresh();

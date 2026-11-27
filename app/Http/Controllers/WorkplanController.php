@@ -61,6 +61,40 @@ class WorkplanController extends Controller
         ]);
     }
 
+    public function storeRoadmap(Request $request, AuditLogger $audit): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user && ($user->can('workplan.create') || $user->can('workplan.edit') || $user->can('workplan.approve')),
+            403
+        );
+
+        $data = $request->validate([
+            'period_month' => ['required', 'date'],
+            'month_label' => ['required', 'string', 'max:100'],
+            'phase_label' => ['required', 'string', 'max:120'],
+            'primary_focus' => ['required', 'string', 'max:500'],
+            'target_contacts' => ['required', 'integer', 'min:0', 'max:1000'],
+            'target_meetings' => ['required', 'integer', 'min:0', 'max:500'],
+            'target_proposals' => ['required', 'integer', 'min:0', 'max:500'],
+            'target_won' => ['required', 'integer', 'min:0', 'max:500'],
+            'target_status' => ['required', Rule::in(['Disepakati', 'Usulan', 'Perlu Konfirmasi Manajemen'])],
+            'pic_user_id' => ['nullable', 'exists:users,id'],
+        ]);
+
+        $roadmap = AnnualRoadmap::create($data);
+
+        $audit->log(
+            'workplan.roadmap_created',
+            "Created Annual Roadmap month {$roadmap->month_label}.",
+            $roadmap,
+            null,
+            $data
+        );
+
+        return back()->with('success', "Roadmap month {$roadmap->month_label} created.");
+    }
+
     public function updateRoadmap(Request $request, AnnualRoadmap $roadmap, AuditLogger $audit): RedirectResponse
     {
         $this->authorize('update', $roadmap);
@@ -87,6 +121,26 @@ class WorkplanController extends Controller
         );
 
         return back()->with('success', "Roadmap targets updated for {$roadmap->month_label}.");
+    }
+
+    public function destroyRoadmap(Request $request, AnnualRoadmap $roadmap, AuditLogger $audit): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(
+            $user && ($user->can('workplan.edit') || $user->can('workplan.approve')),
+            403
+        );
+
+        if ($roadmap->tasks()->exists()) {
+            return back()->with('error', "Cannot delete {$roadmap->month_label} because tasks are still linked to it.");
+        }
+
+        $label = $roadmap->month_label;
+        $roadmap->delete();
+
+        $audit->log('workplan.roadmap_deleted', "Deleted Annual Roadmap month {$label}.", $roadmap);
+
+        return back()->with('success', "Roadmap month {$label} deleted.");
     }
 
     public function monthly(Request $request): Response

@@ -60,7 +60,12 @@ export default function RisksAndDecisions({
     permissions,
     errors,
 }: RisksDecisionsProps) {
-    const [tab, setTab] = useState<'risks' | 'decisions'>('risks');
+    const initialTab =
+        typeof window !== 'undefined' &&
+        new URLSearchParams(window.location.search).get('tab') === 'decisions'
+            ? 'decisions'
+            : 'risks';
+    const [tab, setTab] = useState<'risks' | 'decisions'>(initialTab);
     const [showRiskModal, setShowRiskModal] = useState(false);
     const [showDecisionModal, setShowDecisionModal] = useState(false);
     const [reviewingRisk, setReviewingRisk] = useState<RiskRow | null>(null);
