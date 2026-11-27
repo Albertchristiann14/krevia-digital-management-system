@@ -111,7 +111,7 @@ class VirtualOfficeController extends Controller
                 'capacity' => 10,
                 'primary_action' => [
                     'label' => 'Open Meetings',
-                    'href' => $canViewMeetings ? '/meetings' : '/dashboard',
+                    'href' => $canViewMeetings ? '/governance/meetings' : '/dashboard',
                 ],
                 'secondary_action' => [
                     'label' => 'Monthly Workplan',
