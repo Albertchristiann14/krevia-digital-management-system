@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Governance\Models\Meeting;
 use App\Domain\Project\Models\Project;
 use App\Domain\VirtualOffice\Models\OfficePresence;
+use App\Domain\VirtualOffice\Models\OfficeSeat;
 use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Domain\VirtualOffice\Services\PresenceService;
 use App\Domain\Workplan\Models\Task;
@@ -146,6 +147,7 @@ class VirtualOfficeController extends Controller
 
         return Inertia::render('VirtualOffice/Index', [
             'rooms' => $rooms,
+            'seats' => $this->buildSeatsSnapshot($members),
             'members' => $members,
             'myPresence' => $presenceService->serializePresence($myPresence),
             'recentAnnouncements' => $recentAnnouncements,
@@ -210,11 +212,94 @@ class VirtualOfficeController extends Controller
     public function snapshot(PresenceService $presenceService): JsonResponse
     {
         $presenceService->sweepStalePresences();
+        $members = $this->buildMembersSnapshot($presenceService);
 
         return response()->json([
             'ok' => true,
-            'members' => $this->buildMembersSnapshot($presenceService),
+            'members' => $members,
+            'seats' => $this->buildSeatsSnapshot($members),
         ]);
+    }
+
+    public function move(Request $request, PresenceService $presenceService): JsonResponse
+    {
+        $data = $request->validate([
+            'zone_slug' => ['required', 'string', 'exists:office_zones,slug'],
+            'pos_x' => ['nullable', 'numeric', 'between:-12,12'],
+            'pos_z' => ['nullable', 'numeric', 'between:-9,9'],
+        ]);
+
+        $presence = $presenceService->move(
+            $request->user(),
+            $data['zone_slug'],
+            isset($data['pos_x']) ? (float) $data['pos_x'] : null,
+            isset($data['pos_z']) ? (float) $data['pos_z'] : null,
+        );
+
+        $members = $this->buildMembersSnapshot($presenceService);
+
+        return response()->json([
+            'ok' => true,
+            'myPresence' => $presenceService->serializePresence($presence),
+            'members' => $members,
+            'seats' => $this->buildSeatsSnapshot($members),
+        ]);
+    }
+
+    public function seat(Request $request, PresenceService $presenceService): JsonResponse
+    {
+        $data = $request->validate([
+            'seat_id' => ['nullable', 'integer', 'exists:office_seats,id'],
+        ]);
+
+        $presence = $presenceService->sitOrStand(
+            $request->user(),
+            isset($data['seat_id']) ? (int) $data['seat_id'] : null,
+        );
+
+        $members = $this->buildMembersSnapshot($presenceService);
+
+        return response()->json([
+            'ok' => true,
+            'myPresence' => $presenceService->serializePresence($presence),
+            'members' => $members,
+            'seats' => $this->buildSeatsSnapshot($members),
+        ]);
+    }
+
+    private function buildSeatsSnapshot(array $members): array
+    {
+        $occupantsBySeat = [];
+        foreach ($members as $m) {
+            if (! empty($m['seat_id']) && ($m['status_key'] ?? 'offline') !== 'offline') {
+                $occupantsBySeat[$m['seat_id']] = [
+                    'user_id' => $m['id'],
+                    'name' => $m['name'],
+                ];
+            }
+        }
+
+        return OfficeSeat::query()
+            ->with('zone:id,slug')
+            ->orderBy('zone_id')
+            ->orderBy('seat_key')
+            ->get()
+            ->map(fn (OfficeSeat $s) => [
+                'id' => $s->id,
+                'zone' => $s->zone?->slug ?? 'workspace',
+                'zone_id' => $s->zone_id,
+                'seat_key' => $s->seat_key,
+                'pos_x' => $s->pos_x,
+                'pos_y' => $s->pos_y,
+                'pos_z' => $s->pos_z,
+                'rotation' => $s->rotation,
+                'type' => $s->type,
+                'assigned_user_id' => $s->assigned_user_id,
+                'is_hot_desk' => $s->is_hot_desk,
+                'occupied_by' => $occupantsBySeat[$s->id] ?? null,
+            ])
+            ->values()
+            ->all();
     }
 
     /**

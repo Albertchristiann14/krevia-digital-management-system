@@ -2,14 +2,19 @@
 
 namespace App\Domain\VirtualOffice\Services;
 
+use App\Domain\VirtualOffice\Events\MemberMoved;
+use App\Domain\VirtualOffice\Events\MemberSeated;
 use App\Domain\VirtualOffice\Events\PresenceUpdated;
 use App\Domain\VirtualOffice\Models\OfficeEvent;
 use App\Domain\VirtualOffice\Models\OfficePresence;
 use App\Domain\VirtualOffice\Models\OfficePresenceLog;
+use App\Domain\VirtualOffice\Models\OfficeSeat;
 use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Models\User;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 class PresenceService
 {
@@ -201,7 +206,7 @@ class PresenceService
 
     public function serializePresence(OfficePresence $presence): array
     {
-        $presence->loadMissing(['user.employeeProfile.department', 'user.employeeProfile.position', 'zone']);
+        $presence->loadMissing(['user.employeeProfile.department', 'user.employeeProfile.position', 'zone', 'seat']);
         $user = $presence->user;
         $status = $presence->effectiveStatus();
 
@@ -215,6 +220,11 @@ class PresenceService
             'department' => $user->employeeProfile?->department?->name ?? 'Krevia Digital',
             'zone' => $presence->zone?->slug ?? 'reception',
             'zone_id' => $presence->zone_id,
+            'seat_id' => $presence->seat_id,
+            'seat_key' => $presence->seat?->seat_key,
+            'pos_x' => $presence->pos_x,
+            'pos_y' => $presence->pos_y ?? 0.0,
+            'pos_z' => $presence->pos_z,
             'status' => ucfirst($status),
             'status_key' => $status,
             'custom_status_text' => $presence->activeCustomStatusText(),
@@ -223,6 +233,159 @@ class PresenceService
             'last_seen_at' => $presence->last_seen_at?->toIso8601String(),
             'last_activity_at' => $presence->last_activity_at?->toIso8601String(),
         ];
+    }
+
+    public function move(User $user, string $zoneSlug, ?float $posX = null, ?float $posZ = null): OfficePresence
+    {
+        $zone = OfficeZone::where('slug', $zoneSlug)->where('is_active', true)->firstOrFail();
+
+        return DB::transaction(function () use ($user, $zone, $posX, $posZ) {
+            $now = now();
+            $presence = OfficePresence::where('user_id', $user->id)->lockForUpdate()->first()
+                ?? new OfficePresence(['user_id' => $user->id, 'status' => 'online']);
+
+            $previousZoneId = $presence->zone_id;
+            $previousSeatId = $presence->seat_id;
+
+            if ($previousZoneId !== $zone->id) {
+                $this->assertZoneCapacity($user, $zone);
+            }
+
+            $layout = $zone->layout_config ?? ['x' => 0, 'z' => 0];
+            $presence->zone_id = $zone->id;
+            $presence->seat_id = null;
+            $presence->pos_x = $posX ?? (float) ($layout['x'] ?? 0);
+            $presence->pos_y = 0;
+            $presence->pos_z = $posZ ?? (float) ($layout['z'] ?? 0);
+            $presence->last_seen_at = $now;
+            $presence->last_activity_at = $now;
+            if ($presence->status === 'offline' || $presence->status === 'away') {
+                $presence->status = 'online';
+            }
+            $presence->active_sessions_count = max(1, (int) $presence->active_sessions_count);
+            $presence->save();
+
+            if ($previousZoneId !== $zone->id) {
+                $this->recordLogTransition($user->id, $zone->id, $presence->effectiveStatus(), $now);
+                OfficeEvent::create([
+                    'type' => 'member.moved',
+                    'actor_id' => $user->id,
+                    'zone_id' => $zone->id,
+                    'payload' => ['zone_slug' => $zone->slug, 'zone_name' => $zone->name],
+                    'created_at' => $now,
+                ]);
+            }
+
+            try {
+                broadcast(new MemberMoved($this->serializePresence($presence)));
+                if ($previousSeatId !== null) {
+                    broadcast(new MemberSeated($this->serializePresence($presence), $previousSeatId));
+                }
+            } catch (\Throwable $e) {
+                Log::warning('[VirtualOffice] Move broadcast skipped: '.$e->getMessage());
+            }
+
+            return $presence;
+        });
+    }
+
+    public function sitOrStand(User $user, ?int $seatId): OfficePresence
+    {
+        return DB::transaction(function () use ($user, $seatId) {
+            $now = now();
+            $presence = OfficePresence::where('user_id', $user->id)->lockForUpdate()->first()
+                ?? new OfficePresence(['user_id' => $user->id, 'status' => 'online']);
+            $previousSeatId = $presence->seat_id;
+
+            if ($seatId === null) {
+                $presence->seat_id = null;
+                $presence->last_seen_at = $now;
+                $presence->last_activity_at = $now;
+                $presence->save();
+
+                try {
+                    broadcast(new MemberSeated($this->serializePresence($presence), $previousSeatId));
+                } catch (\Throwable $e) {
+                    Log::warning('[VirtualOffice] Stand broadcast skipped: '.$e->getMessage());
+                }
+
+                return $presence;
+            }
+
+            $seat = OfficeSeat::with('zone')->whereKey($seatId)->lockForUpdate()->firstOrFail();
+            $zone = $seat->zone;
+
+            if (! $zone || ! $zone->is_active) {
+                throw ValidationException::withMessages(['seat_id' => 'Zona kursi ini tidak aktif.']);
+            }
+
+            if ($seat->assigned_user_id !== null && $seat->assigned_user_id !== $user->id && ! $seat->is_hot_desk) {
+                throw ValidationException::withMessages([
+                    'seat_id' => 'Meja ini adalah meja tetap milik anggota lain.',
+                ]);
+            }
+
+            $staleCutoff = $now->copy()->subSeconds(OfficePresence::HEARTBEAT_TIMEOUT_SECONDS);
+            $occupied = OfficePresence::query()
+                ->where('seat_id', $seat->id)
+                ->where('user_id', '!=', $user->id)
+                ->where('status', '!=', 'offline')
+                ->where('last_seen_at', '>=', $staleCutoff)
+                ->lockForUpdate()
+                ->exists();
+
+            if ($occupied) {
+                throw ValidationException::withMessages([
+                    'seat_id' => 'Kursi ini sedang ditempati oleh anggota lain.',
+                ]);
+            }
+
+            if ($presence->zone_id !== $zone->id) {
+                $this->assertZoneCapacity($user, $zone);
+            }
+
+            $presence->zone_id = $zone->id;
+            $presence->seat_id = $seat->id;
+            $presence->pos_x = $seat->pos_x;
+            $presence->pos_y = $seat->pos_y;
+            $presence->pos_z = $seat->pos_z;
+            $presence->last_seen_at = $now;
+            $presence->last_activity_at = $now;
+            if ($presence->status === 'offline' || $presence->status === 'away') {
+                $presence->status = 'online';
+            }
+            $presence->active_sessions_count = max(1, (int) $presence->active_sessions_count);
+            $presence->save();
+
+            try {
+                broadcast(new MemberSeated($this->serializePresence($presence), $previousSeatId));
+            } catch (\Throwable $e) {
+                Log::warning('[VirtualOffice] Seat broadcast skipped: '.$e->getMessage());
+            }
+
+            return $presence;
+        });
+    }
+
+    private function assertZoneCapacity(User $user, OfficeZone $zone): void
+    {
+        if ($user->hasAnyRole([User::ROLE_FOUNDER, User::ROLE_OPERATIONS]) || $user->can('organization.manage')) {
+            return;
+        }
+
+        $staleCutoff = now()->subSeconds(OfficePresence::HEARTBEAT_TIMEOUT_SECONDS);
+        $occupants = OfficePresence::query()
+            ->where('zone_id', $zone->id)
+            ->where('user_id', '!=', $user->id)
+            ->where('status', '!=', 'offline')
+            ->where('last_seen_at', '>=', $staleCutoff)
+            ->count();
+
+        if ($occupants >= $zone->capacity) {
+            throw ValidationException::withMessages([
+                'zone_slug' => "Zona {$zone->name} sudah penuh ({$occupants}/{$zone->capacity}).",
+            ]);
+        }
     }
 
     private function recordLogTransition(int $userId, ?int $zoneId, string $status, Carbon $now): void

@@ -3,6 +3,7 @@ import type {
     CameraCommand,
     VirtualMemberData,
     VirtualRoomData,
+    VirtualSeatData,
 } from '@/Components/virtual-office/OfficeScene3D';
 import { AppShell } from '@/Layouts/AppShell';
 import { createReverbEcho, type ReverbClientConfig } from '@/lib/echo';
@@ -35,6 +36,7 @@ const OfficeScene3D = lazy(() => import('@/Components/virtual-office/OfficeScene
 
 interface VirtualOfficeProps extends PageProps {
     rooms: VirtualRoomData[];
+    seats: VirtualSeatData[];
     members: VirtualMemberData[];
     myPresence: VirtualMemberData;
     reverbConfig: ReverbClientConfig;
@@ -73,6 +75,7 @@ function readXsrfToken(): string {
 
 export default function VirtualOfficeIndex({
     rooms,
+    seats: initialSeats,
     members: initialMembers,
     myPresence: initialMyPresence,
     reverbConfig,
@@ -81,8 +84,11 @@ export default function VirtualOfficeIndex({
     const resolvedTheme = useResolvedTheme();
     const stageRef = useRef<HTMLDivElement | null>(null);
     const lastActivityRef = useRef<number>(Date.now());
+    const moveDebounceRef = useRef<number | null>(null);
     const [members, setMembers] = useState<VirtualMemberData[]>(initialMembers);
+    const [seats, setSeats] = useState<VirtualSeatData[]>(initialSeats ?? []);
     const [myPresence, setMyPresence] = useState<VirtualMemberData>(initialMyPresence);
+    const [toastMsg, setToastMsg] = useState<{ text: string; tone: 'info' | 'error' } | null>(null);
     const [wsState, setWsState] = useState<'connected' | 'reconnecting' | 'standby'>(
         reverbConfig.enabled ? 'reconnecting' : 'standby',
     );
@@ -144,6 +150,7 @@ export default function VirtualOfficeIndex({
                 if (res.ok) {
                     const data = await res.json();
                     if (Array.isArray(data.members)) setMembers(data.members);
+                    if (Array.isArray(data.seats)) setSeats(data.seats);
                 }
             } catch {
                 // ignore transient network errors
@@ -158,22 +165,30 @@ export default function VirtualOfficeIndex({
         connector.pusher?.connection?.bind('unavailable', () => setWsState('reconnecting'));
         connector.pusher?.connection?.bind('disconnected', () => setWsState('reconnecting'));
 
-        echo.join('office.presence').listen(
-            '.presence.updated',
-            (payload: { presence?: VirtualMemberData }) => {
-                const updated = payload.presence;
-                if (!updated) return;
-                setMembers((prev) => {
-                    const exists = prev.some((m) => m.id === updated.id);
-                    return exists
-                        ? prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
-                        : [...prev, updated];
-                });
-                if (updated.id === myPresence.id) {
-                    setMyPresence((prev) => ({ ...prev, ...updated }));
-                }
-            },
-        );
+        const applyIncomingPresence = (updated?: VirtualMemberData) => {
+            if (!updated) return;
+            setMembers((prev) => {
+                const exists = prev.some((m) => m.id === updated.id);
+                return exists
+                    ? prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+                    : [...prev, updated];
+            });
+            if (updated.id === myPresence.id) {
+                setMyPresence((prev) => ({ ...prev, ...updated }));
+            }
+        };
+
+        echo.join('office.presence')
+            .listen('.presence.updated', (payload: { presence?: VirtualMemberData }) =>
+                applyIncomingPresence(payload.presence),
+            )
+            .listen('.member.moved', (payload: { presence?: VirtualMemberData }) =>
+                applyIncomingPresence(payload.presence),
+            )
+            .listen('.member.seated', (payload: { presence?: VirtualMemberData }) => {
+                applyIncomingPresence(payload.presence);
+                resyncSnapshot();
+            });
 
         return () => {
             echo.leave('office.presence');
@@ -266,6 +281,160 @@ export default function VirtualOfficeIndex({
         () => members.filter((m) => (m.status_key ?? m.status.toLowerCase()) !== 'offline'),
         [members],
     );
+
+    const showToast = useCallback((text: string, tone: 'info' | 'error' = 'info') => {
+        setToastMsg({ text, tone });
+        window.setTimeout(() => {
+            setToastMsg((curr) => (curr?.text === text ? null : curr));
+        }, 3500);
+    }, []);
+
+    const moveToPosition = useCallback(
+        async (zoneSlug: string, posX?: number, posZ?: number) => {
+            const prevMembers = members;
+            const prevMine = myPresence;
+
+            // Optimistic local update
+            setMyPresence((p) => ({
+                ...p,
+                zone: zoneSlug,
+                seat_id: null,
+                pos_x: posX ?? p.pos_x,
+                pos_z: posZ ?? p.pos_z,
+            }));
+            setMembers((prev) =>
+                prev.map((m) =>
+                    m.id === myPresence.id
+                        ? { ...m, zone: zoneSlug, seat_id: null, pos_x: posX ?? m.pos_x, pos_z: posZ ?? m.pos_z }
+                        : m,
+                ),
+            );
+
+            try {
+                const res = await fetch('/virtual-office/presence/move', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': readXsrfToken(),
+                    },
+                    body: JSON.stringify({ zone_slug: zoneSlug, pos_x: posX, pos_z: posZ }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (data.myPresence) setMyPresence(data.myPresence);
+                    if (Array.isArray(data.members)) setMembers(data.members);
+                    if (Array.isArray(data.seats)) setSeats(data.seats);
+                } else {
+                    setMembers(prevMembers);
+                    setMyPresence(prevMine);
+                    const msg =
+                        data?.errors?.zone_slug?.[0] ?? data?.message ?? 'Tidak dapat berpindah ke zona ini.';
+                    showToast(msg, 'error');
+                }
+            } catch {
+                setMembers(prevMembers);
+                setMyPresence(prevMine);
+                showToast('Gagal menyinkronkan posisi.', 'error');
+            }
+        },
+        [members, myPresence, showToast],
+    );
+
+    const handleClickSeat = useCallback(
+        async (seat: VirtualSeatData) => {
+            const isStandingUp = myPresence.seat_id === seat.id;
+            const targetSeatId = isStandingUp ? null : seat.id;
+
+            try {
+                const res = await fetch('/virtual-office/presence/seat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': readXsrfToken(),
+                    },
+                    body: JSON.stringify({ seat_id: targetSeatId }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (data.myPresence) setMyPresence(data.myPresence);
+                    if (Array.isArray(data.members)) setMembers(data.members);
+                    if (Array.isArray(data.seats)) setSeats(data.seats);
+                    setSelectedRoomId(seat.zone);
+                    showToast(isStandingUp ? 'Anda berdiri dari kursi.' : `Duduk di ${seat.seat_key}.`, 'info');
+                } else {
+                    const msg =
+                        data?.errors?.seat_id?.[0] ??
+                        data?.errors?.zone_slug?.[0] ??
+                        data?.message ??
+                        'Kursi tidak tersedia.';
+                    showToast(msg, 'error');
+                }
+            } catch {
+                showToast('Gagal mengubah status duduk.', 'error');
+            }
+        },
+        [myPresence.seat_id, showToast],
+    );
+
+    const nearbyMembers = useMemo(() => {
+        const myX = myPresence.pos_x;
+        const myZ = myPresence.pos_z;
+        if (typeof myX !== 'number' || typeof myZ !== 'number') return [];
+        return onlineMembers.filter((m) => {
+            if (m.id === myPresence.id) return false;
+            if (typeof m.pos_x !== 'number' || typeof m.pos_z !== 'number') return false;
+            return Math.hypot(m.pos_x - myX, m.pos_z - myZ) <= 3.0;
+        });
+    }, [onlineMembers, myPresence]);
+
+    // WASD keyboard movement (debounced server persistence)
+    useEffect(() => {
+        const resolveZoneAt = (x: number, z: number): string => {
+            if (z < 0.2) return x > 3.5 ? 'meeting' : 'workspace';
+            if (x < -3.6) return 'reception';
+            if (x > 4.0) return 'project';
+            return 'lounge';
+        };
+
+        const onWasd = (e: KeyboardEvent) => {
+            const tag = (e.target as HTMLElement)?.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            const key = e.key.toLowerCase();
+            if (!['w', 'a', 's', 'd'].includes(key)) return;
+
+            const step = 0.75;
+            const curX = typeof myPresence.pos_x === 'number' ? myPresence.pos_x : -3.5;
+            const curZ = typeof myPresence.pos_z === 'number' ? myPresence.pos_z : -3.6;
+            let nextX = curX;
+            let nextZ = curZ;
+            if (key === 'w') nextZ = Math.max(-7.2, curZ - step);
+            if (key === 's') nextZ = Math.min(7.0, curZ + step);
+            if (key === 'a') nextX = Math.max(-10.5, curX - step);
+            if (key === 'd') nextX = Math.min(10.5, curX + step);
+            const nextZone = resolveZoneAt(nextX, nextZ);
+
+            setMyPresence((p) => ({ ...p, pos_x: nextX, pos_z: nextZ, zone: nextZone, seat_id: null }));
+            setMembers((prev) =>
+                prev.map((m) =>
+                    m.id === myPresence.id
+                        ? { ...m, pos_x: nextX, pos_z: nextZ, zone: nextZone, seat_id: null }
+                        : m,
+                ),
+            );
+
+            if (moveDebounceRef.current) window.clearTimeout(moveDebounceRef.current);
+            moveDebounceRef.current = window.setTimeout(() => {
+                moveToPosition(nextZone, Number(nextX.toFixed(2)), Number(nextZ.toFixed(2)));
+            }, 450);
+        };
+
+        window.addEventListener('keydown', onWasd);
+        return () => window.removeEventListener('keydown', onWasd);
+    }, [myPresence.id, myPresence.pos_x, myPresence.pos_z, moveToPosition]);
 
     const selectedRoom = useMemo(
         () => rooms.find((r) => r.id === selectedRoomId) ?? null,
@@ -578,12 +747,19 @@ export default function VirtualOfficeIndex({
                         <OfficeScene3D
                             theme={resolvedTheme}
                             rooms={rooms}
+                            seats={seats}
                             members={onlineMembers}
+                            myUserId={myPresence.id}
                             selectedRoomId={selectedRoomId}
                             panelOpen={!!selectedRoom}
                             showLabels={showLabels}
                             showMembers={showMembers}
                             onSelectRoom={focusRoom}
+                            onClickFloor={(roomId, x, z) => {
+                                setSelectedRoomId(roomId);
+                                moveToPosition(roomId, x, z);
+                            }}
+                            onClickSeat={handleClickSeat}
                             onSelectMember={focusMember}
                             onHoverMember={handleHoverMember}
                             cameraCommand={cameraCommand}
@@ -628,6 +804,34 @@ export default function VirtualOfficeIndex({
                         </div>
                     </div>
                 )}
+
+                {/* Toast & Proximity Banner */}
+                <div className="pointer-events-none absolute top-4 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
+                    {toastMsg && (
+                        <div
+                            className={`pointer-events-auto rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-lg backdrop-blur-md ${
+                                toastMsg.tone === 'error'
+                                    ? 'border-rose-300 bg-rose-50/95 text-rose-700 dark:border-rose-500/40 dark:bg-rose-950/90 dark:text-rose-200'
+                                    : 'border-blue-200 bg-white/95 text-slate-800 dark:border-white/15 dark:bg-[#101A30]/95 dark:text-[#F4F7FF]'
+                            }`}
+                        >
+                            {toastMsg.text}
+                        </div>
+                    )}
+                    {nearbyMembers.length > 0 && (
+                        <div className="krevia-glass-elevated pointer-events-auto inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold text-slate-700 dark:text-[#F4F7FF]">
+                            <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-500" />
+                            <span>
+                                Dekat dengan{' '}
+                                {nearbyMembers
+                                    .slice(0, 2)
+                                    .map((m) => m.name.split(' ')[0])
+                                    .join(', ')}
+                                {nearbyMembers.length > 2 ? ` +${nearbyMembers.length - 2}` : ''}
+                            </span>
+                        </div>
+                    )}
+                </div>
 
                 {/* Top-Left: Status Legend Pill */}
                 <div className="krevia-glass-elevated absolute top-4 left-4 z-20 hidden items-center gap-3 rounded-xl px-3 py-1.5 text-[10px] font-medium text-slate-600 md:flex dark:text-[#A7B4CB]">
@@ -929,6 +1133,41 @@ export default function VirtualOfficeIndex({
 
                         {/* Sticky Action Footer (Never Clipped) */}
                         <div className="shrink-0 space-y-2 border-t border-slate-200/80 bg-white/80 p-3.5 backdrop-blur-md dark:border-white/[0.1] dark:bg-[#0B1222]/85">
+                            <div className="flex gap-2">
+                                {myPresence.zone !== selectedRoom.id && (
+                                    <button
+                                        type="button"
+                                        onClick={() => moveToPosition(selectedRoom.id)}
+                                        className="flex-1 rounded-xl border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-[#668CFF]/40 dark:bg-[#668CFF]/15 dark:text-[#8DA8FF]"
+                                    >
+                                        Pergi ke Zona Ini
+                                    </button>
+                                )}
+                                {myPresence.seat_id && (
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            handleClickSeat({
+                                                id: myPresence.seat_id!,
+                                                zone: myPresence.zone,
+                                                zone_id: 0,
+                                                seat_key: myPresence.seat_key ?? '',
+                                                pos_x: 0,
+                                                pos_y: 0,
+                                                pos_z: 0,
+                                                rotation: 0,
+                                                type: 'desk',
+                                                assigned_user_id: null,
+                                                is_hot_desk: true,
+                                                occupied_by: null,
+                                            })
+                                        }
+                                        className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition hover:bg-amber-100 dark:border-amber-400/30 dark:bg-amber-500/15 dark:text-amber-300"
+                                    >
+                                        Berdiri
+                                    </button>
+                                )}
+                            </div>
                             <Link
                                 href={selectedRoom.primary_action.href}
                                 className="flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-105 dark:from-[#668CFF] dark:to-[#45D8E8] dark:text-[#070B16]"

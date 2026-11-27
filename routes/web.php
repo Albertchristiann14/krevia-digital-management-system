@@ -88,6 +88,12 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/disconnect', [VirtualOfficeController::class, 'disconnect'])
             ->middleware('throttle:30,1')
             ->name('disconnect');
+        Route::post('/move', [VirtualOfficeController::class, 'move'])
+            ->middleware('throttle:60,1')
+            ->name('move');
+        Route::post('/seat', [VirtualOfficeController::class, 'seat'])
+            ->middleware('throttle:30,1')
+            ->name('seat');
     });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 

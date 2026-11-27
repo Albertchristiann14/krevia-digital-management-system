@@ -16,6 +16,21 @@ export interface VirtualRoomData {
     metrics: Array<{ label: string; value: string | number; hint?: string }>;
 }
 
+export interface VirtualSeatData {
+    id: number;
+    zone: string;
+    zone_id: number;
+    seat_key: string;
+    pos_x: number;
+    pos_y: number;
+    pos_z: number;
+    rotation: number;
+    type: string;
+    assigned_user_id: number | null;
+    is_hot_desk: boolean;
+    occupied_by: { user_id: number; name: string } | null;
+}
+
 export interface VirtualMemberData {
     id: number;
     user_id?: number;
@@ -25,6 +40,11 @@ export interface VirtualMemberData {
     position: string;
     department: string;
     zone: string;
+    seat_id?: number | null;
+    seat_key?: string | null;
+    pos_x?: number | null;
+    pos_y?: number | null;
+    pos_z?: number | null;
     status: string;
     status_key?: string;
     custom_status_text?: string | null;
@@ -44,12 +64,16 @@ export type CameraCommand =
 interface OfficeScene3DProps {
     theme: ResolvedTheme;
     rooms: VirtualRoomData[];
+    seats: VirtualSeatData[];
     members: VirtualMemberData[];
+    myUserId: number;
     selectedRoomId: string | null;
     panelOpen: boolean;
     showLabels: boolean;
     showMembers: boolean;
     onSelectRoom: (roomId: string) => void;
+    onClickFloor?: (roomId: string, x: number, z: number) => void;
+    onClickSeat?: (seat: VirtualSeatData) => void;
     onSelectMember?: (member: VirtualMemberData) => void;
     onHoverMember?: (member: VirtualMemberData | null, pos: { x: number; y: number } | null) => void;
     cameraCommand: CameraCommand | null;
@@ -207,12 +231,16 @@ function easeInOutCubic(t: number): number {
 
 export default function OfficeScene3D({
     theme,
+    seats,
     members,
+    myUserId,
     selectedRoomId,
     panelOpen,
     showLabels,
     showMembers,
     onSelectRoom,
+    onClickFloor,
+    onClickSeat,
     onSelectMember,
     onHoverMember,
     cameraCommand,
@@ -223,12 +251,17 @@ export default function OfficeScene3D({
     const showLabelsRef = useRef(showLabels);
     const showMembersRef = useRef(showMembers);
     const panelOpenRef = useRef(panelOpen);
+    const membersRef = useRef<VirtualMemberData[]>(members);
+    const seatsRef = useRef<VirtualSeatData[]>(seats);
     const onSelectRoomRef = useRef(onSelectRoom);
+    const onClickFloorRef = useRef(onClickFloor);
+    const onClickSeatRef = useRef(onClickSeat);
     const onSelectMemberRef = useRef(onSelectMember);
     const onHoverMemberRef = useRef(onHoverMember);
     const controlsRef = useRef<OrbitControls | null>(null);
     const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
     const avatarPositionsRef = useRef<Record<number, THREE.Vector3>>({});
+    const syncDynamicRef = useRef<(() => void) | null>(null);
     const flyAnimRef = useRef<{
         startPos: THREE.Vector3;
         endPos: THREE.Vector3;
@@ -242,7 +275,11 @@ export default function OfficeScene3D({
     showLabelsRef.current = showLabels;
     showMembersRef.current = showMembers;
     panelOpenRef.current = panelOpen;
+    membersRef.current = members;
+    seatsRef.current = seats;
     onSelectRoomRef.current = onSelectRoom;
+    onClickFloorRef.current = onClickFloor;
+    onClickSeatRef.current = onClickSeat;
     onSelectMemberRef.current = onSelectMember;
     onHoverMemberRef.current = onHoverMember;
 
@@ -767,77 +804,160 @@ export default function OfficeScene3D({
             zoneVisuals[z.id] = { group: zoneGroup, floorMat, borderMat, labelSprite };
         });
 
-        // Stylized 3D Team Avatars with Billboard Labels & Status Pulse Rings
+        // Dynamic Seat Pads & Living 3D Team Avatars (smooth interpolation without scene rebuild)
+        const seatsRoot = new THREE.Group();
+        scene.add(seatsRoot);
+        const seatMeshes: Record<number, { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; data: VirtualSeatData }> = {};
+
         const avatarsRoot = new THREE.Group();
         scene.add(avatarsRoot);
-        avatarPositionsRef.current = {};
+        const avatarMap = new Map<
+            number,
+            {
+                member: VirtualMemberData;
+                group: THREE.Group;
+                ring: THREE.Mesh;
+                ringMat: THREE.MeshBasicMaterial;
+                label: THREE.Sprite;
+                targetPos: THREE.Vector3;
+                baseY: number;
+                phase: number;
+            }
+        >();
 
-        const zoneOffsets: Record<string, number> = {};
-        members.forEach((m, idx) => {
+        const computeMemberTarget = (m: VirtualMemberData, slot: number): THREE.Vector3 => {
+            if (typeof m.pos_x === 'number' && typeof m.pos_z === 'number') {
+                return new THREE.Vector3(m.pos_x, m.seat_id ? 0.02 : 0.08, m.pos_z);
+            }
             const layout = ZONE_LAYOUTS[m.zone] ?? ZONE_LAYOUTS.workspace;
-            const slot = zoneOffsets[m.zone] ?? 0;
-            zoneOffsets[m.zone] = slot + 1;
-
             const angle = slot * 1.65 + 0.4;
             const radius = 1.25 + (slot % 2) * 0.7;
-            const ax = layout.x + Math.cos(angle) * radius;
-            const az = layout.z + Math.sin(angle) * radius;
-
-            const statusColor = STATUS_COLORS[m.status] ?? 0x2563eb;
-            const statusHex = `#${statusColor.toString(16).padStart(6, '0')}`;
-            const colorNum = parseInt(m.avatar_color.replace('#', ''), 16) || 0x2563eb;
-
-            const avatarGroup = new THREE.Group();
-            avatarGroup.position.set(ax, 0.08, az);
-
-            const ring = new THREE.Mesh(
-                new THREE.RingGeometry(0.28, 0.38, 28),
-                new THREE.MeshBasicMaterial({
-                    color: statusColor,
-                    transparent: true,
-                    opacity: 0.85,
-                    side: THREE.DoubleSide,
-                }),
+            return new THREE.Vector3(
+                layout.x + Math.cos(angle) * radius,
+                0.08,
+                layout.z + Math.sin(angle) * radius,
             );
-            ring.rotation.x = -Math.PI / 2;
-            ring.position.y = 0.02;
+        };
 
-            const body = new THREE.Mesh(
-                new THREE.CapsuleGeometry(0.21, 0.4, 8, 14),
-                new THREE.MeshStandardMaterial({ color: colorNum, roughness: 0.32, metalness: 0.15 }),
-            );
-            body.position.y = 0.48;
-            body.castShadow = true;
+        const syncDynamicObjects = () => {
+            // Sync clickable seat indicators
+            seatsRef.current.forEach((s) => {
+                const isMine = s.occupied_by?.user_id === myUserId;
+                const isOccupied = !!s.occupied_by;
+                const color = isMine ? 0x2563eb : isOccupied ? 0xf59e0b : isDark ? 0x45d8e8 : 0x16a34a;
 
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.18, 16, 16),
-                new THREE.MeshStandardMaterial({ color: isDark ? 0xf4f7ff : 0xfef3c7, roughness: 0.38 }),
-            );
-            head.position.y = 0.98;
-            head.castShadow = true;
-
-            const label = createLabelSprite(m.name.split(' ')[0] ?? m.name, statusHex, isDark);
-            label.position.set(0, 1.55, 0);
-
-            avatarGroup.add(ring, body, head, label);
-            avatarGroup.traverse((child) => {
-                child.userData.roomId = layout.id;
-                child.userData.memberId = m.id;
+                if (!seatMeshes[s.id]) {
+                    const mat = new THREE.MeshBasicMaterial({
+                        color,
+                        transparent: true,
+                        opacity: isOccupied ? 0.65 : 0.45,
+                        side: THREE.DoubleSide,
+                    });
+                    const pad = new THREE.Mesh(new THREE.RingGeometry(0.24, 0.34, 24), mat);
+                    pad.rotation.x = -Math.PI / 2;
+                    pad.position.set(s.pos_x, 0.095, s.pos_z);
+                    pad.userData.seatId = s.id;
+                    pad.userData.roomId = s.zone;
+                    seatsRoot.add(pad);
+                    interactiveMeshes.push(pad);
+                    seatMeshes[s.id] = { mesh: pad, mat, data: s };
+                } else {
+                    seatMeshes[s.id].data = s;
+                    seatMeshes[s.id].mat.color.setHex(color);
+                    seatMeshes[s.id].mat.opacity = isOccupied ? 0.65 : 0.45;
+                }
             });
-            avatarsRoot.add(avatarGroup);
-            interactiveMeshes.push(avatarGroup);
-            avatarPositionsRef.current[m.id] = new THREE.Vector3(ax, 0.5, az);
-            avatarEntries.push({
-                member: m,
-                group: avatarGroup,
-                ring,
-                label,
-                baseY: 0.08,
-                phase: idx * 0.9,
-            });
-        });
 
-        // Raycasting for Room & Avatar hover/click
+            // Sync online avatars with smooth lerp target positions
+            const activeIds = new Set<number>();
+            const zoneOffsets: Record<string, number> = {};
+
+            membersRef.current.forEach((m, idx) => {
+                activeIds.add(m.id);
+                const slot = zoneOffsets[m.zone] ?? 0;
+                zoneOffsets[m.zone] = slot + 1;
+                const target = computeMemberTarget(m, slot);
+                const statusColor = STATUS_COLORS[m.status] ?? 0x2563eb;
+                const statusHex = `#${statusColor.toString(16).padStart(6, '0')}`;
+
+                const existing = avatarMap.get(m.id);
+                if (existing) {
+                    existing.member = m;
+                    existing.targetPos.copy(target);
+                    existing.baseY = m.seat_id ? 0.02 : 0.08;
+                    existing.ringMat.color.setHex(statusColor);
+                    existing.group.traverse((child) => {
+                        child.userData.roomId = m.zone;
+                    });
+                    avatarPositionsRef.current[m.id] = target.clone();
+                } else {
+                    const colorNum = parseInt(m.avatar_color.replace('#', ''), 16) || 0x2563eb;
+                    const avatarGroup = new THREE.Group();
+                    avatarGroup.position.copy(target);
+
+                    const ringMat = new THREE.MeshBasicMaterial({
+                        color: statusColor,
+                        transparent: true,
+                        opacity: 0.85,
+                        side: THREE.DoubleSide,
+                    });
+                    const ring = new THREE.Mesh(new THREE.RingGeometry(0.28, 0.38, 28), ringMat);
+                    ring.rotation.x = -Math.PI / 2;
+                    ring.position.y = 0.02;
+
+                    const body = new THREE.Mesh(
+                        new THREE.CapsuleGeometry(0.21, 0.4, 8, 14),
+                        new THREE.MeshStandardMaterial({ color: colorNum, roughness: 0.32, metalness: 0.15 }),
+                    );
+                    body.position.y = 0.48;
+                    body.castShadow = true;
+
+                    const head = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.18, 16, 16),
+                        new THREE.MeshStandardMaterial({ color: isDark ? 0xf4f7ff : 0xfef3c7, roughness: 0.38 }),
+                    );
+                    head.position.y = 0.98;
+                    head.castShadow = true;
+
+                    const label = createLabelSprite(m.name.split(' ')[0] ?? m.name, statusHex, isDark);
+                    label.position.set(0, 1.55, 0);
+
+                    avatarGroup.add(ring, body, head, label);
+                    avatarGroup.traverse((child) => {
+                        child.userData.roomId = m.zone;
+                        child.userData.memberId = m.id;
+                    });
+                    avatarsRoot.add(avatarGroup);
+                    interactiveMeshes.push(avatarGroup);
+                    avatarPositionsRef.current[m.id] = target.clone();
+
+                    avatarMap.set(m.id, {
+                        member: m,
+                        group: avatarGroup,
+                        ring,
+                        ringMat,
+                        label,
+                        targetPos: target,
+                        baseY: m.seat_id ? 0.02 : 0.08,
+                        phase: idx * 0.9,
+                    });
+                }
+            });
+
+            // Remove offline avatars cleanly
+            avatarMap.forEach((entry, id) => {
+                if (!activeIds.has(id)) {
+                    avatarsRoot.remove(entry.group);
+                    avatarMap.delete(id);
+                    delete avatarPositionsRef.current[id];
+                }
+            });
+        };
+
+        syncDynamicRef.current = syncDynamicObjects;
+        syncDynamicObjects();
+
+        // Raycasting for Room, Seat & Avatar hover/click
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let hoveredRoomId: string | null = null;
@@ -850,23 +970,26 @@ export default function OfficeScene3D({
             pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
             raycaster.setFromCamera(pointer, camera);
             const hits = raycaster.intersectObjects(interactiveMeshes, true);
-            const hit = hits[0]?.object;
+            const firstHit = hits[0];
+            const obj = firstHit?.object;
             return {
-                roomId: (hit?.userData?.roomId as string) ?? null,
-                memberId: (hit?.userData?.memberId as number) ?? null,
+                roomId: (obj?.userData?.roomId as string) ?? null,
+                memberId: (obj?.userData?.memberId as number) ?? null,
+                seatId: (obj?.userData?.seatId as number) ?? null,
+                point: firstHit?.point ?? null,
                 localX: clientX - rect.left,
                 localY: clientY - rect.top,
             };
         };
 
         const handlePointerMove = (e: PointerEvent) => {
-            const { roomId, memberId, localX, localY } = pickHit(e.clientX, e.clientY);
+            const { roomId, memberId, seatId, localX, localY } = pickHit(e.clientX, e.clientY);
             hoveredRoomId = roomId;
             hoveredMemberId = memberId;
-            renderer.domElement.style.cursor = roomId || memberId ? 'pointer' : 'grab';
+            renderer.domElement.style.cursor = roomId || memberId || seatId ? 'pointer' : 'grab';
 
             if (memberId && showMembersRef.current) {
-                const found = members.find((m) => m.id === memberId) ?? null;
+                const found = membersRef.current.find((m) => m.id === memberId) ?? null;
                 onHoverMemberRef.current?.(found, { x: localX, y: localY });
             } else {
                 onHoverMemberRef.current?.(null, null);
@@ -875,22 +998,30 @@ export default function OfficeScene3D({
 
         const handlePointerDown = (e: PointerEvent) => {
             pointerDownPos = { x: e.clientX, y: e.clientY };
-            flyAnimRef.current = null; // User drag takes over
+            flyAnimRef.current = null;
         };
 
         const handlePointerUp = (e: PointerEvent) => {
             const dist = Math.hypot(e.clientX - pointerDownPos.x, e.clientY - pointerDownPos.y);
             if (dist > 6) return;
-            const { roomId, memberId } = pickHit(e.clientX, e.clientY);
+            const { roomId, memberId, seatId, point } = pickHit(e.clientX, e.clientY);
+            if (seatId && seatMeshes[seatId]) {
+                onClickSeatRef.current?.(seatMeshes[seatId].data);
+                return;
+            }
             if (memberId && showMembersRef.current) {
-                const found = members.find((m) => m.id === memberId);
+                const found = membersRef.current.find((m) => m.id === memberId);
                 if (found) {
                     onSelectMemberRef.current?.(found);
                     return;
                 }
             }
             if (roomId) {
-                onSelectRoomRef.current(roomId);
+                if (point && onClickFloorRef.current) {
+                    onClickFloorRef.current(roomId, Number(point.x.toFixed(2)), Number(point.z.toFixed(2)));
+                } else {
+                    onSelectRoomRef.current(roomId);
+                }
             }
         };
 
@@ -952,14 +1083,17 @@ export default function OfficeScene3D({
                 }
             });
 
-            // Living avatars idle animation & visibility
+            // Living avatars smooth movement interpolation, idle animation & visibility
             avatarsRoot.visible = showMembersRef.current;
             if (showMembersRef.current) {
-                avatarEntries.forEach((entry) => {
+                avatarMap.forEach((entry) => {
                     entry.label.visible = showLabelsRef.current;
                     const isHovered = hoveredMemberId === entry.member.id;
-                    const bob = reducedMotion ? 0 : Math.sin(t * 2.2 + entry.phase) * 0.035;
+                    const bob = reducedMotion ? 0 : Math.sin(t * 2.2 + entry.phase) * 0.032;
                     const hoverLift = isHovered ? 0.16 : 0;
+                    const lerpSpeed = reducedMotion ? 1 : 0.14;
+                    entry.group.position.x += (entry.targetPos.x - entry.group.position.x) * lerpSpeed;
+                    entry.group.position.z += (entry.targetPos.z - entry.group.position.z) * lerpSpeed;
                     entry.group.position.y += (entry.baseY + bob + hoverLift - entry.group.position.y) * 0.18;
                     const pulse = reducedMotion ? 1 : 1 + Math.sin(t * 2.8 + entry.phase) * 0.08;
                     entry.ring.scale.set(pulse, pulse, 1);
@@ -980,6 +1114,7 @@ export default function OfficeScene3D({
         animate();
 
         return () => {
+            syncDynamicRef.current = null;
             cancelAnimationFrame(rafId);
             document.removeEventListener('visibilitychange', handleVisibility);
             resizeObserver.disconnect();
@@ -997,7 +1132,12 @@ export default function OfficeScene3D({
             });
             renderer.dispose();
         };
-    }, [theme, members, onWebGLError]);
+    }, [theme, myUserId, onWebGLError]);
+
+    // Sync member positions & seat availability without tearing down the 3D scene
+    useEffect(() => {
+        syncDynamicRef.current?.();
+    }, [members, seats]);
 
     // External camera commands with smooth easeInOutCubic fly-to
     useEffect(() => {
