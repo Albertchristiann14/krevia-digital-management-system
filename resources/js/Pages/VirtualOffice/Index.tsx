@@ -5,6 +5,7 @@ import type {
     VirtualRoomData,
 } from '@/Components/virtual-office/OfficeScene3D';
 import { AppShell } from '@/Layouts/AppShell';
+import { createReverbEcho, type ReverbClientConfig } from '@/lib/echo';
 import { useResolvedTheme } from '@/lib/theme';
 import type { PageProps } from '@/types';
 import { Head, Link } from '@inertiajs/react';
@@ -22,6 +23,8 @@ import {
     RotateCcw,
     Tag,
     Users,
+    Wifi,
+    WifiOff,
     X,
     ZoomIn,
     ZoomOut,
@@ -33,6 +36,8 @@ const OfficeScene3D = lazy(() => import('@/Components/virtual-office/OfficeScene
 interface VirtualOfficeProps extends PageProps {
     rooms: VirtualRoomData[];
     members: VirtualMemberData[];
+    myPresence: VirtualMemberData;
+    reverbConfig: ReverbClientConfig;
     recentAnnouncements: Array<{
         id: number;
         code: string;
@@ -46,18 +51,48 @@ const STATUS_DOT: Record<string, string> = {
     Online: 'bg-emerald-500',
     Available: 'bg-blue-500',
     Busy: 'bg-rose-500',
+    Dnd: 'bg-purple-500',
     Away: 'bg-amber-500',
     Offline: 'bg-slate-400',
 };
 
+const STATUS_OPTIONS = [
+    { key: 'online', label: 'Online', dot: 'bg-emerald-500' },
+    { key: 'available', label: 'Available', dot: 'bg-blue-500' },
+    { key: 'busy', label: 'Busy', dot: 'bg-rose-500' },
+    { key: 'dnd', label: 'Do Not Disturb', dot: 'bg-purple-500' },
+    { key: 'away', label: 'Away', dot: 'bg-amber-500' },
+    { key: 'offline', label: 'Offline', dot: 'bg-slate-400' },
+] as const;
+
+function readXsrfToken(): string {
+    if (typeof document === 'undefined') return '';
+    const match = document.cookie.split('; ').find((row) => row.startsWith('XSRF-TOKEN='));
+    return match ? decodeURIComponent(match.split('=')[1]) : '';
+}
+
 export default function VirtualOfficeIndex({
     rooms,
-    members,
+    members: initialMembers,
+    myPresence: initialMyPresence,
+    reverbConfig,
     recentAnnouncements,
 }: VirtualOfficeProps) {
     const resolvedTheme = useResolvedTheme();
     const stageRef = useRef<HTMLDivElement | null>(null);
-    const [selectedRoomId, setSelectedRoomId] = useState<string | null>('workspace');
+    const lastActivityRef = useRef<number>(Date.now());
+    const [members, setMembers] = useState<VirtualMemberData[]>(initialMembers);
+    const [myPresence, setMyPresence] = useState<VirtualMemberData>(initialMyPresence);
+    const [wsState, setWsState] = useState<'connected' | 'reconnecting' | 'standby'>(
+        reverbConfig.enabled ? 'reconnecting' : 'standby',
+    );
+    const [showStatusMenu, setShowStatusMenu] = useState(false);
+    const [customText, setCustomText] = useState(initialMyPresence?.custom_status_text ?? '');
+    const [customEmoji, setCustomEmoji] = useState(initialMyPresence?.custom_status_emoji ?? '💻');
+    const [savingStatus, setSavingStatus] = useState(false);
+    const [selectedRoomId, setSelectedRoomId] = useState<string | null>(
+        initialMyPresence?.zone || 'workspace',
+    );
     const [focusedMemberId, setFocusedMemberId] = useState<number | null>(null);
     const [hoveredMember, setHoveredMember] = useState<{
         member: VirtualMemberData;
@@ -70,23 +105,185 @@ export default function VirtualOfficeIndex({
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [webglFailed, setWebglFailed] = useState(false);
 
+    // Track actual user interaction for 5-minute auto-away
+    useEffect(() => {
+        const markActive = () => {
+            lastActivityRef.current = Date.now();
+        };
+        window.addEventListener('mousemove', markActive, { passive: true });
+        window.addEventListener('keydown', markActive, { passive: true });
+        window.addEventListener('pointerdown', markActive, { passive: true });
+        return () => {
+            window.removeEventListener('mousemove', markActive);
+            window.removeEventListener('keydown', markActive);
+            window.removeEventListener('pointerdown', markActive);
+        };
+    }, []);
+
+    // Live Reverb WebSocket subscription + reconnect resync
+    useEffect(() => {
+        const echo = createReverbEcho(reverbConfig);
+        if (!echo) {
+            setWsState('standby');
+            return;
+        }
+
+        const connector = (echo.connector as unknown as {
+            pusher?: {
+                connection?: {
+                    bind: (event: string, cb: () => void) => void;
+                };
+            };
+        });
+
+        const resyncSnapshot = async () => {
+            try {
+                const res = await fetch('/virtual-office/presence/snapshot', {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (Array.isArray(data.members)) setMembers(data.members);
+                }
+            } catch {
+                // ignore transient network errors
+            }
+        };
+
+        connector.pusher?.connection?.bind('connected', () => {
+            setWsState('connected');
+            resyncSnapshot();
+        });
+        connector.pusher?.connection?.bind('connecting', () => setWsState('reconnecting'));
+        connector.pusher?.connection?.bind('unavailable', () => setWsState('reconnecting'));
+        connector.pusher?.connection?.bind('disconnected', () => setWsState('reconnecting'));
+
+        echo.join('office.presence').listen(
+            '.presence.updated',
+            (payload: { presence?: VirtualMemberData }) => {
+                const updated = payload.presence;
+                if (!updated) return;
+                setMembers((prev) => {
+                    const exists = prev.some((m) => m.id === updated.id);
+                    return exists
+                        ? prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+                        : [...prev, updated];
+                });
+                if (updated.id === myPresence.id) {
+                    setMyPresence((prev) => ({ ...prev, ...updated }));
+                }
+            },
+        );
+
+        return () => {
+            echo.leave('office.presence');
+            echo.disconnect();
+        };
+    }, [reverbConfig, myPresence.id]);
+
+    // 30-second actual heartbeat + clean disconnect on page unload
+    useEffect(() => {
+        const sendHeartbeat = async () => {
+            const hasActivity = Date.now() - lastActivityRef.current < 300_000;
+            try {
+                const res = await fetch('/virtual-office/presence/heartbeat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': readXsrfToken(),
+                    },
+                    body: JSON.stringify({ has_activity: hasActivity }),
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.myPresence) setMyPresence(data.myPresence);
+                    if (Array.isArray(data.members)) setMembers(data.members);
+                }
+            } catch {
+                // handled on next heartbeat or reconnect
+            }
+        };
+
+        const timer = window.setInterval(sendHeartbeat, 30_000);
+
+        const handleUnload = () => {
+            fetch('/virtual-office/presence/disconnect', {
+                method: 'POST',
+                keepalive: true,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': readXsrfToken(),
+                },
+                body: '{}',
+            }).catch(() => {});
+        };
+        window.addEventListener('pagehide', handleUnload);
+
+        return () => {
+            window.clearInterval(timer);
+            window.removeEventListener('pagehide', handleUnload);
+        };
+    }, []);
+
+    const updateMyStatus = async (payload: {
+        status?: string;
+        custom_status_text?: string | null;
+        custom_status_emoji?: string | null;
+        expires_in?: string;
+        zone_slug?: string;
+    }) => {
+        setSavingStatus(true);
+        const prevPresence = myPresence;
+        try {
+            const res = await fetch('/virtual-office/presence', {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': readXsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.myPresence) setMyPresence(data.myPresence);
+                if (Array.isArray(data.members)) setMembers(data.members);
+            } else {
+                setMyPresence(prevPresence);
+            }
+        } catch {
+            setMyPresence(prevPresence);
+        } finally {
+            setSavingStatus(false);
+        }
+    };
+
+    const onlineMembers = useMemo(
+        () => members.filter((m) => (m.status_key ?? m.status.toLowerCase()) !== 'offline'),
+        [members],
+    );
+
     const selectedRoom = useMemo(
         () => rooms.find((r) => r.id === selectedRoomId) ?? null,
         [rooms, selectedRoomId],
     );
 
     const roomMembers = useMemo(
-        () => members.filter((m) => m.zone === selectedRoomId),
-        [members, selectedRoomId],
+        () => onlineMembers.filter((m) => m.zone === selectedRoomId),
+        [onlineMembers, selectedRoomId],
     );
 
     const memberCountsByRoom = useMemo(() => {
         const counts: Record<string, number> = {};
-        members.forEach((m) => {
+        onlineMembers.forEach((m) => {
             counts[m.zone] = (counts[m.zone] ?? 0) + 1;
         });
         return counts;
-    }, [members]);
+    }, [onlineMembers]);
 
     const focusRoom = useCallback((roomId: string) => {
         setSelectedRoomId(roomId);
@@ -156,15 +353,107 @@ export default function VirtualOfficeIndex({
             title="Virtual Office"
             subtitle="Interactive 3D Krevia Digital Headquarters — Explore zones, live team presence, and KDMS modules"
             actions={
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex flex-wrap items-center gap-2">
                     <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:border-[#42C99A]/35 dark:bg-[#42C99A]/10 dark:text-[#42C99A]">
                         <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500 dark:bg-[#42C99A]" />
-                        {members.length} Active Members
+                        {onlineMembers.length} Online
                     </span>
-                    <span className="hidden items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-500 sm:inline-flex dark:border-white/[0.11] dark:bg-white/[0.04] dark:text-[#A7B4CB]">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Live · Updated just now
+
+                    <span className="hidden items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-slate-600 sm:inline-flex dark:border-white/[0.11] dark:bg-white/[0.04] dark:text-[#A7B4CB]">
+                        {wsState === 'connected' ? (
+                            <>
+                                <Wifi className="h-3 w-3 text-emerald-500" />
+                                Reverb Live
+                            </>
+                        ) : wsState === 'reconnecting' ? (
+                            <>
+                                <WifiOff className="h-3 w-3 text-amber-500" />
+                                Menyambung kembali...
+                            </>
+                        ) : (
+                            <>
+                                <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                                Heartbeat Sync
+                            </>
+                        )}
                     </span>
+
+                    <div className="relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowStatusMenu((v) => !v)}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 shadow-xs transition hover:border-blue-300 dark:border-white/[0.12] dark:bg-white/[0.055] dark:text-[#F4F7FF]"
+                        >
+                            <span
+                                className={`h-2 w-2 rounded-full ${STATUS_DOT[myPresence?.status ?? 'Online'] ?? 'bg-emerald-500'}`}
+                            />
+                            <span>{myPresence?.status ?? 'Online'}</span>
+                        </button>
+
+                        {showStatusMenu && (
+                            <div className="krevia-glass-elevated absolute right-0 z-40 mt-2 w-64 rounded-2xl p-3 text-left">
+                                <p className="mb-2 text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-[#71819C]">
+                                    Status Saya
+                                </p>
+                                <div className="grid grid-cols-2 gap-1">
+                                    {STATUS_OPTIONS.map((opt) => (
+                                        <button
+                                            key={opt.key}
+                                            type="button"
+                                            disabled={savingStatus}
+                                            onClick={() => {
+                                                updateMyStatus({ status: opt.key });
+                                                setShowStatusMenu(false);
+                                            }}
+                                            className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+                                                (myPresence?.status_key ?? 'online') === opt.key
+                                                    ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200 dark:bg-[#668CFF]/20 dark:text-[#F4F7FF]'
+                                                    : 'text-slate-700 hover:bg-slate-100 dark:text-[#A7B4CB] dark:hover:bg-white/[0.08]'
+                                            }`}
+                                        >
+                                            <span className={`h-2 w-2 rounded-full ${opt.dot}`} />
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-3 space-y-2 border-t border-slate-200/80 pt-2.5 dark:border-white/[0.09]">
+                                    <div className="flex gap-1.5">
+                                        <input
+                                            type="text"
+                                            maxLength={4}
+                                            value={customEmoji}
+                                            onChange={(e) => setCustomEmoji(e.target.value)}
+                                            className="w-10 rounded-lg border border-slate-200 px-1.5 py-1 text-center text-xs"
+                                        />
+                                        <input
+                                            type="text"
+                                            maxLength={80}
+                                            value={customText}
+                                            onChange={(e) => setCustomText(e.target.value)}
+                                            placeholder="Fokus coding sampai 15.00..."
+                                            className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        disabled={savingStatus}
+                                        onClick={() => {
+                                            updateMyStatus({
+                                                custom_status_text: customText,
+                                                custom_status_emoji: customEmoji,
+                                                expires_in: 'today',
+                                            });
+                                            setShowStatusMenu(false);
+                                        }}
+                                        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-2.5 py-1.5 text-[11px] font-semibold text-white"
+                                    >
+                                        Simpan Custom Status
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     <Link
                         href="/dashboard"
                         className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:-translate-y-0.5 hover:border-blue-300 hover:text-slate-900 dark:border-white/[0.12] dark:bg-white/[0.055] dark:text-[#F4F7FF] dark:hover:bg-white/[0.1]"
@@ -289,7 +578,7 @@ export default function VirtualOfficeIndex({
                         <OfficeScene3D
                             theme={resolvedTheme}
                             rooms={rooms}
-                            members={members}
+                            members={onlineMembers}
                             selectedRoomId={selectedRoomId}
                             panelOpen={!!selectedRoom}
                             showLabels={showLabels}

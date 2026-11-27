@@ -75,6 +75,20 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/virtual-office', [VirtualOfficeController::class, 'index'])->name('virtual-office.index');
+    Route::prefix('virtual-office/presence')->name('virtual-office.presence.')->group(function () {
+        Route::get('/snapshot', [VirtualOfficeController::class, 'snapshot'])
+            ->middleware('throttle:60,1')
+            ->name('snapshot');
+        Route::post('/heartbeat', [VirtualOfficeController::class, 'heartbeat'])
+            ->middleware('throttle:60,1')
+            ->name('heartbeat');
+        Route::patch('/', [VirtualOfficeController::class, 'updatePresence'])
+            ->middleware('throttle:30,1')
+            ->name('update');
+        Route::post('/disconnect', [VirtualOfficeController::class, 'disconnect'])
+            ->middleware('throttle:30,1')
+            ->name('disconnect');
+    });
     Route::get('/search', GlobalSearchController::class)->name('search.global');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');

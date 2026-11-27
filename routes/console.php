@@ -14,3 +14,7 @@ Schedule::command('kdms:check-content-deadlines')->dailyAt('08:00')->timezone('A
 Schedule::command('kdms:check-overdue-invoices')->dailyAt('08:30')->timezone('Asia/Jakarta');
 Schedule::command('kdms:check-meeting-slas')->dailyAt('09:00')->timezone('Asia/Jakarta');
 Schedule::command('kdms:backup-database')->dailyAt('23:30')->timezone('Asia/Jakarta');
+Schedule::call(fn () => app(\App\Domain\VirtualOffice\Services\PresenceService::class)->sweepStalePresences())
+    ->everyMinute()
+    ->name('kdms:sweep-virtual-office-presence')
+    ->withoutOverlapping();

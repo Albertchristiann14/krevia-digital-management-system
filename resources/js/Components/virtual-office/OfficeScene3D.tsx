@@ -18,6 +18,7 @@ export interface VirtualRoomData {
 
 export interface VirtualMemberData {
     id: number;
+    user_id?: number;
     name: string;
     avatar_url: string | null;
     avatar_color: string;
@@ -25,6 +26,10 @@ export interface VirtualMemberData {
     department: string;
     zone: string;
     status: string;
+    status_key?: string;
+    custom_status_text?: string | null;
+    custom_status_emoji?: string | null;
+    last_seen_at?: string | null;
 }
 
 export type CameraCommand =
@@ -137,6 +142,7 @@ const STATUS_COLORS: Record<string, number> = {
     Online: 0x16a34a,
     Available: 0x2563eb,
     Busy: 0xdc2626,
+    Dnd: 0x9333ea,
     Away: 0xf59e0b,
     Offline: 0x94a3b8,
 };
