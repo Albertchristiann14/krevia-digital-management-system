@@ -105,7 +105,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-D8bmIsip.css",
+    "file": "assets/app-ZNZh5tPI.css",
     "name": "app",
     "names": [
       "app.css"
@@ -114,7 +114,7 @@
     "isEntry": true
   },
   "resources/js/Components/virtual-office/OfficeScene3D.tsx": {
-    "file": "assets/OfficeScene3D-CX9SmtFO.js",
+    "file": "assets/OfficeScene3D-Etms1XD2.js",
     "name": "OfficeScene3D",
     "src": "resources/js/Components/virtual-office/OfficeScene3D.tsx",
     "isDynamicEntry": true,
@@ -595,7 +595,7 @@
     ]
   },
   "resources/js/Pages/VirtualOffice/Index.tsx": {
-    "file": "assets/Index-b2gzc3Xa.js",
+    "file": "assets/Index-CwFlHvnU.js",
     "name": "Index",
     "src": "resources/js/Pages/VirtualOffice/Index.tsx",
     "isDynamicEntry": true,
@@ -641,7 +641,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app--oO9A8ho.js",
+    "file": "assets/app-CtcDpebM.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -686,7 +686,7 @@
       "resources/js/Pages/Workplan/Roadmap.tsx"
     ],
     "css": [
-      "assets/app-D8bmIsip.css"
+      "assets/app-ZNZh5tPI.css"
     ]
   }
 }

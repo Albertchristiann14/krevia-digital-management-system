@@ -1006,7 +1006,7 @@ export default function VirtualOfficeIndex({
                                             });
                                             setShowStatusMenu(false);
                                         }}
-                                        className="w-full rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 px-2.5 py-1.5 text-[11px] font-semibold text-white"
+                                        className="w-full rounded-lg bg-blue-600 px-2.5 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-blue-700"
                                     >
                                         Simpan Custom Status
                                     </button>
@@ -1097,7 +1097,7 @@ export default function VirtualOfficeIndex({
             {/* Full-Width 3D Architectural Diorama Stage */}
             <div
                 ref={stageRef}
-                className="krevia-glass relative h-[calc(100vh-16.5rem)] min-h-[540px] w-full overflow-hidden rounded-3xl"
+                className="relative h-[calc(100vh-16.5rem)] min-h-[540px] w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-[#e9eef5] shadow-sm dark:border-white/[0.08] dark:bg-[#070b16]"
             >
                 {/* 3D Canvas or Interactive 2D Floorplan Fallback */}
                 {webglFailed ? (
@@ -1641,8 +1641,8 @@ export default function VirtualOfficeIndex({
                             <div>
                                 <div className="mb-1.5 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-[#A7B4CB]">
                                     <span className="inline-flex items-center gap-1.5">
-                                        <Users className="h-3.5 w-3.5 text-blue-600 dark:text-[#45D8E8]" />
-                                        Members in Zone
+                                        <Users className="h-3.5 w-3.5 text-slate-600 dark:text-[#A7B4CB]" />
+                                        Anggota di Zona
                                         {isAdminUser && (
                                             <button
                                                 type="button"
@@ -1697,7 +1697,7 @@ export default function VirtualOfficeIndex({
 
                                 {roomMembers.length === 0 ? (
                                     <p className="rounded-xl border border-slate-200/80 bg-slate-50/70 px-3 py-2 text-[11px] text-slate-500 dark:border-white/[0.08] dark:bg-white/[0.03] dark:text-[#71819C]">
-                                        No members currently stationed here.
+                                        Belum ada anggota di zona ini.
                                     </p>
                                 ) : (
                                     <div className="space-y-1.5">
@@ -1931,7 +1931,7 @@ export default function VirtualOfficeIndex({
                             </div>
                             <Link
                                 href={selectedRoom.primary_action.href}
-                                className="flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-105 dark:from-[#668CFF] dark:to-[#45D8E8] dark:text-[#070B16]"
+                                className="flex w-full items-center justify-between rounded-xl bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-blue-700"
                             >
                                 <span>{selectedRoom.primary_action.label}</span>
                                 <ArrowUpRight className="h-3.5 w-3.5" />

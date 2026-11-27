@@ -91,8 +91,8 @@ interface ZoneLayout {
     z: number;
     w: number;
     d: number;
-    lightFloor: number;
-    darkFloor: number;
+    lightFloor: string;
+    darkFloor: string;
     accentLight: number;
     accentDark: number;
     cameraOffset: [number, number, number];
@@ -106,9 +106,9 @@ const ZONE_LAYOUTS: Record<string, ZoneLayout> = {
         z: 4.5,
         w: 6.8,
         d: 5.2,
-        lightFloor: 0xe6f8f6,
-        darkFloor: 0x0e2330,
-        accentLight: 0x0d9488,
+        lightFloor: '#dfe7eb',
+        darkFloor: '#112230',
+        accentLight: 0x0f766e,
         accentDark: 0x45d8e8,
         cameraOffset: [13, 11.5, 13],
     },
@@ -119,8 +119,8 @@ const ZONE_LAYOUTS: Record<string, ZoneLayout> = {
         z: -3.6,
         w: 13.6,
         d: 7.4,
-        lightFloor: 0xeaf2ff,
-        darkFloor: 0x101d38,
+        lightFloor: '#e3e9f2',
+        darkFloor: '#121e36',
         accentLight: 0x2563eb,
         accentDark: 0x668cff,
         cameraOffset: [16, 13.5, 16],
@@ -132,9 +132,9 @@ const ZONE_LAYOUTS: Record<string, ZoneLayout> = {
         z: -3.6,
         w: 7.2,
         d: 7.4,
-        lightFloor: 0xf1ecff,
-        darkFloor: 0x1a1738,
-        accentLight: 0x7c3aed,
+        lightFloor: '#e6e2f3',
+        darkFloor: '#191735',
+        accentLight: 0x6d28d9,
         accentDark: 0xa17aff,
         cameraOffset: [13.5, 12, 13.5],
     },
@@ -145,9 +145,9 @@ const ZONE_LAYOUTS: Record<string, ZoneLayout> = {
         z: 4.5,
         w: 6.8,
         d: 5.2,
-        lightFloor: 0xe9f9ef,
-        darkFloor: 0x0e2624,
-        accentLight: 0x16a34a,
+        lightFloor: '#e2ebe5',
+        darkFloor: '#102624',
+        accentLight: 0x15803d,
         accentDark: 0x42c99a,
         cameraOffset: [13, 11.5, 13],
     },
@@ -158,9 +158,9 @@ const ZONE_LAYOUTS: Record<string, ZoneLayout> = {
         z: 4.5,
         w: 6.4,
         d: 5.2,
-        lightFloor: 0xfef5e7,
-        darkFloor: 0x261f18,
-        accentLight: 0xd97706,
+        lightFloor: '#ede5d8',
+        darkFloor: '#241e18',
+        accentLight: 0xb45309,
         accentDark: 0xf4b860,
         cameraOffset: [13, 11.5, 13],
     },
@@ -191,40 +191,261 @@ function createRoundedRectShape(w: number, d: number, r: number): THREE.Shape {
     return shape;
 }
 
+function createWoodTexture(isDark: boolean, track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = isDark ? '#5c4330' : '#c69c72';
+    ctx.fillRect(0, 0, 256, 256);
+
+    // Subtle oak grain & plank seams
+    for (let i = 0; i < 4; i++) {
+        const y = i * 64;
+        ctx.fillStyle = i % 2 === 0 ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.04)';
+        ctx.fillRect(0, y, 256, 64);
+        ctx.strokeStyle = isDark ? 'rgba(15,23,42,0.4)' : 'rgba(92,64,38,0.22)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(256, y);
+        ctx.stroke();
+    }
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(92,64,38,0.1)';
+    ctx.lineWidth = 1;
+    for (let g = 0; g < 40; g++) {
+        const gy = (g * 7) % 256;
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.bezierCurveTo(85, gy + 2, 170, gy - 2, 256, gy);
+        ctx.stroke();
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(2, 2);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
+function createCarpetTileTexture(baseHex: string, isDark: boolean, track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = baseHex;
+    ctx.fillRect(0, 0, 128, 128);
+
+    // Subtle architectural carpet tile grid
+    ctx.fillStyle = isDark ? 'rgba(255,255,255,0.025)' : 'rgba(15,23,42,0.025)';
+    ctx.fillRect(0, 0, 64, 64);
+    ctx.fillRect(64, 64, 64, 64);
+
+    ctx.strokeStyle = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(15,23,42,0.06)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(0.5, 0.5, 63, 63);
+    ctx.strokeRect(64.5, 64.5, 63, 63);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = THREE.RepeatWrapping;
+    tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(6, 5);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
+function createMonitorCodeTexture(accentHex: string, track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 144;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 256, 144);
+    // Sidebar
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, 46, 144);
+    // Top bar
+    ctx.fillStyle = accentHex;
+    ctx.fillRect(46, 0, 210, 14);
+    // Code/UI lines
+    const colors = ['#60a5fa', '#34d399', '#94a3b8', '#f59e0b', '#cbd5e1'];
+    for (let i = 0; i < 9; i++) {
+        ctx.fillStyle = colors[i % colors.length];
+        const w = 40 + ((i * 37) % 120);
+        ctx.fillRect(60 + (i % 3) * 14, 26 + i * 12, w, 5);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
+function createScreenTexture(isDark: boolean, track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = isDark ? '#0f172a' : '#1e293b';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Header
+    ctx.fillStyle = '#6d28d9';
+    ctx.fillRect(0, 0, 512, 42);
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 20px Inter, system-ui, sans-serif';
+    ctx.fillText('KREVIA · Weekly Sprint & Delivery', 20, 28);
+
+    // 3 KPI cards on screen
+    const cardColors = ['#2563eb', '#16a34a', '#d97706'];
+    for (let i = 0; i < 3; i++) {
+        const cx = 20 + i * 160;
+        ctx.fillStyle = '#0b1222';
+        ctx.beginPath();
+        ctx.roundRect(cx, 60, 146, 72, 8);
+        ctx.fill();
+        ctx.fillStyle = cardColors[i];
+        ctx.fillRect(cx + 12, 74, 48, 8);
+        ctx.fillStyle = '#f8fafc';
+        ctx.fillRect(cx + 12, 94, 80, 16);
+        ctx.fillStyle = '#64748b';
+        ctx.fillRect(cx + 12, 116, 110, 6);
+    }
+
+    // Bottom chart bar graph
+    ctx.fillStyle = '#0b1222';
+    ctx.beginPath();
+    ctx.roundRect(20, 146, 472, 92, 8);
+    ctx.fill();
+    for (let b = 0; b < 10; b++) {
+        const bh = 22 + ((b * 19) % 52);
+        ctx.fillStyle = b === 9 ? '#22c55e' : '#3b82f6';
+        ctx.fillRect(42 + b * 44, 224 - bh, 24, bh);
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
+function createKanbanBoardTexture(track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Header
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(0, 0, 512, 34);
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = 'bold 16px Inter, system-ui, sans-serif';
+    ctx.fillText('PROJECT KANBAN BOARD', 18, 22);
+
+    const cols = [
+        { title: 'TO DO', color: '#64748b', cards: ['#fde68a', '#bae6fd'] },
+        { title: 'IN PROGRESS', color: '#2563eb', cards: ['#93c5fd', '#fcd34d', '#c4b5fd'] },
+        { title: 'REVIEW', color: '#d97706', cards: ['#fed7aa'] },
+        { title: 'DONE', color: '#16a34a', cards: ['#bbf7d0', '#bbf7d0'] },
+    ];
+    cols.forEach((col, ci) => {
+        const x = 14 + ci * 123;
+        ctx.fillStyle = '#e2e8f0';
+        ctx.beginPath();
+        ctx.roundRect(x, 46, 114, 196, 6);
+        ctx.fill();
+
+        ctx.fillStyle = col.color;
+        ctx.fillRect(x + 8, 54, 98, 16);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10px Inter, system-ui, sans-serif';
+        ctx.fillText(col.title, x + 14, 66);
+
+        col.cards.forEach((cc, idx) => {
+            ctx.fillStyle = cc;
+            ctx.beginPath();
+            ctx.roundRect(x + 8, 80 + idx * 44, 98, 36, 4);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(15,23,42,0.55)';
+            ctx.fillRect(x + 14, 90 + idx * 44, 64, 5);
+            ctx.fillStyle = 'rgba(15,23,42,0.28)';
+            ctx.fillRect(x + 14, 100 + idx * 44, 42, 4);
+        });
+    });
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
+function createReceptionSignTexture(isDark: boolean, track: THREE.Texture[]): THREE.CanvasTexture {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 192;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = isDark ? '#0f172a' : '#1e293b';
+    ctx.fillRect(0, 0, 512, 192);
+    ctx.strokeStyle = '#14b8a6';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(10, 10, 492, 172);
+
+    ctx.fillStyle = '#14b8a6';
+    ctx.beginPath();
+    ctx.arc(82, 96, 26, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px Inter, system-ui, sans-serif';
+    ctx.fillText('KREVIA', 72, 106);
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.font = '700 38px Inter, system-ui, sans-serif';
+    ctx.fillText('KREVIA DIGITAL', 132, 92);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '500 18px Inter, system-ui, sans-serif';
+    ctx.fillText('VIRTUAL HEADQUARTERS', 134, 126);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    track.push(tex);
+    return tex;
+}
+
 function createLabelSprite(text: string, dotColorHex: string, isDark: boolean): THREE.Sprite {
     const canvas = document.createElement('canvas');
-    canvas.width = 320;
+    canvas.width = 340;
     canvas.height = 68;
     const ctx = canvas.getContext('2d')!;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    // Pill background
-    ctx.fillStyle = isDark ? 'rgba(11, 18, 34, 0.88)' : 'rgba(255, 255, 255, 0.94)';
-    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.16)' : 'rgba(15, 23, 42, 0.12)';
+    ctx.fillStyle = isDark ? 'rgba(11, 18, 34, 0.94)' : 'rgba(15, 23, 42, 0.88)';
+    ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.18)';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.roundRect(10, 10, 300, 48, 24);
+    ctx.roundRect(10, 10, 320, 48, 24);
     ctx.fill();
     ctx.stroke();
 
-    // Status dot
     ctx.fillStyle = dotColorHex;
     ctx.beginPath();
-    ctx.arc(36, 34, 7, 0, Math.PI * 2);
+    ctx.arc(38, 34, 7, 0, Math.PI * 2);
     ctx.fill();
 
-    // Text
-    ctx.fillStyle = isDark ? '#F4F7FF' : '#0F172A';
+    ctx.fillStyle = '#F8FAFC';
     ctx.font = '600 20px Inter, system-ui, sans-serif';
     ctx.textBaseline = 'middle';
-    const label = text.length > 18 ? `${text.slice(0, 17)}…` : text;
-    ctx.fillText(label, 54, 35);
+    const label = text.length > 19 ? `${text.slice(0, 18)}…` : text;
+    ctx.fillText(label, 58, 35);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthTest: false });
     const sprite = new THREE.Sprite(mat);
-    sprite.scale.set(2.5, 0.53, 1);
+    sprite.scale.set(2.55, 0.51, 1);
     sprite.renderOrder = 20;
     return sprite;
 }
@@ -327,19 +548,19 @@ export default function OfficeScene3D({
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        renderer.toneMappingExposure = isDark ? 1.15 : 1.08;
+        renderer.toneMappingExposure = isDark ? 1.12 : 0.96;
         renderer.outputColorSpace = THREE.SRGBColorSpace;
 
         container.innerHTML = '';
         container.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(isDark ? 0x070b16 : 0xf7f9fc, isDark ? 0.009 : 0.006);
+        scene.fog = new THREE.FogExp2(isDark ? 0x070b16 : 0xe9eef5, isDark ? 0.0085 : 0.005);
 
-        // Lightweight procedural environment for glossy PBR reflections
         const pmrem = new THREE.PMREMGenerator(renderer);
         const envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
         scene.environment = envTex;
+        scene.environmentIntensity = isDark ? 0.8 : 0.45;
 
         const camera = new THREE.PerspectiveCamera(27, width / height, 0.5, 160);
         const offsetX = panelOpenRef.current ? 2.2 : 0;
@@ -356,16 +577,16 @@ export default function OfficeScene3D({
         controls.target.set(offsetX, 0, 0);
         controlsRef.current = controls;
 
-        // Lighting
+        // Balanced architectural lighting (prevents white blowout, reveals wood & shadows)
         const hemiLight = new THREE.HemisphereLight(
-            isDark ? 0x7b9dff : 0xffffff,
-            isDark ? 0x070b16 : 0xdbe4f0,
-            isDark ? 0.85 : 1.15,
+            isDark ? 0x7b9dff : 0xf8fafc,
+            isDark ? 0x070b16 : 0x94a3b8,
+            isDark ? 0.8 : 0.72,
         );
         scene.add(hemiLight);
 
-        const dirLight = new THREE.DirectionalLight(isDark ? 0xe0ecff : 0xfffaf0, isDark ? 1.45 : 1.65);
-        dirLight.position.set(18, 28, 16);
+        const dirLight = new THREE.DirectionalLight(isDark ? 0xe0ecff : 0xfff8ed, isDark ? 1.4 : 1.35);
+        dirLight.position.set(17, 27, 15);
         dirLight.castShadow = true;
         dirLight.shadow.mapSize.set(2048, 2048);
         dirLight.shadow.camera.near = 4;
@@ -379,82 +600,109 @@ export default function OfficeScene3D({
         dirLight.shadow.normalBias = 0.02;
         scene.add(dirLight);
 
-        if (isDark) {
-            const cyanFill = new THREE.PointLight(0x45d8e8, 1.3, 24);
-            cyanFill.position.set(-8, 4.5, 4);
-            scene.add(cyanFill);
-            const violetFill = new THREE.PointLight(0xa17aff, 1.3, 24);
-            violetFill.position.set(8, 4.5, -4);
-            scene.add(violetFill);
-        } else {
-            const warmFill = new THREE.PointLight(0xfff4e0, 0.6, 26);
-            warmFill.position.set(-6, 6, 6);
-            scene.add(warmFill);
-        }
+        // Warm interior architectural accent lights
+        const meetingWarmLight = new THREE.PointLight(isDark ? 0xa17aff : 0xffe4b5, isDark ? 1.1 : 0.65, 14);
+        meetingWarmLight.position.set(7.2, 2.7, -3.6);
+        scene.add(meetingWarmLight);
 
-        // Shared PBR Materials
+        const loungeWarmLight = new THREE.PointLight(isDark ? 0x45d8e8 : 0xffe8c2, isDark ? 0.9 : 0.5, 14);
+        loungeWarmLight.position.set(0.4, 2.5, 4.5);
+        scene.add(loungeWarmLight);
+
+        // Procedural Textures
+        const disposableTextures: THREE.Texture[] = [];
+        const woodTex = createWoodTexture(isDark, disposableTextures);
+        const screenTex = createScreenTexture(isDark, disposableTextures);
+        const kanbanTex = createKanbanBoardTexture(disposableTextures);
+        const receptionSignTex = createReceptionSignTexture(isDark, disposableTextures);
+        const monitorTexBlue = createMonitorCodeTexture('#3b82f6', disposableTextures);
+        const monitorTexTeal = createMonitorCodeTexture('#0d9488', disposableTextures);
+
+        // Shared Architectural PBR Materials
         const baseSlabMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x0b1222 : 0xffffff,
-            roughness: isDark ? 0.55 : 0.28,
-            metalness: isDark ? 0.25 : 0.05,
+            color: isDark ? 0x0b1222 : 0xdbe3ee,
+            roughness: 0.7,
+            metalness: 0.1,
+        });
+        const plinthTrimMat = new THREE.MeshStandardMaterial({
+            color: isDark ? 0x16223a : 0x334155,
+            roughness: 0.45,
+            metalness: 0.35,
+        });
+        const wallMat = new THREE.MeshStandardMaterial({
+            color: isDark ? 0x131d33 : 0xf1f5f9,
+            roughness: 0.85,
+            metalness: 0.02,
+        });
+        const baseboardMat = new THREE.MeshStandardMaterial({
+            color: isDark ? 0x0b1222 : 0x1e293b,
+            roughness: 0.5,
+            metalness: 0.25,
         });
         const woodMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x243656 : 0xd8c3a5,
-            roughness: 0.48,
-            metalness: 0.08,
+            map: woodTex,
+            roughness: 0.55,
+            metalness: 0.05,
         });
         const deskTopMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x1b2b4a : 0xf8fafc,
-            roughness: 0.3,
-            metalness: 0.1,
+            color: isDark ? 0x1c2c4a : 0xf8fafc,
+            roughness: 0.4,
+            metalness: 0.06,
+        });
+        const deskMattePad = new THREE.MeshStandardMaterial({
+            color: isDark ? 0x0f172a : 0x334155,
+            roughness: 0.9,
         });
         const metalMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x1e2e4f : 0x94a3b8,
-            roughness: 0.28,
-            metalness: 0.78,
+            color: isDark ? 0x334155 : 0x475569,
+            roughness: 0.32,
+            metalness: 0.72,
         });
         const chairMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x2a3f66 : 0x334155,
-            roughness: 0.65,
-            metalness: 0.12,
+            color: isDark ? 0x1e293b : 0x1e293b,
+            roughness: 0.75,
+            metalness: 0.08,
         });
         const glassMat = new THREE.MeshPhysicalMaterial({
-            color: isDark ? 0x8bb8ff : 0xe0f2fe,
+            color: isDark ? 0x8bb8ff : 0xcce7f5,
             transparent: true,
-            opacity: isDark ? 0.22 : 0.34,
-            roughness: 0.1,
+            opacity: isDark ? 0.22 : 0.36,
+            roughness: 0.08,
             metalness: 0.05,
-            transmission: 0.25,
         });
         const sofaMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x223a5e : 0x64748b,
-            roughness: 0.82,
-            metalness: 0.05,
+            color: isDark ? 0x223a5e : 0x475569,
+            roughness: 0.88,
+            metalness: 0.02,
+        });
+        const cushionAccentMat = new THREE.MeshStandardMaterial({
+            color: isDark ? 0xd97706 : 0xe07a5f,
+            roughness: 0.85,
         });
         const plantPotMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x182742 : 0xe2e8f0,
-            roughness: 0.55,
-            metalness: 0.1,
+            color: isDark ? 0x1e293b : 0xcbd5e1,
+            roughness: 0.65,
+            metalness: 0.05,
         });
         const plantLeafMat = new THREE.MeshStandardMaterial({
-            color: isDark ? 0x2ca87f : 0x22c55e,
-            roughness: 0.65,
+            color: isDark ? 0x2ca87f : 0x16a34a,
+            roughness: 0.7,
             metalness: 0.02,
         });
         const aoMat = new THREE.MeshBasicMaterial({
             color: 0x0f172a,
             transparent: true,
-            opacity: isDark ? 0.28 : 0.08,
+            opacity: isDark ? 0.32 : 0.12,
         });
 
-        // Main Diorama Floor Slab + Subtle Grid
-        const slabShape = createRoundedRectShape(24.4, 17.4, 0.9);
+        // Main Architectural Floor Slab + Dark Perimeter Plinth + Subtle Studio Grid
+        const slabShape = createRoundedRectShape(24.6, 17.6, 0.75);
         const slabGeo = new THREE.ExtrudeGeometry(slabShape, {
-            depth: 0.42,
+            depth: 0.44,
             bevelEnabled: true,
-            bevelThickness: 0.06,
-            bevelSize: 0.06,
-            bevelSegments: 3,
+            bevelThickness: 0.05,
+            bevelSize: 0.05,
+            bevelSegments: 2,
         });
         slabGeo.rotateX(Math.PI / 2);
         const floorSlab = new THREE.Mesh(slabGeo, baseSlabMat);
@@ -463,13 +711,83 @@ export default function OfficeScene3D({
         scene.add(floorSlab);
 
         const gridHelper = new THREE.GridHelper(
-            36,
-            36,
-            isDark ? 0x1e3358 : 0xe2e8f0,
-            isDark ? 0x121e38 : 0xf1f5f9,
+            40,
+            40,
+            isDark ? 0x1e3358 : 0xcbd5e1,
+            isDark ? 0x121e38 : 0xdbe3ee,
         );
-        gridHelper.position.y = -0.46;
+        gridHelper.position.y = -0.48;
         scene.add(gridHelper);
+
+        // ============================================================
+        // ARCHITECTURAL CUTAWAY OFFICE SHELL (Back & Left Walls + Windows + Slats)
+        // ============================================================
+        const shellGroup = new THREE.Group();
+        const wallH = 2.95;
+
+        // Back perimeter wall (z = -7.65, x = -10.8 .. 11.2 -> width 22.0)
+        const backWall = new THREE.Mesh(new THREE.BoxGeometry(22.0, wallH, 0.24), wallMat);
+        backWall.position.set(0.2, wallH / 2 + 0.05, -7.65);
+        backWall.castShadow = true;
+        backWall.receiveShadow = true;
+        const backBase = new THREE.Mesh(new THREE.BoxGeometry(22.02, 0.16, 0.27), baseboardMat);
+        backBase.position.set(0.2, 0.13, -7.65);
+        shellGroup.add(backWall, backBase);
+
+        // Left perimeter wall (x = -10.75, z = -7.65 .. 7.4 -> depth 15.05)
+        const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.24, wallH, 15.1), wallMat);
+        leftWall.position.set(-10.75, wallH / 2 + 0.05, -0.1);
+        leftWall.castShadow = true;
+        leftWall.receiveShadow = true;
+        const leftBase = new THREE.Mesh(new THREE.BoxGeometry(0.27, 0.16, 15.12), baseboardMat);
+        leftBase.position.set(-10.75, 0.13, -0.1);
+        shellGroup.add(leftWall, leftBase);
+
+        // Architectural Windows along Back Wall (Main Workspace)
+        [-7.6, -4.6, -1.6].forEach((wx) => {
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.55, 0.3), plinthTrimMat);
+            frame.position.set(wx, 1.8, -7.65);
+            const pane = new THREE.Mesh(new THREE.BoxGeometry(2.04, 1.4, 0.32), glassMat);
+            pane.position.set(wx, 1.8, -7.65);
+            const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.4, 0.33), plinthTrimMat);
+            mullion.position.set(wx, 1.8, -7.65);
+            shellGroup.add(frame, pane, mullion);
+        });
+
+        // Architectural Windows along Left Wall
+        [-4.2, 4.2].forEach((wz) => {
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.55, 2.4), plinthTrimMat);
+            frame.position.set(-10.75, 1.8, wz);
+            const pane = new THREE.Mesh(new THREE.BoxGeometry(0.32, 1.4, 2.24), glassMat);
+            pane.position.set(-10.75, 1.8, wz);
+            shellGroup.add(frame, pane);
+        });
+
+        // Warm Oak Acoustic Wall Slat Panel behind Workspace-Right & Lounge Divider
+        for (let s = 0; s < 10; s++) {
+            const slat = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.6, 0.06), woodMat);
+            slat.position.set(1.2 + s * 0.18, 1.4, -7.5);
+            slat.castShadow = true;
+            shellGroup.add(slat);
+        }
+
+        // Low Architectural Partition between Reception & Lounge (x = -3.4, z = 4.5)
+        const recDividerBase = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.05, 4.4), woodMat);
+        recDividerBase.position.set(-3.4, 0.58, 4.5);
+        recDividerBase.castShadow = true;
+        const recDividerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, 4.2), glassMat);
+        recDividerGlass.position.set(-3.4, 1.5, 4.5);
+        shellGroup.add(recDividerBase, recDividerGlass);
+
+        // Half-height Glass Partition between Lounge & Project Room (x = 4.05, z = 4.5)
+        const projDividerBase = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.95, 4.4), baseboardMat);
+        projDividerBase.position.set(4.05, 0.53, 4.5);
+        projDividerBase.castShadow = true;
+        const projDividerGlass = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.95, 4.2), glassMat);
+        projDividerGlass.position.set(4.05, 1.48, 4.5);
+        shellGroup.add(projDividerBase, projDividerGlass);
+
+        scene.add(shellGroup);
 
         // Registries
         const interactiveMeshes: THREE.Object3D[] = [];
@@ -501,178 +819,265 @@ export default function OfficeScene3D({
         const addFakeAO = (parent: THREE.Object3D, x: number, z: number, w: number, d: number) => {
             const ao = new THREE.Mesh(new THREE.PlaneGeometry(w, d), aoMat);
             ao.rotation.x = -Math.PI / 2;
-            ao.position.set(x, 0.075, z);
+            ao.position.set(x, 0.078, z);
             parent.add(ao);
         };
 
         const addPlanter = (parent: THREE.Group, x: number, z: number, scale = 1) => {
             const g = new THREE.Group();
-            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.19, 0.44, 14), plantPotMat);
-            pot.position.y = 0.22;
+            const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.2, 0.48, 16), plantPotMat);
+            pot.position.y = 0.24;
             pot.castShadow = true;
-            g.add(pot);
-            const foliage1 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.32, 1), plantLeafMat);
-            foliage1.position.set(0, 0.62, 0);
-            foliage1.castShadow = true;
-            const foliage2 = new THREE.Mesh(new THREE.DodecahedronGeometry(0.22, 1), plantLeafMat);
-            foliage2.position.set(0.14, 0.78, 0.08);
-            foliage2.castShadow = true;
-            g.add(foliage1, foliage2);
+            const soil = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.25, 0.25, 0.04, 14),
+                new THREE.MeshStandardMaterial({ color: 0x3e2723, roughness: 0.95 }),
+            );
+            soil.position.y = 0.47;
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.035, 0.05, 0.45, 8),
+                new THREE.MeshStandardMaterial({ color: 0x5d4037, roughness: 0.9 }),
+            );
+            trunk.position.y = 0.65;
+            g.add(pot, soil, trunk);
+
+            [
+                [0, 0.92, 0, 0.26],
+                [0.16, 0.82, 0.1, 0.2],
+                [-0.14, 0.85, -0.08, 0.21],
+                [0.05, 1.06, -0.06, 0.18],
+            ].forEach(([lx, ly, lz, r]) => {
+                const leaf = new THREE.Mesh(new THREE.DodecahedronGeometry(r, 1), plantLeafMat);
+                leaf.position.set(lx, ly, lz);
+                leaf.castShadow = true;
+                g.add(leaf);
+            });
+
             g.position.set(x, 0.07, z);
             g.scale.setScalar(scale);
             parent.add(g);
         };
 
-        const addWorkstation = (parent: THREE.Group, x: number, z: number, rotY: number, screenHex: number) => {
+        const addErgonomicChair = (parent: THREE.Group, x: number, z: number, rotY = 0) => {
             const g = new THREE.Group();
-            addFakeAO(g, 0, 0.15, 1.9, 1.5);
+            // 5-star caster base
+            for (let a = 0; a < 5; a++) {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.03, 0.28), metalMat);
+                leg.rotation.y = (a * Math.PI * 2) / 5;
+                leg.position.set(Math.sin(leg.rotation.y) * 0.13, 0.05, Math.cos(leg.rotation.y) * 0.13);
+                g.add(leg);
+            }
+            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.035, 0.38, 10), metalMat);
+            stem.position.y = 0.24;
+            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.08, 0.48), chairMat);
+            seat.position.set(0, 0.45, 0);
+            seat.castShadow = true;
+            const back = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.06), chairMat);
+            back.position.set(0, 0.76, 0.21);
+            back.rotation.x = -0.08;
+            back.castShadow = true;
+            // Armrests
+            [-0.25, 0.25].forEach((ax) => {
+                const armPost = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.18, 0.04), metalMat);
+                armPost.position.set(ax, 0.54, 0.02);
+                const armPad = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.03, 0.26), chairMat);
+                armPad.position.set(ax, 0.63, 0.02);
+                g.add(armPost, armPad);
+            });
+            g.add(stem, seat, back);
+            g.position.set(x, 0, z);
+            g.rotation.y = rotY;
+            parent.add(g);
+        };
 
-            const top = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.07, 0.84), deskTopMat);
+        const addWorkstation = (
+            parent: THREE.Group,
+            x: number,
+            z: number,
+            rotY: number,
+            monTex: THREE.CanvasTexture,
+        ) => {
+            const g = new THREE.Group();
+            addFakeAO(g, 0, 0.15, 2.0, 1.6);
+
+            // Desk top + beveled front edge
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.06, 0.88), woodMat);
             top.position.y = 0.74;
             top.castShadow = true;
             top.receiveShadow = true;
             g.add(top);
 
-            const legGeo = new THREE.BoxGeometry(0.06, 0.72, 0.68);
-            const legL = new THREE.Mesh(legGeo, metalMat);
-            legL.position.set(-0.78, 0.36, 0);
-            const legR = new THREE.Mesh(legGeo, metalMat);
-            legR.position.set(0.78, 0.36, 0);
-            g.add(legL, legR);
+            // Sleek U-frame metal legs
+            [-0.82, 0.82].forEach((lx) => {
+                const leg = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.72, 0.72), metalMat);
+                leg.position.set(lx, 0.36, 0);
+                leg.castShadow = true;
+                g.add(leg);
+            });
 
-            // Dual monitors with stands
+            // Desk mat + keyboard + mouse + coffee mug
+            const matPad = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.012, 0.36), deskMattePad);
+            matPad.position.set(-0.04, 0.775, 0.12);
+            const kb = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.02, 0.14), metalMat);
+            kb.position.set(-0.1, 0.788, 0.11);
+            const mouse = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.1), metalMat);
+            mouse.position.set(0.22, 0.788, 0.12);
+            const mug = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.045, 0.04, 0.09, 12),
+                new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }),
+            );
+            mug.position.set(0.62, 0.815, 0.14);
+            g.add(matPad, kb, mouse, mug);
+
+            // Dual thin-bezel monitors with real UI/code screen texture
+            const bezelMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3, metalness: 0.4 });
             const screenMat = new THREE.MeshStandardMaterial({
-                color: isDark ? 0x0b162c : 0x1e293b,
-                emissive: screenHex,
-                emissiveIntensity: isDark ? 0.5 : 0.25,
+                map: monTex,
+                emissive: 0xffffff,
+                emissiveMap: monTex,
+                emissiveIntensity: isDark ? 0.55 : 0.3,
                 roughness: 0.2,
             });
-            [-0.31, 0.31].forEach((mx, idx) => {
-                const mon = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.33, 0.035), screenMat);
-                mon.position.set(mx, 1.0, -0.22);
-                mon.rotation.y = idx === 0 ? 0.1 : -0.1;
-                mon.castShadow = true;
-                const stand = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.14, 0.06), metalMat);
-                stand.position.set(mx, 0.82, -0.24);
-                g.add(mon, stand);
+            [-0.33, 0.33].forEach((mx, idx) => {
+                const bezel = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.36, 0.025), bezelMat);
+                bezel.position.set(mx, 1.02, -0.22);
+                bezel.rotation.y = idx === 0 ? 0.12 : -0.12;
+                bezel.castShadow = true;
+                const display = new THREE.Mesh(new THREE.PlaneGeometry(0.54, 0.32), screenMat);
+                display.position.set(0, 0, 0.014);
+                bezel.add(display);
+
+                const stand = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.04), metalMat);
+                stand.position.set(mx, 0.84, -0.25);
+                g.add(bezel, stand);
             });
 
-            // Keyboard + Desk lamp
-            const kb = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.02, 0.14), metalMat);
-            kb.position.set(0, 0.785, 0.08);
-            const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.03, 10), metalMat);
-            lampBase.position.set(0.68, 0.79, -0.2);
-            const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.35, 8), metalMat);
-            lampPole.position.set(0.68, 0.96, -0.2);
-            g.add(kb, lampBase, lampPole);
+            // Articulated desk lamp with warm glowing shade
+            const lampBase = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.03, 12), metalMat);
+            lampBase.position.set(-0.72, 0.785, -0.24);
+            const lampPole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.38, 8), metalMat);
+            lampPole.position.set(-0.72, 0.97, -0.24);
+            const lampShade = new THREE.Mesh(
+                new THREE.ConeGeometry(0.09, 0.1, 12),
+                new THREE.MeshStandardMaterial({ color: 0x1e293b, emissive: 0xfef3c7, emissiveIntensity: 0.35 }),
+            );
+            lampShade.position.set(-0.65, 1.14, -0.2);
+            lampShade.rotation.z = 0.45;
+            g.add(lampBase, lampPole, lampShade);
 
-            // Ergonomic chair
-            const seat = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.07, 0.48), chairMat);
-            seat.position.set(0, 0.46, 0.64);
-            seat.castShadow = true;
-            const back = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.54, 0.07), chairMat);
-            back.position.set(0, 0.75, 0.85);
-            back.castShadow = true;
-            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.4, 8), metalMat);
-            stem.position.set(0, 0.22, 0.64);
-            g.add(seat, back, stem);
+            addErgonomicChair(g, 0, 0.65, 0);
 
             g.position.set(x, 0.07, z);
             g.rotation.y = rotY;
             parent.add(g);
         };
 
-        // Build all 5 Rounded Zone Plates + Furniture
+        // Build all 5 Architectural Zone Plates + Realistic Furniture
         Object.values(ZONE_LAYOUTS).forEach((z) => {
             const zoneGroup = new THREE.Group();
             const accentColor = isDark ? z.accentDark : z.accentLight;
-            const floorColor = isDark ? z.darkFloor : z.lightFloor;
+            const floorHex = isDark ? z.darkFloor : z.lightFloor;
+            const floorTex = createCarpetTileTexture(floorHex, isDark, disposableTextures);
 
-            const plateShape = createRoundedRectShape(z.w, z.d, 0.45);
+            const plateShape = createRoundedRectShape(z.w, z.d, 0.35);
             const plateGeo = new THREE.ExtrudeGeometry(plateShape, {
-                depth: 0.07,
+                depth: 0.06,
                 bevelEnabled: true,
-                bevelThickness: 0.015,
-                bevelSize: 0.015,
+                bevelThickness: 0.01,
+                bevelSize: 0.01,
                 bevelSegments: 2,
             });
             plateGeo.rotateX(Math.PI / 2);
 
             const floorMat = new THREE.MeshStandardMaterial({
-                color: floorColor,
+                map: floorTex,
                 emissive: accentColor,
-                emissiveIntensity: isDark ? 0.05 : 0.01,
-                roughness: isDark ? 0.5 : 0.35,
-                metalness: isDark ? 0.2 : 0.04,
+                emissiveIntensity: isDark ? 0.04 : 0.01,
+                roughness: 0.85,
+                metalness: 0.04,
             });
             const plate = new THREE.Mesh(plateGeo, floorMat);
             plate.position.set(z.x, 0.07, z.z);
             plate.receiveShadow = true;
             zoneGroup.add(plate);
 
-            // Glowing rounded outline
-            const pts = plateShape.getPoints(32).map((p) => new THREE.Vector3(p.x + z.x, 0.09, p.y + z.z));
+            const pts = plateShape.getPoints(32).map((p) => new THREE.Vector3(p.x + z.x, 0.088, p.y + z.z));
             pts.push(pts[0].clone());
             const borderGeo = new THREE.BufferGeometry().setFromPoints(pts);
             const borderMat = new THREE.LineBasicMaterial({
                 color: accentColor,
                 transparent: true,
-                opacity: 0.7,
+                opacity: 0.65,
             });
             const borderLine = new THREE.Line(borderGeo, borderMat);
             zoneGroup.add(borderLine);
 
-            // Floating Zone Label
             const hexStr = `#${accentColor.toString(16).padStart(6, '0')}`;
             const labelSprite = createLabelSprite(z.label, hexStr, isDark);
-            labelSprite.position.set(z.x, 2.75, z.z);
+            labelSprite.position.set(z.x, 2.85, z.z);
             zoneGroup.add(labelSprite);
 
-            // Zone-specific furniture
             if (z.id === 'reception') {
-                // Rug
                 const rug = new THREE.Mesh(
-                    new THREE.BoxGeometry(3.4, 0.02, 2.1),
-                    new THREE.MeshStandardMaterial({ color: isDark ? 0x153545 : 0xccfbf1, roughness: 0.9 }),
+                    new THREE.BoxGeometry(3.6, 0.02, 2.2),
+                    new THREE.MeshStandardMaterial({ color: isDark ? 0x153545 : 0x99f6e4, roughness: 0.95 }),
                 );
                 rug.position.set(z.x, 0.08, z.z + 1.15);
                 zoneGroup.add(rug);
 
-                // Curved/layered Reception Desk
-                const counter = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.02, 0.85), woodMat);
-                counter.position.set(z.x, 0.58, z.z - 0.75);
+                // Wood-slat Reception Desk with dark stone top + Check-in tablet
+                const counter = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.96, 0.82), woodMat);
+                counter.position.set(z.x, 0.55, z.z - 0.75);
                 counter.castShadow = true;
+                const counterTop = new THREE.Mesh(new THREE.BoxGeometry(3.42, 0.07, 0.94), baseboardMat);
+                counterTop.position.set(z.x, 1.06, z.z - 0.75);
+                counterTop.castShadow = true;
                 const accentStrip = new THREE.Mesh(
-                    new THREE.BoxGeometry(3.22, 0.09, 0.06),
+                    new THREE.BoxGeometry(3.32, 0.07, 0.05),
                     new THREE.MeshBasicMaterial({ color: accentColor }),
                 );
-                accentStrip.position.set(z.x, 0.92, z.z - 0.31);
-                // Waiting sofa + coffee table
-                const sofa = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.52, 0.85), sofaMat);
-                sofa.position.set(z.x, 0.33, z.z + 1.45);
-                sofa.castShadow = true;
-                const coffee = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.34, 0.65), deskTopMat);
-                coffee.position.set(z.x, 0.24, z.z + 0.45);
+                accentStrip.position.set(z.x, 0.92, z.z - 0.33);
+
+                // Check-in Tablet on desk
+                const tabletStand = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.24, 0.04), metalMat);
+                tabletStand.position.set(z.x + 0.85, 1.2, z.z - 0.65);
+                tabletStand.rotation.x = -0.35;
+
+                // Plush Waiting Sofa with Backrest, Armrests & Cushions
+                const sofaBase = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.34, 0.86), sofaMat);
+                sofaBase.position.set(z.x, 0.24, z.z + 1.48);
+                sofaBase.castShadow = true;
+                const sofaBack = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.48, 0.18), sofaMat);
+                sofaBack.position.set(z.x, 0.56, z.z + 1.82);
+                sofaBack.castShadow = true;
+                [-0.85, 0.85].forEach((px) => {
+                    const pillow = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.28, 0.14), cushionAccentMat);
+                    pillow.position.set(z.x + px, 0.5, z.z + 1.65);
+                    pillow.rotation.z = px > 0 ? -0.15 : 0.15;
+                    zoneGroup.add(pillow);
+                });
+
+                const coffee = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.06, 0.65), woodMat);
+                coffee.position.set(z.x, 0.38, z.z + 0.45);
                 coffee.castShadow = true;
-                // Krevia 3D backdrop emblem wall
-                const wall = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.9, 0.12), deskTopMat);
-                wall.position.set(z.x, 1.02, z.z - 2.25);
+                const coffeeLeg = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 0.45), metalMat);
+                coffeeLeg.position.set(z.x, 0.2, z.z + 0.45);
+
+                // Architectural Branded Backdrop Wall ("KREVIA DIGITAL")
+                const wall = new THREE.Mesh(new THREE.BoxGeometry(3.8, 2.05, 0.16), deskTopMat);
+                wall.position.set(z.x, 1.1, z.z - 2.25);
                 wall.castShadow = true;
-                const logoMark = new THREE.Mesh(
-                    new THREE.OctahedronGeometry(0.32, 0),
-                    new THREE.MeshStandardMaterial({
-                        color: accentColor,
-                        emissive: accentColor,
-                        emissiveIntensity: 0.4,
-                        metalness: 0.6,
-                        roughness: 0.2,
-                    }),
+                const sign = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3.1, 1.15),
+                    new THREE.MeshBasicMaterial({ map: receptionSignTex }),
                 );
-                logoMark.position.set(z.x, 1.32, z.z - 2.1);
+                sign.position.set(z.x, 1.32, z.z - 2.16);
+
                 counter.userData.interactiveObject = 'reception';
                 counter.userData.roomId = 'reception';
-                interactiveMeshes.push(counter);
-                zoneGroup.add(counter, accentStrip, sofa, coffee, wall, logoMark);
+                counterTop.userData.interactiveObject = 'reception';
+                counterTop.userData.roomId = 'reception';
+                interactiveMeshes.push(counter, counterTop);
+                zoneGroup.add(counter, counterTop, accentStrip, tabletStand, sofaBase, sofaBack, coffee, coffeeLeg, wall, sign);
                 addPlanter(zoneGroup, z.x - 2.7, z.z - 1.9, 1.1);
                 addPlanter(zoneGroup, z.x + 2.7, z.z - 1.9, 1.0);
             }
@@ -691,150 +1096,224 @@ export default function OfficeScene3D({
                         wx,
                         wz,
                         rot,
-                        idx % 2 === 0 ? accentColor : isDark ? 0x45d8e8 : 0x0ea5e9,
+                        idx % 2 === 0 ? monitorTexBlue : monitorTexTeal,
                     );
                 });
-                // Storage shelf
-                const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.45, 1.6, 2.4), woodMat);
-                shelf.position.set(2.4, 0.87, -3.6);
+
+                // Bookshelf / Storage Credenza with colorful book spines
+                const shelf = new THREE.Mesh(new THREE.BoxGeometry(0.48, 1.65, 2.6), woodMat);
+                shelf.position.set(2.4, 0.9, -3.6);
                 shelf.castShadow = true;
                 zoneGroup.add(shelf);
-                addPlanter(zoneGroup, -9.6, -6.5, 1.15);
-                addPlanter(zoneGroup, 2.4, -6.4, 0.95);
+                const bookColors = [0x2563eb, 0xd97706, 0x0d9488, 0xe11d48, 0x475569];
+                for (let b = 0; b < 8; b++) {
+                    const book = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.28, 0.28, 0.08),
+                        new THREE.MeshStandardMaterial({ color: bookColors[b % bookColors.length], roughness: 0.7 }),
+                    );
+                    book.position.set(2.38, 1.85, -4.3 + b * 0.14);
+                    zoneGroup.add(book);
+                }
+
+                addPlanter(zoneGroup, -9.8, -6.6, 1.15);
+                addPlanter(zoneGroup, 2.4, -6.5, 0.95);
             }
 
             if (z.id === 'meeting') {
-                // Frosted glass walls + metallic mullions
-                const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.35, 7.0), glassMat);
-                wallL.position.set(3.68, 1.25, -3.6);
-                const wallF = new THREE.Mesh(new THREE.BoxGeometry(7.0, 2.35, 0.08), glassMat);
-                wallF.position.set(7.2, 1.25, 0.02);
-                const mullion = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.4, 0.12), metalMat);
-                mullion.position.set(3.68, 1.25, 0.02);
-                zoneGroup.add(wallL, wallF, mullion);
+                // Frosted glass walls + dark aluminum mullions + door frame
+                const wallL = new THREE.Mesh(new THREE.BoxGeometry(0.07, 2.45, 7.0), glassMat);
+                wallL.position.set(3.68, 1.3, -3.6);
+                const wallF = new THREE.Mesh(new THREE.BoxGeometry(7.0, 2.45, 0.07), glassMat);
+                wallF.position.set(7.2, 1.3, 0.02);
+                const mullionCorner = new THREE.Mesh(new THREE.BoxGeometry(0.14, 2.5, 0.14), plinthTrimMat);
+                mullionCorner.position.set(3.68, 1.3, 0.02);
+                const mullionTopL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.1, 7.0), plinthTrimMat);
+                mullionTopL.position.set(3.68, 2.52, -3.6);
+                const mullionTopF = new THREE.Mesh(new THREE.BoxGeometry(7.0, 0.1, 0.12), plinthTrimMat);
+                mullionTopF.position.set(7.2, 2.52, 0.02);
+                zoneGroup.add(wallL, wallF, mullionCorner, mullionTopL, mullionTopF);
 
-                // Executive conference table (clickable -> Meeting Room panel)
-                const confTable = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.1, 1.85), woodMat);
+                // Executive Conference Table with dual pedestals + conference speakerphone puck
+                addFakeAO(zoneGroup, 7.2, -3.6, 4.5, 2.2);
+                const confTable = new THREE.Mesh(new THREE.BoxGeometry(4.3, 0.09, 1.9), woodMat);
                 confTable.position.set(7.2, 0.78, -3.6);
                 confTable.castShadow = true;
                 confTable.userData.meetingObject = true;
                 confTable.userData.roomId = 'meeting';
                 interactiveMeshes.push(confTable);
-                const confLeg = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.72, 0.65), metalMat);
-                confLeg.position.set(7.2, 0.42, -3.6);
-                zoneGroup.add(confTable, confLeg);
+
+                [-1.3, 1.3].forEach((px) => {
+                    const ped = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.72, 0.85), metalMat);
+                    ped.position.set(7.2 + px, 0.42, -3.6);
+                    ped.castShadow = true;
+                    zoneGroup.add(ped);
+                });
+
+                const confPuck = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.16, 0.18, 0.04, 16),
+                    new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.3 }),
+                );
+                confPuck.position.set(7.2, 0.84, -3.6);
+                zoneGroup.add(confTable, confPuck);
 
                 [-1.4, -0.45, 0.45, 1.4].forEach((offset) => {
                     [-1.25, 1.25].forEach((side) => {
-                        const c = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.56, 0.46), chairMat);
-                        c.position.set(7.2 + offset, 0.48, -3.6 + side);
-                        c.castShadow = true;
-                        zoneGroup.add(c);
+                        addErgonomicChair(zoneGroup, 7.2 + offset, -3.6 + side, side > 0 ? 0 : Math.PI);
                     });
                 });
 
-                // Presentation wall screen (clickable) + LIVE beacon
-                const screenMat = new THREE.MeshStandardMaterial({
-                    color: isDark ? 0x101a30 : 0x1e293b,
-                    emissive: accentColor,
-                    emissiveIntensity: isDark ? 0.45 : 0.25,
-                });
-                const screen = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.45, 0.08), screenMat);
-                screen.position.set(7.2, 1.6, -7.0);
+                // Framed 65" Presentation Display with crisp live slide texture
+                const tvFrame = new THREE.Mesh(new THREE.BoxGeometry(3.45, 1.65, 0.1), plinthTrimMat);
+                tvFrame.position.set(7.2, 1.65, -7.0);
+                tvFrame.castShadow = true;
+                const screen = new THREE.Mesh(
+                    new THREE.PlaneGeometry(3.25, 1.48),
+                    new THREE.MeshStandardMaterial({
+                        map: screenTex,
+                        emissive: 0xffffff,
+                        emissiveMap: screenTex,
+                        emissiveIntensity: isDark ? 0.55 : 0.35,
+                        roughness: 0.2,
+                    }),
+                );
+                screen.position.set(7.2, 1.65, -6.94);
                 screen.userData.meetingObject = true;
                 screen.userData.roomId = 'meeting';
-                interactiveMeshes.push(screen);
+                tvFrame.userData.meetingObject = true;
+                tvFrame.userData.roomId = 'meeting';
+                interactiveMeshes.push(screen, tvFrame);
 
                 const liveBeacon = new THREE.Mesh(
                     new THREE.SphereGeometry(0.16, 14, 14),
                     new THREE.MeshBasicMaterial({ color: 0xe11d48 }),
                 );
-                liveBeacon.position.set(7.2, 2.55, -6.95);
+                liveBeacon.position.set(7.2, 2.65, -6.92);
                 liveBeacon.name = 'meetingLiveBeacon';
                 liveBeacon.visible = hasLiveMeetingRef.current;
-                zoneGroup.add(screen, liveBeacon);
+                zoneGroup.add(tvFrame, screen, liveBeacon);
                 addPlanter(zoneGroup, 10.1, -6.5, 1.0);
             }
 
             if (z.id === 'lounge') {
                 const rug = new THREE.Mesh(
-                    new THREE.BoxGeometry(4.2, 0.02, 3.0),
-                    new THREE.MeshStandardMaterial({ color: isDark ? 0x13332e : 0xdcfce7, roughness: 0.9 }),
+                    new THREE.BoxGeometry(4.4, 0.02, 3.2),
+                    new THREE.MeshStandardMaterial({ color: isDark ? 0x13332e : 0xbbf7d0, roughness: 0.95 }),
                 );
-                rug.position.set(z.x + 0.2, 0.08, z.z + 0.3);
-                const sofaMain = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.56, 0.92), sofaMat);
-                sofaMain.position.set(z.x, 0.35, z.z - 1.2);
-                sofaMain.castShadow = true;
-                const sofaSide = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.56, 2.2), sofaMat);
-                sofaSide.position.set(z.x - 1.2, 0.35, z.z + 0.25);
-                sofaSide.castShadow = true;
-                const coffeeTable = new THREE.Mesh(new THREE.CylinderGeometry(0.72, 0.72, 0.38, 22), woodMat);
-                coffeeTable.position.set(z.x + 0.55, 0.26, z.z + 0.35);
+                rug.position.set(z.x + 0.15, 0.08, z.z + 0.3);
+
+                // Plush L-shaped Sectional Sofa (base + backrests + cushions)
+                const sofaMainBase = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.34, 0.92), sofaMat);
+                sofaMainBase.position.set(z.x, 0.24, z.z - 1.2);
+                sofaMainBase.castShadow = true;
+                const sofaMainBack = new THREE.Mesh(new THREE.BoxGeometry(3.3, 0.46, 0.18), sofaMat);
+                sofaMainBack.position.set(z.x, 0.54, z.z - 1.56);
+                sofaMainBack.castShadow = true;
+
+                const sofaSideBase = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.34, 2.2), sofaMat);
+                sofaSideBase.position.set(z.x - 1.2, 0.24, z.z + 0.25);
+                sofaSideBase.castShadow = true;
+                const sofaSideBack = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.46, 2.2), sofaMat);
+                sofaSideBack.position.set(z.x - 1.56, 0.54, z.z + 0.25);
+                sofaSideBack.castShadow = true;
+
+                const throwPillow = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.28, 0.14), cushionAccentMat);
+                throwPillow.position.set(z.x + 1.1, 0.48, z.z - 1.35);
+                throwPillow.rotation.z = -0.2;
+
+                // Round Oak Coffee Table + Cups
+                const coffeeTable = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.06, 24), woodMat);
+                coffeeTable.position.set(z.x + 0.55, 0.42, z.z + 0.35);
                 coffeeTable.castShadow = true;
+                const coffeeLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.32, 0.34, 16), metalMat);
+                coffeeLeg.position.set(z.x + 0.55, 0.23, z.z + 0.35);
+
                 // Bean bag
                 const beanBag = new THREE.Mesh(
                     new THREE.SphereGeometry(0.45, 16, 12),
-                    new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.85 }),
+                    new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.9 }),
                 );
                 beanBag.scale.set(1.1, 0.65, 1.1);
                 beanBag.position.set(z.x + 2.0, 0.32, z.z + 1.3);
                 beanBag.castShadow = true;
-                // Pantry counter + espresso machine (clickable -> Ajak Ngopi / Break Time)
-                const pantry = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.9, 0.65), deskTopMat);
-                pantry.position.set(z.x + 2.2, 0.52, z.z - 1.8);
+
+                // Pantry Counter + Espresso Machine (clickable -> Ajak Ngopi / Break Time)
+                const pantry = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.92, 0.7), woodMat);
+                pantry.position.set(z.x + 2.2, 0.53, z.z - 1.8);
                 pantry.castShadow = true;
+                const pantryTop = new THREE.Mesh(new THREE.BoxGeometry(1.94, 0.06, 0.74), baseboardMat);
+                pantryTop.position.set(z.x + 2.2, 1.01, z.z - 1.8);
+                const espresso = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.34), metalMat);
+                espresso.position.set(z.x + 2.05, 1.24, z.z - 1.8);
+                const espressoAccent = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.43, 0.08, 0.35),
+                    new THREE.MeshBasicMaterial({ color: accentColor }),
+                );
+                espressoAccent.position.set(z.x + 2.05, 1.39, z.z - 1.8);
+
                 pantry.userData.interactiveObject = 'coffee_machine';
                 pantry.userData.roomId = 'lounge';
-                const espresso = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.36, 0.3), metalMat);
-                espresso.position.set(z.x + 2.2, 1.15, z.z - 1.8);
                 espresso.userData.interactiveObject = 'coffee_machine';
                 espresso.userData.roomId = 'lounge';
                 interactiveMeshes.push(pantry, espresso);
-                zoneGroup.add(rug, sofaMain, sofaSide, coffeeTable, beanBag, pantry, espresso);
+
+                zoneGroup.add(
+                    rug,
+                    sofaMainBase,
+                    sofaMainBack,
+                    sofaSideBase,
+                    sofaSideBack,
+                    throwPillow,
+                    coffeeTable,
+                    coffeeLeg,
+                    beanBag,
+                    pantry,
+                    pantryTop,
+                    espresso,
+                    espressoAccent,
+                );
                 addPlanter(zoneGroup, z.x - 2.6, z.z + 1.8, 1.2);
             }
 
             if (z.id === 'project') {
-                const warTable = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.1, 1.55), woodMat);
+                addFakeAO(zoneGroup, z.x, z.z + 0.2, 3.2, 1.8);
+                const warTable = new THREE.Mesh(new THREE.BoxGeometry(3.0, 0.09, 1.55), woodMat);
                 warTable.position.set(z.x, 0.78, z.z + 0.2);
                 warTable.castShadow = true;
-                const warLeg = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 0.55), metalMat);
-                warLeg.position.set(z.x, 0.42, z.z + 0.2);
-                zoneGroup.add(warTable, warLeg);
+                [-0.95, 0.95].forEach((px) => {
+                    const warLeg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.7, 1.1), metalMat);
+                    warLeg.position.set(z.x + px, 0.42, z.z + 0.2);
+                    zoneGroup.add(warLeg);
+                });
+                zoneGroup.add(warTable);
 
                 [-0.85, 0.85].forEach((ox) => {
                     [-1.05, 1.05].forEach((oz) => {
-                        const c = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.52, 0.46), chairMat);
-                        c.position.set(z.x + ox, 0.48, z.z + 0.2 + oz);
-                        c.castShadow = true;
-                        zoneGroup.add(c);
+                        addErgonomicChair(zoneGroup, z.x + ox, z.z + 0.2 + oz, oz > 0 ? 0 : Math.PI);
                     });
                 });
 
-                // Kanban whiteboard with sticky notes (clickable -> Project Kanban)
+                // Framed Project Kanban Whiteboard (clickable -> Project Kanban)
+                const boardFrame = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.6, 0.1), plinthTrimMat);
+                boardFrame.position.set(z.x, 1.58, z.z - 2.18);
+                boardFrame.castShadow = true;
                 const board = new THREE.Mesh(
-                    new THREE.BoxGeometry(3.0, 1.45, 0.08),
+                    new THREE.PlaneGeometry(3.04, 1.44),
                     new THREE.MeshStandardMaterial({
-                        color: isDark ? 0x15223a : 0xffffff,
-                        roughness: 0.25,
+                        map: kanbanTex,
+                        emissive: 0xffffff,
+                        emissiveMap: kanbanTex,
+                        emissiveIntensity: 0.15,
+                        roughness: 0.35,
                     }),
                 );
-                board.position.set(z.x, 1.55, z.z - 2.15);
-                board.castShadow = true;
+                board.position.set(z.x, 1.58, z.z - 2.12);
                 board.userData.interactiveObject = 'project_board';
                 board.userData.roomId = 'project';
-                interactiveMeshes.push(board);
-                zoneGroup.add(board);
+                boardFrame.userData.interactiveObject = 'project_board';
+                boardFrame.userData.roomId = 'project';
+                interactiveMeshes.push(board, boardFrame);
+                zoneGroup.add(boardFrame, board);
 
-                const stickyColors = [0xf59e0b, 0x2563eb, 0x16a34a, 0xec4899, 0x8b5cf6];
-                stickyColors.forEach((sc, si) => {
-                    const note = new THREE.Mesh(
-                        new THREE.BoxGeometry(0.32, 0.24, 0.02),
-                        new THREE.MeshBasicMaterial({ color: sc }),
-                    );
-                    note.position.set(z.x - 0.9 + si * 0.45, 1.65 - (si % 2) * 0.34, z.z - 2.09);
-                    zoneGroup.add(note);
-                });
                 addPlanter(zoneGroup, z.x + 2.5, z.z + 1.9, 1.0);
             }
 
@@ -843,7 +1322,7 @@ export default function OfficeScene3D({
             zoneVisuals[z.id] = { group: zoneGroup, floorMat, borderMat, labelSprite };
         });
 
-        // Dynamic Seat Pads & Living 3D Team Avatars (smooth interpolation without scene rebuild)
+        // Dynamic Seat Pads & Living 3D Team Avatars
         const seatsRoot = new THREE.Group();
         scene.add(seatsRoot);
         const seatMeshes: Record<number, { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; data: VirtualSeatData }> = {};
@@ -879,7 +1358,6 @@ export default function OfficeScene3D({
         };
 
         const syncDynamicObjects = () => {
-            // Sync clickable seat indicators
             seatsRef.current.forEach((s) => {
                 const isMine = s.occupied_by?.user_id === myUserId;
                 const isOccupied = !!s.occupied_by;
@@ -907,7 +1385,6 @@ export default function OfficeScene3D({
                 }
             });
 
-            // Sync online avatars with smooth lerp target positions
             const activeIds = new Set<number>();
             const zoneOffsets: Record<string, number> = {};
 
@@ -946,22 +1423,35 @@ export default function OfficeScene3D({
 
                     const body = new THREE.Mesh(
                         new THREE.CapsuleGeometry(0.21, 0.4, 8, 14),
-                        new THREE.MeshStandardMaterial({ color: colorNum, roughness: 0.32, metalness: 0.15 }),
+                        new THREE.MeshStandardMaterial({ color: colorNum, roughness: 0.42, metalness: 0.1 }),
                     );
                     body.position.y = 0.48;
                     body.castShadow = true;
 
+                    const collar = new THREE.Mesh(
+                        new THREE.TorusGeometry(0.14, 0.035, 8, 16),
+                        new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.6 }),
+                    );
+                    collar.rotation.x = Math.PI / 2;
+                    collar.position.y = 0.76;
+
                     const head = new THREE.Mesh(
                         new THREE.SphereGeometry(0.18, 16, 16),
-                        new THREE.MeshStandardMaterial({ color: isDark ? 0xf4f7ff : 0xfef3c7, roughness: 0.38 }),
+                        new THREE.MeshStandardMaterial({ color: 0xfde6c4, roughness: 0.5 }),
                     );
                     head.position.y = 0.98;
                     head.castShadow = true;
 
-                    const label = createLabelSprite(m.name.split(' ')[0] ?? m.name, statusHex, isDark);
-                    label.position.set(0, 1.55, 0);
+                    const hair = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.188, 16, 12, 0, Math.PI * 2, 0, Math.PI * 0.52),
+                        new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 }),
+                    );
+                    hair.position.y = 1.0;
 
-                    avatarGroup.add(ring, body, head, label);
+                    const label = createLabelSprite(m.name.split(' ')[0] ?? m.name, statusHex, isDark);
+                    label.position.set(0, 1.56, 0);
+
+                    avatarGroup.add(ring, body, collar, head, hair, label);
                     avatarGroup.traverse((child) => {
                         child.userData.roomId = m.zone;
                         child.userData.memberId = m.id;
@@ -983,7 +1473,6 @@ export default function OfficeScene3D({
                 }
             });
 
-            // Remove offline avatars cleanly
             avatarMap.forEach((entry, id) => {
                 if (!activeIds.has(id)) {
                     avatarsRoot.remove(entry.group);
@@ -996,7 +1485,7 @@ export default function OfficeScene3D({
         syncDynamicRef.current = syncDynamicObjects;
         syncDynamicObjects();
 
-        // Raycasting for Room, Seat & Avatar hover/click
+        // Raycasting for Room, Seat, Interactive Objects & Avatar hover/click
         const raycaster = new THREE.Raycaster();
         const pointer = new THREE.Vector2();
         let hoveredRoomId: string | null = null;
@@ -1101,7 +1590,6 @@ export default function OfficeScene3D({
             rafId = requestAnimationFrame(animate);
             const t = clock.getElapsedTime();
 
-            // Smooth easeInOutCubic fly-to animation
             const anim = flyAnimRef.current;
             if (anim) {
                 const elapsed = performance.now() - anim.startTime;
@@ -1134,25 +1622,23 @@ export default function OfficeScene3D({
                 }
             }
 
-            // Zone highlights & dimming of unselected zones
             const activeRoom = selectedRoomRef.current;
             Object.entries(zoneVisuals).forEach(([id, vis]) => {
                 const isSelected = activeRoom === id;
                 const isHovered = hoveredRoomId === id;
                 vis.labelSprite.visible = showLabelsRef.current;
                 if (isSelected) {
-                    vis.floorMat.emissiveIntensity = isDark ? 0.2 : 0.08;
+                    vis.floorMat.emissiveIntensity = isDark ? 0.16 : 0.06;
                     vis.borderMat.opacity = 1;
                 } else if (isHovered) {
-                    vis.floorMat.emissiveIntensity = isDark ? 0.11 : 0.04;
+                    vis.floorMat.emissiveIntensity = isDark ? 0.09 : 0.03;
                     vis.borderMat.opacity = 0.85;
                 } else {
-                    vis.floorMat.emissiveIntensity = isDark ? 0.03 : 0.005;
+                    vis.floorMat.emissiveIntensity = isDark ? 0.025 : 0.005;
                     vis.borderMat.opacity = activeRoom ? 0.35 : 0.65;
                 }
             });
 
-            // Living avatars smooth movement interpolation, idle animation & visibility
             avatarsRoot.visible = showMembersRef.current;
             if (showMembersRef.current) {
                 avatarMap.forEach((entry) => {
@@ -1193,6 +1679,7 @@ export default function OfficeScene3D({
             controls.dispose();
             pmrem.dispose();
             envTex.dispose();
+            disposableTextures.forEach((tx) => tx.dispose());
             scene.traverse((obj) => {
                 if ((obj as THREE.Mesh).geometry) (obj as THREE.Mesh).geometry.dispose();
                 const mat = (obj as THREE.Mesh).material;
@@ -1203,12 +1690,10 @@ export default function OfficeScene3D({
         };
     }, [theme, myUserId, onWebGLError]);
 
-    // Sync member positions & seat availability without tearing down the 3D scene
     useEffect(() => {
         syncDynamicRef.current?.();
     }, [members, seats]);
 
-    // External camera commands with smooth easeInOutCubic fly-to
     useEffect(() => {
         if (!cameraCommand || !cameraRef.current || !controlsRef.current) return;
         const cam = cameraRef.current;
