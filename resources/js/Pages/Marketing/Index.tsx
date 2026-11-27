@@ -1,4 +1,6 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { UserPicker, type UserPickerOption } from '@/Components/shared/UserPicker';
 import { AppShell } from '@/Layouts/AppShell';
 import { cn, formatShortDate } from '@/lib/utils';
 import type { PageProps } from '@/types';
@@ -44,7 +46,11 @@ interface ContentRow {
     is_approved: boolean;
     is_reused_reel: boolean;
     published_url: string | null;
+    pic_user_id?: number | null;
     pic_name: string | null;
+    pic_email?: string | null;
+    pic_avatar_url?: string | null;
+    pic_avatar_color?: string | null;
     reviewer_name: string | null;
     assets_count: number;
     demo: { id: number; code: string; is_ready_to_present: boolean } | null;
@@ -90,7 +96,7 @@ interface MarketingIndexProps extends PageProps {
         service_line: string;
         is_ready_to_present: boolean;
     }[];
-    users: { id: number; name: string }[];
+    users: UserPickerOption[];
     filters: {
         search: string;
         platform: string;
@@ -141,9 +147,7 @@ export default function MarketingIndex({
         title_topic: '',
         brief: '',
         demo_product_id: '',
-        pic_user_id: users.find((u) => u.name.includes('Jihanz'))?.id
-            ? String(users.find((u) => u.name.includes('Jihanz'))!.id)
-            : String(users[0]?.id ?? ''),
+        pic_user_id: '',
         publish_date: new Date().toISOString().slice(0, 10),
         is_reused_reel: false,
     });
@@ -197,9 +201,13 @@ export default function MarketingIndex({
 
     const handleCreate = (e: FormEvent) => {
         e.preventDefault();
+        form.transform((data) => ({
+            ...data,
+            pic_user_id: data.pic_user_id ? Number(data.pic_user_id) : null,
+        }));
         form.post('/marketing/content', {
             onSuccess: () => {
-                form.reset('title_topic', 'brief', 'demo_product_id');
+                form.reset('title_topic', 'brief', 'demo_product_id', 'pic_user_id');
                 setShowCreateModal(false);
             },
         });
@@ -448,7 +456,27 @@ export default function MarketingIndex({
                                             </div>
                                         </td>
                                         <td className="px-4 py-3 align-top text-slate-700">
-                                            {item.reviewer_name ?? '—'}
+                                            <div className="flex items-center gap-2">
+                                                {item.pic_name ? (
+                                                    <>
+                                                        <UserAvatar
+                                                            name={item.pic_name}
+                                                            avatarUrl={item.pic_avatar_url}
+                                                            avatarColor={item.pic_avatar_color}
+                                                            size="xs"
+                                                            className="h-5 w-5"
+                                                        />
+                                                        <span className="text-xs font-medium text-slate-800 dark:text-slate-200">
+                                                            {item.pic_name}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-slate-400">Unassigned</span>
+                                                )}
+                                            </div>
+                                            <div className="mt-0.5 text-[11px] text-slate-400">
+                                                Rev: {item.reviewer_name ?? '—'}
+                                            </div>
                                         </td>
                                         <td className="px-4 py-3 align-top">
                                             <StatusBadge label={item.status} />
@@ -702,6 +730,19 @@ export default function MarketingIndex({
                                         ))}
                                     </select>
                                 </div>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                    Person in Charge (PIC)
+                                </label>
+                                <UserPicker
+                                    users={users}
+                                    value={form.data.pic_user_id}
+                                    onChange={(val) => form.setData('pic_user_id', val)}
+                                    placeholder="Select PIC (optional)..."
+                                    allowClear
+                                    error={form.errors.pic_user_id}
+                                />
                             </div>
                             <div>
                                 <label className="text-xs font-semibold text-slate-700">

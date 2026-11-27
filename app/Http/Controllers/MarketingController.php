@@ -27,7 +27,8 @@ class MarketingController extends Controller
         $query = ContentItem::query()
             ->with([
                 'demoProduct:id,code,name,is_ready_to_present',
-                'pic:id,name',
+                'pic:id,name,email,avatar_path,updated_at',
+                'pic.employeeProfile:id,user_id,avatar_color',
                 'reviewer:id,name',
             ])
             ->withCount('assets');
@@ -83,7 +84,18 @@ class MarketingController extends Controller
             ->values();
 
         $demos = DemoProduct::query()->orderBy('code')->get(['id', 'code', 'name', 'service_line', 'is_ready_to_present']);
-        $users = $refs->activeUsers();
+        $users = User::query()
+            ->with('employeeProfile:id,user_id,avatar_color')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'avatar_path', 'updated_at'])
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'avatar_url' => $u->avatarUrl(),
+                'avatar_color' => $u->employeeProfile?->avatar_color ?? '#101D35',
+            ]);
 
         return Inertia::render('Marketing/Index', [
             'viewMode' => $request->string('view', 'calendar')->toString(),
@@ -100,7 +112,11 @@ class MarketingController extends Controller
                 'is_approved' => $c->is_approved,
                 'is_reused_reel' => $c->is_reused_reel,
                 'published_url' => $c->published_url,
+                'pic_user_id' => $c->pic_user_id,
                 'pic_name' => $c->pic?->name,
+                'pic_email' => $c->pic?->email,
+                'pic_avatar_url' => $c->pic?->avatarUrl(),
+                'pic_avatar_color' => $c->pic?->employeeProfile?->avatar_color ?? '#101D35',
                 'reviewer_name' => $c->reviewer?->name,
                 'assets_count' => $c->assets_count,
                 'demo' => $c->demoProduct ? [
@@ -148,7 +164,7 @@ class MarketingController extends Controller
             'title_topic' => ['required', 'string', 'max:1000'],
             'brief' => ['nullable', 'string', 'max:3000'],
             'demo_product_id' => ['nullable', 'exists:demo_products,id'],
-            'pic_user_id' => ['required', 'exists:users,id'],
+            'pic_user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'reviewer_user_id' => ['nullable', 'exists:users,id'],
             'production_date' => ['nullable', 'date'],
             'review_date' => ['nullable', 'date'],
@@ -195,7 +211,8 @@ class MarketingController extends Controller
 
         $contentItem->load([
             'demoProduct:id,code,name,service_line,is_ready_to_present',
-            'pic:id,name',
+            'pic:id,name,email,avatar_path,updated_at',
+            'pic.employeeProfile:id,user_id,avatar_color',
             'reviewer:id,name',
             'approver:id,name',
             'assets.uploader:id,name',
@@ -204,7 +221,18 @@ class MarketingController extends Controller
         ]);
 
         $demos = DemoProduct::query()->orderBy('code')->get(['id', 'code', 'name', 'service_line', 'is_ready_to_present']);
-        $users = User::query()->where('is_active', true)->orderBy('id')->get(['id', 'name']);
+        $users = User::query()
+            ->with('employeeProfile:id,user_id,avatar_color')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'avatar_path', 'updated_at'])
+            ->map(fn (User $u) => [
+                'id' => $u->id,
+                'name' => $u->name,
+                'email' => $u->email,
+                'avatar_url' => $u->avatarUrl(),
+                'avatar_color' => $u->employeeProfile?->avatar_color ?? '#101D35',
+            ]);
 
         return Inertia::render('Marketing/Show', [
             'item' => [
@@ -218,6 +246,9 @@ class MarketingController extends Controller
                 'hashtags' => $contentItem->hashtags,
                 'pic_user_id' => $contentItem->pic_user_id,
                 'pic_name' => $contentItem->pic?->name,
+                'pic_email' => $contentItem->pic?->email,
+                'pic_avatar_url' => $contentItem->pic?->avatarUrl(),
+                'pic_avatar_color' => $contentItem->pic?->employeeProfile?->avatar_color ?? '#101D35',
                 'reviewer_user_id' => $contentItem->reviewer_user_id,
                 'reviewer_name' => $contentItem->reviewer?->name,
                 'demo_product_id' => $contentItem->demo_product_id,
@@ -287,6 +318,7 @@ class MarketingController extends Controller
             'caption' => ['nullable', 'string', 'max:4000'],
             'hashtags' => ['nullable', 'string', 'max:1000'],
             'demo_product_id' => ['nullable', 'exists:demo_products,id'],
+            'pic_user_id' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where('is_active', true)],
             'reviewer_user_id' => ['nullable', 'exists:users,id'],
             'production_date' => ['nullable', 'date'],
             'review_date' => ['nullable', 'date'],
@@ -295,8 +327,24 @@ class MarketingController extends Controller
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $oldPicId = $contentItem->pic_user_id;
         $contentItem->update($data);
-        $audit->log('marketing.content_updated', "Updated content item {$contentItem->code}.", $contentItem);
+
+        if (
+            array_key_exists('pic_user_id', $data)
+            && (int) ($data['pic_user_id'] ?? 0) !== (int) ($oldPicId ?? 0)
+        ) {
+            $newPicName = $contentItem->fresh()->pic?->name ?? 'Unassigned';
+            $audit->log(
+                'marketing.pic_updated',
+                "Changed PIC for {$contentItem->code} to {$newPicName}.",
+                $contentItem,
+                ['pic_user_id' => $oldPicId],
+                ['pic_user_id' => $contentItem->pic_user_id]
+            );
+        } else {
+            $audit->log('marketing.content_updated', "Updated content item {$contentItem->code}.", $contentItem);
+        }
 
         return back()->with('success', "Content {$contentItem->code} updated.");
     }

@@ -1,4 +1,6 @@
 import { StatusBadge } from '@/Components/shared/StatusBadge';
+import { UserAvatar } from '@/Components/shared/UserAvatar';
+import { UserPicker, type UserPickerOption } from '@/Components/shared/UserPicker';
 import { AppShell } from '@/Layouts/AppShell';
 import { cn, formatShortDate } from '@/lib/utils';
 import type { PageProps } from '@/types';
@@ -13,8 +15,10 @@ import {
     FileUp,
     Lock,
     ShieldCheck,
+    UserCog,
+    X,
 } from 'lucide-react';
-import { type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 
 interface MarketingShowProps extends PageProps {
     item: {
@@ -28,6 +32,9 @@ interface MarketingShowProps extends PageProps {
         hashtags: string | null;
         pic_user_id: number | null;
         pic_name: string | null;
+        pic_email?: string | null;
+        pic_avatar_url?: string | null;
+        pic_avatar_color?: string | null;
         reviewer_user_id: number | null;
         reviewer_name: string | null;
         demo_product_id: number | null;
@@ -81,7 +88,7 @@ interface MarketingShowProps extends PageProps {
     };
     statuses: string[];
     demos: { id: number; code: string; name: string; is_ready_to_present: boolean }[];
-    users: { id: number; name: string }[];
+    users: UserPickerOption[];
     permissions: {
         canUpdate: boolean;
         canApprove: boolean;
@@ -97,12 +104,19 @@ export default function MarketingShow({
     permissions,
     errors,
 }: MarketingShowProps) {
+    const [showPicModal, setShowPicModal] = useState(false);
+
+    const picForm = useForm({
+        pic_user_id: item.pic_user_id ? String(item.pic_user_id) : '',
+    });
+
     const editForm = useForm({
         title_topic: item.title_topic,
         brief: item.brief ?? '',
         caption: item.caption ?? '',
         hashtags: item.hashtags ?? '',
         demo_product_id: item.demo_product_id ? String(item.demo_product_id) : '',
+        pic_user_id: item.pic_user_id ? String(item.pic_user_id) : '',
         reviewer_user_id: item.reviewer_user_id ? String(item.reviewer_user_id) : '',
         production_date: item.production_date ?? '',
         review_date: item.review_date ?? '',
@@ -240,6 +254,44 @@ export default function MarketingShow({
                             H-2 Review: <strong>{formatShortDate(item.review_date)}</strong> •
                             Publish Target: <strong>{formatShortDate(item.publish_date)}</strong>
                         </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 pt-1">
+                            <div className="flex items-center gap-2">
+                                <UserAvatar
+                                    name={item.pic_name}
+                                    avatarUrl={item.pic_avatar_url}
+                                    avatarColor={item.pic_avatar_color}
+                                    size="xs"
+                                    className="h-6 w-6"
+                                />
+                                <div className="text-xs">
+                                    <span className="text-slate-400">PIC: </span>
+                                    <span className="font-semibold text-slate-800 dark:text-slate-100">
+                                        {item.pic_name ?? 'Unassigned'}
+                                    </span>
+                                    {item.pic_email && (
+                                        <span className="ml-1.5 text-[11px] text-slate-400">
+                                            ({item.pic_email})
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            {permissions.canUpdate && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        picForm.setData(
+                                            'pic_user_id',
+                                            item.pic_user_id ? String(item.pic_user_id) : '',
+                                        );
+                                        setShowPicModal(true);
+                                    }}
+                                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-[#101D35] hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                >
+                                    <UserCog className="h-3 w-3" />
+                                    Change PIC
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     {(permissions.canUpdate || permissions.canPublish) && (
@@ -291,6 +343,10 @@ export default function MarketingShow({
                     <form
                         onSubmit={(e) => {
                             e.preventDefault();
+                            editForm.transform((data) => ({
+                                ...data,
+                                pic_user_id: data.pic_user_id ? Number(data.pic_user_id) : null,
+                            }));
                             editForm.patch(`/marketing/content/${item.id}`);
                         }}
                         className="space-y-3 rounded-xl border border-slate-200 bg-white p-5"
@@ -298,6 +354,20 @@ export default function MarketingShow({
                         <h2 className="text-sm font-bold text-[#101D35]">
                             Content Brief, Caption & Schedule
                         </h2>
+                        <div>
+                            <label className="mb-1 block text-xs font-semibold text-slate-700">
+                                Person in Charge (PIC)
+                            </label>
+                            <UserPicker
+                                users={users}
+                                value={editForm.data.pic_user_id}
+                                onChange={(val) => editForm.setData('pic_user_id', val)}
+                                disabled={!permissions.canUpdate}
+                                placeholder="Unassigned (No PIC)"
+                                allowClear
+                                error={editForm.errors.pic_user_id}
+                            />
+                        </div>
                         <div>
                             <label className="text-xs font-semibold text-slate-700">
                                 Topic / Headline
@@ -671,6 +741,70 @@ export default function MarketingShow({
                     </div>
                 </div>
             </div>
+
+            {showPicModal && permissions.canUpdate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl dark:border-slate-800 dark:bg-[#111A2E]">
+                        <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+                            <h3 className="text-base font-bold text-[#101D35] dark:text-white">
+                                Change Person in Charge (PIC)
+                            </h3>
+                            <button
+                                type="button"
+                                onClick={() => setShowPicModal(false)}
+                                className="rounded p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
+                        </div>
+
+                        <form
+                            onSubmit={(e: FormEvent) => {
+                                e.preventDefault();
+                                picForm.transform((data) => ({
+                                    pic_user_id: data.pic_user_id ? Number(data.pic_user_id) : null,
+                                }));
+                                picForm.patch(`/marketing/content/${item.id}`, {
+                                    preserveScroll: true,
+                                    onSuccess: () => setShowPicModal(false),
+                                });
+                            }}
+                            className="space-y-4"
+                        >
+                            <div>
+                                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                                    Select New PIC
+                                </label>
+                                <UserPicker
+                                    users={users}
+                                    value={picForm.data.pic_user_id}
+                                    onChange={(val) => picForm.setData('pic_user_id', val)}
+                                    placeholder="Unassigned (No PIC)"
+                                    allowClear
+                                    error={picForm.errors.pic_user_id}
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 border-t border-slate-100 pt-4 dark:border-slate-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPicModal(false)}
+                                    className="rounded-lg border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={picForm.processing}
+                                    className="rounded-lg bg-[#101D35] px-4 py-2 text-xs font-semibold text-white disabled:opacity-50"
+                                >
+                                    {picForm.processing ? 'Saving...' : 'Save PIC'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </AppShell>
     );
 }

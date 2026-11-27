@@ -116,6 +116,11 @@ class User extends Authenticatable
         return $this->hasOne(EmployeeProfile::class);
     }
 
+    public function contentItems(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(\App\Domain\Marketing\Models\ContentItem::class, 'pic_user_id');
+    }
+
     public function isManagingDirector(): bool
     {
         return $this->hasRole(self::ROLE_FOUNDER);
