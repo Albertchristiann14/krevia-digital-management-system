@@ -94,7 +94,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-B5KBe5Mw.css",
+    "file": "assets/app-CqsIdVBs.css",
     "name": "app",
     "names": [
       "app.css"
@@ -208,7 +208,7 @@
     ]
   },
   "resources/js/Pages/Crm/Index.tsx": {
-    "file": "assets/Index-BcDVJ7rr.js",
+    "file": "assets/Index-CWvITkwm.js",
     "name": "Index",
     "src": "resources/js/Pages/Crm/Index.tsx",
     "isDynamicEntry": true,
@@ -537,7 +537,7 @@
     ]
   },
   "resources/js/Pages/Tasks/Index.tsx": {
-    "file": "assets/Index-Ba7nnm_-.js",
+    "file": "assets/Index-CPPss0mG.js",
     "name": "Index",
     "src": "resources/js/Pages/Tasks/Index.tsx",
     "isDynamicEntry": true,
@@ -598,7 +598,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-hka64y4i.js",
+    "file": "assets/app-DJis-TwU.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -642,7 +642,7 @@
       "resources/js/Pages/Workplan/Roadmap.tsx"
     ],
     "css": [
-      "assets/app-B5KBe5Mw.css"
+      "assets/app-CqsIdVBs.css"
     ]
   }
 }

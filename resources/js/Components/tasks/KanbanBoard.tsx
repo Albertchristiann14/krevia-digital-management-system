@@ -71,25 +71,20 @@ function KanbanCard({
         <div
             ref={isOverlay ? undefined : setNodeRef}
             style={isOverlay ? undefined : style}
+            {...(isOverlay ? {} : attributes)}
+            {...(isOverlay ? {} : listeners)}
             className={cn(
-                'rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs transition dark:border-slate-800 dark:bg-[#162238]',
+                'cursor-grab touch-none rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs transition active:cursor-grabbing dark:border-slate-800 dark:bg-[#162238]',
                 isDragging && !isOverlay && 'opacity-40',
                 isOverlay && 'rotate-1 shadow-xl ring-2 ring-blue-500/40',
             )}
         >
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                    <button
-                        type="button"
-                        {...(isOverlay ? {} : attributes)}
-                        {...(isOverlay ? {} : listeners)}
-                        className="cursor-grab touch-none rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                        title="Drag card"
-                    >
-                        <GripVertical className="h-3.5 w-3.5" />
-                    </button>
+                    <GripVertical className="h-3.5 w-3.5 text-slate-400" />
                     <Link
                         href={`/tasks/${task.id}`}
+                        draggable={false}
                         className="font-mono text-[11px] font-bold text-[#101D35] hover:underline dark:text-blue-300"
                     >
                         {task.code}
@@ -100,6 +95,7 @@ function KanbanCard({
 
             <Link
                 href={`/tasks/${task.id}`}
+                draggable={false}
                 className="mt-1.5 block text-xs font-semibold text-slate-900 hover:text-blue-700 dark:text-slate-100 dark:hover:text-blue-400"
             >
                 {task.title}
@@ -133,6 +129,7 @@ function KanbanCard({
 
                 <select
                     value={task.status}
+                    onPointerDown={(e) => e.stopPropagation()}
                     onChange={(e) => onQuickMove(task, e.target.value)}
                     className="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                 >

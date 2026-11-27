@@ -105,23 +105,17 @@ function PipelineCard({
         <div
             ref={isOverlay ? undefined : setNodeRef}
             style={isOverlay ? undefined : style}
+            {...(isOverlay ? {} : attributes)}
+            {...(isOverlay ? {} : listeners)}
             className={cn(
-                'group rounded-lg border border-slate-200 bg-white p-3 transition hover:border-[#101D35]/40 hover:shadow-xs dark:border-slate-800 dark:bg-[#162238] dark:hover:border-blue-500/40',
+                'group cursor-grab touch-none rounded-lg border border-slate-200 bg-white p-3 transition hover:border-[#101D35]/40 hover:shadow-xs active:cursor-grabbing dark:border-slate-800 dark:bg-[#162238] dark:hover:border-blue-500/40',
                 isDragging && !isOverlay && 'opacity-40',
                 isOverlay && 'rotate-1 shadow-xl ring-2 ring-blue-500/40',
             )}
         >
             <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5">
-                    <button
-                        type="button"
-                        {...(isOverlay ? {} : attributes)}
-                        {...(isOverlay ? {} : listeners)}
-                        className="cursor-grab touch-none rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing dark:hover:bg-slate-800 dark:hover:text-slate-200"
-                        title="Drag prospect card"
-                    >
-                        <GripVertical className="h-3.5 w-3.5" />
-                    </button>
+                    <GripVertical className="h-3.5 w-3.5 text-slate-400" />
                     <span className="font-mono text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                         {lead.code}
                     </span>
@@ -140,6 +134,7 @@ function PipelineCard({
 
             <Link
                 href={`/crm/leads/${lead.id}`}
+                draggable={false}
                 className="mt-1.5 block text-sm font-semibold text-[#101D35] group-hover:text-blue-700 dark:text-slate-100 dark:group-hover:text-blue-400"
             >
                 {lead.company_name}
@@ -174,6 +169,7 @@ function PipelineCard({
 
             <Link
                 href={`/crm/leads/${lead.id}`}
+                draggable={false}
                 className="mt-2 flex items-center justify-between"
             >
                 <div className="flex items-center gap-1.5">
