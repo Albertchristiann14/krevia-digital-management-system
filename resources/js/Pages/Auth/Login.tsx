@@ -41,8 +41,10 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
         <>
             <Head title="Sign In" />
             <div className="flex min-h-screen flex-col lg:flex-row">
-                {/* Left Brand Panel (#101D35) */}
-                <div className="flex flex-col justify-between bg-[#101D35] p-8 text-white lg:w-[44%] lg:p-12">
+                {/* Left Brand Panel (Krevia Glow) */}
+                <div className="relative flex flex-col justify-between overflow-hidden bg-gradient-to-br from-[#0D1729] via-[#101D35] to-[#080E1B] p-8 text-white lg:w-[44%] lg:p-12">
+                    <div className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full bg-[#6C8CFF]/20 blur-3xl" />
+                    <div className="pointer-events-none absolute -right-24 -bottom-24 h-72 w-72 rounded-full bg-[#55D6E8]/15 blur-3xl" />
                     <div className="flex items-center gap-3">
                         <img
                             src="/images/krevia-mark.png"
@@ -72,26 +74,29 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6 text-xs text-slate-300">
-                        <div>
-                            <p className="font-semibold text-white">7 Internal Members</p>
-                            <p className="mt-0.5 text-slate-400">Role-based governance &amp; RACI</p>
+                    <div className="relative grid grid-cols-2 gap-4 border-t border-white/10 pt-6 text-xs text-slate-300">
+                        <div className="rounded-xl bg-white/[0.045] p-3 ring-1 ring-white/[0.09] backdrop-blur-md">
+                            <p className="font-semibold text-[#F4F7FF]">7 Internal Members</p>
+                            <p className="mt-0.5 text-[#A4B0C5]">Role-based governance &amp; RACI</p>
                         </div>
-                        <div>
-                            <p className="font-semibold text-white">Pekanbaru, Riau</p>
-                            <p className="mt-0.5 text-slate-400">Annual Workplan 2026–2027</p>
+                        <div className="rounded-xl bg-white/[0.045] p-3 ring-1 ring-white/[0.09] backdrop-blur-md">
+                            <p className="font-semibold text-[#F4F7FF]">Pekanbaru, Riau</p>
+                            <p className="mt-0.5 text-[#A4B0C5]">Annual Workplan 2026–2027</p>
                         </div>
                     </div>
                 </div>
 
                 {/* Right Form Panel */}
-                <div className="flex flex-1 items-center justify-center bg-[#F8FAFC] p-6 sm:p-12">
-                    <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div className="krevia-glow-mesh flex flex-1 items-center justify-center bg-[#F4F7FC] p-6 sm:p-12 dark:bg-[#080E1B]">
+                    <div className="w-full max-w-md rounded-2xl border border-slate-200/80 bg-white/90 p-8 shadow-[0_20px_50px_-15px_rgba(16,29,53,0.14)] backdrop-blur-xl dark:border-white/[0.09] dark:bg-[#0D1729]/85 dark:shadow-[0_24px_60px_-15px_rgba(0,0,0,0.65)]">
                         <div className="mb-6">
-                            <h2 className="font-display text-xl font-bold text-[#101D35]">
+                            <p className="mb-1 text-[10px] font-bold tracking-[0.2em] text-[#6C8CFF] uppercase">
+                                Krevia Glow Workspace
+                            </p>
+                            <h2 className="font-display text-xl font-bold text-[#101D35] dark:text-[#F4F7FF]">
                                 Sign in to KDMS
                             </h2>
-                            <p className="mt-1 text-sm text-slate-500">
+                            <p className="mt-1 text-sm text-slate-500 dark:text-[#A4B0C5]">
                                 Use your Krevia Digital team account credentials.
                             </p>
                         </div>
@@ -161,7 +166,7 @@ export default function Login({ errors: serverErrors = {} }: { errors?: Record<s
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className="w-full rounded-lg bg-[#101D35] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1A2D4E] disabled:opacity-60"
+                                className="w-full rounded-xl bg-[#101D35] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#1A2D4E] disabled:opacity-60 dark:bg-gradient-to-r dark:from-[#6C8CFF] dark:to-[#55D6E8] dark:text-[#080E1B] dark:hover:opacity-95"
                             >
                                 {submitting ? 'Signing in...' : 'Sign In'}
                             </button>

@@ -19,6 +19,9 @@ import {
     Layers,
     Briefcase,
     Radio,
+    Sparkles,
+    UserCircle2,
+    Users,
     Wallet,
 } from 'lucide-react';
 import {
@@ -192,14 +195,14 @@ export default function DashboardIndex({
                 <>
                     <Link
                         href="/workplan/roadmap"
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        className="inline-flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white/90 px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs backdrop-blur-sm transition hover:bg-slate-50 dark:border-white/15 dark:bg-white/[0.06] dark:text-[#F4F7FF] dark:hover:bg-white/[0.1]"
                     >
-                        <Compass className="h-4 w-4 text-[#101D35]" />
+                        <Compass className="h-4 w-4 text-[#101D35] dark:text-[#55D6E8]" />
                         Annual Roadmap
                     </Link>
                     <Link
                         href="/tasks"
-                        className="inline-flex items-center gap-2 rounded-lg bg-[#101D35] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#1A2D4E]"
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#101D35] px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-[#1A2D4E] dark:bg-gradient-to-r dark:from-[#6C8CFF] dark:to-[#55D6E8] dark:text-[#080E1B] dark:hover:opacity-95"
                     >
                         <ClipboardList className="h-4 w-4" />
                         Open Task Tracker
@@ -209,9 +212,88 @@ export default function DashboardIndex({
         >
             <Head title="Dashboard" />
 
+            {/* Krevia Glow Welcome Hero Card */}
+            <div className="relative mb-6 overflow-hidden rounded-2xl border border-slate-200/80 bg-white/85 p-5 shadow-sm backdrop-blur-xl dark:border-white/[0.09] dark:bg-white/[0.045] dark:shadow-[0_12px_40px_-16px_rgba(0,0,0,0.65)]">
+                <div className="pointer-events-none absolute -top-20 -right-12 h-52 w-52 rounded-full bg-[#6C8CFF]/15 blur-3xl dark:bg-[#6C8CFF]/20" />
+                <div className="pointer-events-none absolute -bottom-24 left-1/3 h-44 w-44 rounded-full bg-[#55D6E8]/12 blur-3xl dark:bg-[#55D6E8]/15" />
+
+                <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-4">
+                        <UserAvatar
+                            name={user?.name ?? 'Member'}
+                            avatarUrl={user?.avatar_url}
+                            avatarColor={user?.profile?.avatar_color}
+                            size="lg"
+                            className="ring-2 ring-[#6C8CFF]/30 dark:ring-[#55D6E8]/35"
+                        />
+                        <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-[#6C8CFF]/10 px-2.5 py-0.5 text-[10px] font-semibold tracking-wider text-[#4364E6] uppercase dark:bg-[#6C8CFF]/20 dark:text-[#8DA8FF]">
+                                    <Sparkles className="h-3 w-3 text-[#55D6E8]" />
+                                    Krevia Glow
+                                </span>
+                                <span className="text-xs font-medium text-slate-500 dark:text-[#A4B0C5]">
+                                    {new Date().toLocaleDateString('en-US', {
+                                        weekday: 'long',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                    })}
+                                </span>
+                            </div>
+                            <h2 className="font-display mt-1 text-lg font-bold tracking-tight text-[#101D35] sm:text-xl dark:text-[#F4F7FF]">
+                                {(() => {
+                                    const hour = new Date().getHours();
+                                    const greeting =
+                                        hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                                    return `${greeting}, ${user?.name ?? 'Member'}`;
+                                })()}
+                            </h2>
+                            <p className="mt-0.5 text-xs text-slate-500 dark:text-[#A4B0C5]">
+                                Build Smarter. Operate Better. · Role:{' '}
+                                <span className="font-semibold text-slate-700 dark:text-[#F4F7FF]">
+                                    {user?.roles[0] ?? 'Member'}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                            href="/tasks"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#6C8CFF]/40 hover:text-[#101D35] dark:border-white/[0.09] dark:bg-white/[0.045] dark:text-[#A4B0C5] dark:hover:border-[#6C8CFF]/40 dark:hover:text-[#F4F7FF]"
+                        >
+                            <ClipboardList className="h-3.5 w-3.5 text-[#6C8CFF]" />
+                            Tasks
+                        </Link>
+                        <Link
+                            href="/workplan/roadmap"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#55D6E8]/40 hover:text-[#101D35] dark:border-white/[0.09] dark:bg-white/[0.045] dark:text-[#A4B0C5] dark:hover:border-[#55D6E8]/40 dark:hover:text-[#F4F7FF]"
+                        >
+                            <Compass className="h-3.5 w-3.5 text-[#55D6E8]" />
+                            Roadmap
+                        </Link>
+                        <Link
+                            href="/people"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#9B87F5]/40 hover:text-[#101D35] dark:border-white/[0.09] dark:bg-white/[0.045] dark:text-[#A4B0C5] dark:hover:border-[#9B87F5]/40 dark:hover:text-[#F4F7FF]"
+                        >
+                            <Users className="h-3.5 w-3.5 text-[#9B87F5]" />
+                            People
+                        </Link>
+                        <Link
+                            href="/my-account"
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-[#42C99A]/40 hover:text-[#101D35] dark:border-white/[0.09] dark:bg-white/[0.045] dark:text-[#A4B0C5] dark:hover:border-[#42C99A]/40 dark:hover:text-[#F4F7FF]"
+                        >
+                            <UserCircle2 className="h-3.5 w-3.5 text-[#42C99A]" />
+                            My Account
+                        </Link>
+                    </div>
+                </div>
+            </div>
+
             {/* Top Announcements Banner */}
             {recentAnnouncements.length > 0 && (
-                <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+                <div className="mb-6 rounded-2xl border border-slate-200/80 bg-white/85 p-4 shadow-xs backdrop-blur-xl dark:border-white/[0.09] dark:bg-white/[0.045]">
                     <div className="mb-3 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
                             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#101D35] text-white">

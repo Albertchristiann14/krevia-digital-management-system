@@ -3,13 +3,13 @@ import { cn, formatPriorityLabel } from '@/lib/utils';
 type BadgeTone = 'navy' | 'green' | 'amber' | 'red' | 'blue' | 'purple' | 'slate';
 
 const TONE_MAP: Record<BadgeTone, string> = {
-    navy: 'bg-[#101D35] text-white border-[#101D35]',
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    amber: 'bg-amber-50 text-amber-700 border-amber-200',
-    red: 'bg-rose-50 text-rose-700 border-rose-200',
-    blue: 'bg-blue-50 text-blue-700 border-blue-200',
-    purple: 'bg-violet-50 text-violet-700 border-violet-200',
-    slate: 'bg-slate-100 text-slate-700 border-slate-200',
+    navy: 'bg-[#101D35] text-white border-[#101D35] dark:bg-[#6C8CFF]/20 dark:text-[#F4F7FF] dark:border-[#6C8CFF]/40',
+    green: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-[#42C99A]/15 dark:text-[#42C99A] dark:border-[#42C99A]/30',
+    amber: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-[#F4B860]/15 dark:text-[#F4B860] dark:border-[#F4B860]/30',
+    red: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-[#F07183]/15 dark:text-[#F07183] dark:border-[#F07183]/30',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-[#55D6E8]/15 dark:text-[#55D6E8] dark:border-[#55D6E8]/30',
+    purple: 'bg-violet-50 text-violet-700 border-violet-200 dark:bg-[#9B87F5]/15 dark:text-[#9B87F5] dark:border-[#9B87F5]/30',
+    slate: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-white/[0.06] dark:text-[#A4B0C5] dark:border-white/[0.12]',
 };
 
 export function resolveDataStatusTone(status: string): BadgeTone {

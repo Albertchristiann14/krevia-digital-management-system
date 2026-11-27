@@ -329,10 +329,12 @@ function SidebarContent({
     const compact = isCollapsed && !mobile;
 
     return (
-        <div className="flex h-full flex-col bg-[#101D35] text-slate-200 select-none">
+        <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-[#0D1729] via-[#0B1424] to-[#080E1B] text-slate-200 select-none">
+            <div className="pointer-events-none absolute -top-24 -left-24 h-60 w-60 rounded-full bg-[#6C8CFF]/15 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-[#55D6E8]/10 blur-3xl" />
             <div
                 className={cn(
-                    'flex h-16 shrink-0 items-center border-b border-white/10',
+                    'relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.09]',
                     compact ? 'justify-center px-2' : 'justify-between px-4',
                 )}
             >
@@ -418,17 +420,17 @@ function SidebarContent({
                                             onClick={onCloseMobile}
                                             title={compact ? item.label : undefined}
                                             aria-label={item.label}
-                                            className={cn(
-                                                'flex items-center rounded-lg text-sm font-medium transition-colors',
+                                             className={cn(
+                                                'flex items-center rounded-xl text-sm font-medium transition-all duration-150',
                                                 compact
                                                     ? 'mx-auto h-10 w-10 justify-center p-0'
                                                     : 'gap-3 px-3 py-2',
                                                 active
-                                                    ? 'bg-white/14 text-white shadow-xs ring-1 ring-white/15'
-                                                    : 'text-slate-300 hover:bg-white/8 hover:text-white',
+                                                    ? 'bg-gradient-to-r from-[#6C8CFF]/25 via-[#55D6E8]/10 to-transparent text-white shadow-[0_0_20px_rgba(108,140,255,0.16)] ring-1 ring-[#6C8CFF]/35'
+                                                    : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
                                             )}
                                         >
-                                            <Icon className="h-[18px] w-[18px] shrink-0" />
+                                            <Icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-[#55D6E8]')} />
                                             {!compact && (
                                                 <span className="truncate">{item.label}</span>
                                             )}
@@ -442,10 +444,10 @@ function SidebarContent({
             </nav>
 
             {user && (
-                <div className="shrink-0 border-t border-white/10 p-3">
+                <div className="relative z-10 shrink-0 border-t border-white/[0.09] p-3">
                     <div
                         className={cn(
-                            'flex items-center rounded-lg bg-white/5',
+                            'flex items-center rounded-xl bg-white/[0.045] ring-1 ring-white/[0.09] backdrop-blur-md transition hover:bg-white/[0.07]',
                             compact ? 'justify-center p-1.5' : 'gap-3 p-2.5',
                         )}
                     >
@@ -618,10 +620,10 @@ export function AppShell({
     };
 
     return (
-        <div className="flex min-h-screen bg-[#F8FAFC] text-slate-900 dark:bg-[#0B1220] dark:text-slate-100">
+        <div className="krevia-glow-mesh flex min-h-screen bg-[#F4F7FC] text-slate-900 dark:bg-[#080E1B] dark:text-[#F4F7FF]">
             <aside
                 className={cn(
-                    'relative hidden shrink-0 border-r border-[#101D35] transition-all duration-200 lg:block',
+                    'relative hidden shrink-0 border-r border-slate-900/20 transition-all duration-200 lg:block dark:border-white/[0.09]',
                     collapsed ? 'w-[72px]' : 'w-64',
                 )}
             >
@@ -664,7 +666,7 @@ export function AppShell({
             )}
 
             <div className="flex min-w-0 flex-1 flex-col">
-                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 backdrop-blur-xs sm:px-6 dark:border-slate-800 dark:bg-[#111A2E]/95">
+                <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/80 px-4 backdrop-blur-xl sm:px-6 dark:border-white/[0.09] dark:bg-[#0D1729]/80">
                     <div className="flex items-center gap-3">
                         <button
                             type="button"
