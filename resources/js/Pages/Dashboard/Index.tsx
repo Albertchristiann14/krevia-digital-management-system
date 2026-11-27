@@ -213,10 +213,19 @@ export default function DashboardIndex({
             <Head title="Dashboard" />
 
             {/* Krevia Glow Welcome Hero Card */}
-            <div className="relative mb-6 overflow-hidden rounded-2xl border border-white/[0.13] bg-gradient-to-br from-[#15223A]/85 via-[#101A30]/80 to-[#0B1222]/90 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_20px_50px_-18px_rgba(0,0,0,0.75)] backdrop-blur-2xl">
-                <div className="pointer-events-none absolute -top-24 -right-12 h-64 w-64 rounded-full bg-[#668CFF]/22 blur-3xl" />
-                <div className="pointer-events-none absolute -bottom-24 left-1/3 h-52 w-52 rounded-full bg-[#A17AFF]/18 blur-3xl" />
-                <div className="pointer-events-none absolute top-1/2 left-12 h-36 w-36 -translate-y-1/2 rounded-full bg-[#45D8E8]/14 blur-3xl" />
+            <div className="relative mb-6 overflow-hidden rounded-2xl border border-white/[0.13] bg-gradient-to-br from-[#15223A]/90 via-[#101A30]/88 to-[#0B1222]/94 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.16),0_20px_50px_-18px_rgba(0,0,0,0.75)]">
+                <div
+                    className="pointer-events-none absolute -top-24 -right-12 h-72 w-72 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(102,140,255,0.22) 0%, transparent 70%)' }}
+                />
+                <div
+                    className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(161,122,255,0.18) 0%, transparent 70%)' }}
+                />
+                <div
+                    className="pointer-events-none absolute top-1/2 left-12 h-48 w-48 -translate-y-1/2 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(69,216,232,0.14) 0%, transparent 70%)' }}
+                />
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
                 <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -615,8 +624,8 @@ export default function DashboardIndex({
                                         fontSize: '12px',
                                     }}
                                 />
-                                <Bar dataKey="due_tasks" name="Scheduled Tasks" fill="#668CFF" radius={[4, 4, 0, 0]} />
-                                <Bar dataKey="completed_tasks" name="Completed" fill="#42C99A" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="due_tasks" name="Scheduled Tasks" fill="#668CFF" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                                <Bar dataKey="completed_tasks" name="Completed" fill="#42C99A" radius={[4, 4, 0, 0]} isAnimationActive={false} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
@@ -637,6 +646,7 @@ export default function DashboardIndex({
                                     innerRadius={44}
                                     outerRadius={68}
                                     paddingAngle={2}
+                                    isAnimationActive={false}
                                 >
                                     {tasksByStatus
                                         .filter((s) => s.count > 0)

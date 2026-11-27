@@ -32,14 +32,26 @@ export function UserAvatar({
 
     const displayName = name?.trim() || 'Krevia Member';
 
+const SIZE_PX = {
+    xs: 24,
+    sm: 32,
+    md: 40,
+    lg: 64,
+    xl: 80,
+};
+
     if (avatarUrl && !imgFailed) {
+        const px = SIZE_PX[size];
         return (
             <img
                 src={avatarUrl}
                 alt={displayName}
+                width={px}
+                height={px}
+                decoding="async"
                 onError={() => setImgFailed(true)}
                 className={cn(
-                    'shrink-0 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700',
+                    'shrink-0 rounded-full object-cover ring-1 ring-white/15',
                     SIZE_CLASSES[size],
                     className,
                 )}

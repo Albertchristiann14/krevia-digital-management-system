@@ -330,8 +330,14 @@ function SidebarContent({
 
     return (
         <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-[#0D1729] via-[#0B1424] to-[#080E1B] text-slate-200 select-none">
-            <div className="pointer-events-none absolute -top-24 -left-24 h-60 w-60 rounded-full bg-[#6C8CFF]/15 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-24 -right-24 h-56 w-56 rounded-full bg-[#55D6E8]/10 blur-3xl" />
+            <div
+                className="pointer-events-none absolute -top-24 -left-24 h-72 w-72 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(102,140,255,0.16) 0%, transparent 70%)' }}
+            />
+            <div
+                className="pointer-events-none absolute -bottom-24 -right-24 h-64 w-64 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(69,216,232,0.12) 0%, transparent 70%)' }}
+            />
             <div
                 className={cn(
                     'relative z-10 flex h-16 shrink-0 items-center border-b border-white/[0.09]',
