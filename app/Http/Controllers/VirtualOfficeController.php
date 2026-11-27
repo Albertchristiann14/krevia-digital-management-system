@@ -32,7 +32,9 @@ class VirtualOfficeController extends Controller
             ? Project::query()->where('status', '!=', 'Completed')->count()
             : null;
         $upcomingMeetingsCount = $canViewMeetings
-            ? Meeting::query()->whereDate('meeting_date', '>=', now()->toDateString())->count()
+            ? Meeting::query()
+                ->whereDate('scheduled_date', '>=', now()->toDateString())
+                ->count()
             : null;
         $announcementsCount = Announcement::query()->count();
 
