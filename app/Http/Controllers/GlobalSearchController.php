@@ -6,10 +6,12 @@ use App\Domain\Crm\Models\Lead;
 use App\Domain\Governance\Models\Decision;
 use App\Domain\Portfolio\Models\DemoProduct;
 use App\Domain\Project\Models\Project;
+use App\Domain\VirtualOffice\Models\OfficeZone;
 use App\Domain\Workplan\Models\AnnualRoadmap;
 use App\Domain\Workplan\Models\Task;
 use App\Domain\Workspace\Models\Announcement;
 use App\Domain\Workspace\Models\Document;
+use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -171,6 +173,39 @@ class GlobalSearchController extends Controller
             ->all();
         if ($announcements !== []) {
             $groups[] = ['module' => 'Announcements', 'items' => $announcements];
+        }
+
+        $voZones = OfficeZone::query()
+            ->where('is_active', true)
+            ->where(fn ($sub) => $sub->where('name', 'like', $like)->orWhere('code', 'like', $like))
+            ->orderBy('id')
+            ->limit(3)
+            ->get(['id', 'code', 'slug', 'name'])
+            ->map(fn (OfficeZone $z) => [
+                'id' => "vo-zone-{$z->id}",
+                'title' => "{$z->code} — {$z->name}",
+                'subtitle' => 'Virtual Office Zone',
+                'url' => "/virtual-office?zone={$z->slug}",
+            ])
+            ->all();
+
+        $voMembers = User::query()
+            ->where('is_active', true)
+            ->where('name', 'like', $like)
+            ->orderBy('name')
+            ->limit(4)
+            ->get(['id', 'name'])
+            ->map(fn (User $u) => [
+                'id' => "vo-member-{$u->id}",
+                'title' => $u->name,
+                'subtitle' => 'Temukan di Virtual Office',
+                'url' => "/virtual-office?member={$u->id}",
+            ])
+            ->all();
+
+        $voItems = array_merge($voZones, $voMembers);
+        if ($voItems !== []) {
+            $groups[] = ['module' => 'Virtual Office', 'items' => $voItems];
         }
 
         return response()->json(['groups' => $groups]);

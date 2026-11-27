@@ -44,6 +44,7 @@ import {
     Hand,
     Kanban,
     Layers,
+    Link2,
     Map,
     Maximize2,
     Megaphone,
@@ -209,6 +210,20 @@ export default function VirtualOfficeIndex({
     const [wsState, setWsState] = useState<'connected' | 'reconnecting' | 'standby'>(
         reverbConfig.enabled ? 'reconnecting' : 'standby',
     );
+    const [isOffline, setIsOffline] = useState<boolean>(() =>
+        typeof navigator !== 'undefined' ? !navigator.onLine : false,
+    );
+
+    useEffect(() => {
+        const goOffline = () => setIsOffline(true);
+        const goOnline = () => setIsOffline(false);
+        window.addEventListener('offline', goOffline);
+        window.addEventListener('online', goOnline);
+        return () => {
+            window.removeEventListener('offline', goOffline);
+            window.removeEventListener('online', goOnline);
+        };
+    }, []);
     const [showStatusMenu, setShowStatusMenu] = useState(false);
     const [customText, setCustomText] = useState(initialMyPresence?.custom_status_text ?? '');
     const [customEmoji, setCustomEmoji] = useState(initialMyPresence?.custom_status_emoji ?? '💻');
@@ -1031,6 +1046,12 @@ export default function VirtualOfficeIndex({
         >
             <Head title="Virtual Office" />
 
+            {isOffline && (
+                <div className="mb-3 flex items-center justify-between rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-800 dark:border-rose-500/40 dark:bg-rose-500/15 dark:text-rose-200">
+                    <span>Tidak ada koneksi internet — mode baca saja aktif. Aksi tulis ditolak sementara.</span>
+                </div>
+            )}
+
             {/* Zone Segmented Control Tabs */}
             <div
                 role="tablist"
@@ -1447,14 +1468,28 @@ export default function VirtualOfficeIndex({
                                         {selectedRoom.name}
                                     </h2>
                                 </div>
-                                <button
-                                    type="button"
-                                    onClick={() => setSelectedRoomId(null)}
-                                    className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:text-[#71819C] dark:hover:bg-white/[0.08] dark:hover:text-[#F4F7FF]"
-                                    aria-label="Close zone panel"
-                                >
-                                    <X className="h-4 w-4" />
-                                </button>
+                                <div className="flex items-center gap-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/virtual-office?zone=${encodeURIComponent(selectedRoom.id)}`;
+                                            navigator.clipboard?.writeText(url);
+                                            showToast('Tautan lokasi zona disalin.');
+                                        }}
+                                        title="Salin tautan lokasi"
+                                        className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-blue-600 dark:text-[#71819C] dark:hover:bg-white/[0.08]"
+                                    >
+                                        <Link2 className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedRoomId(null)}
+                                        className="rounded-lg p-1 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900 dark:text-[#71819C] dark:hover:bg-white/[0.08] dark:hover:text-[#F4F7FF]"
+                                        aria-label="Close zone panel"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
                             </div>
                             <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-[#A7B4CB]">
                                 {selectedRoom.description}

@@ -18,3 +18,4 @@ Schedule::call(fn () => app(\App\Domain\VirtualOffice\Services\PresenceService::
     ->everyMinute()
     ->name('kdms:sweep-virtual-office-presence')
     ->withoutOverlapping();
+Schedule::command('kdms:prune-virtual-office-data')->dailyAt('02:00')->timezone('Asia/Jakarta');

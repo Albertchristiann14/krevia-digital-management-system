@@ -32,6 +32,11 @@ class PresenceService
             }
         }
 
+        if ($presence->zone_id && ! OfficeZone::whereKey($presence->zone_id)->where('is_active', true)->exists()) {
+            $presence->zone_id = null;
+            $presence->seat_id = null;
+        }
+
         if (! $presence->zone_id) {
             $presence->zone_id = OfficeZone::where('slug', 'reception')->value('id')
                 ?? OfficeZone::where('is_active', true)->value('id');
