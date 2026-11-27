@@ -610,7 +610,7 @@ export default function DashboardIndex({
                         </Link>
                     </div>
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 640, height: 256 }}>
                             <BarChart data={monthlyRoadmap} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" vertical={false} />
                                 <XAxis dataKey="short_month" tick={{ fontSize: 11, fill: '#A7B4CB' }} />
@@ -637,7 +637,7 @@ export default function DashboardIndex({
                     </h2>
                     <p className="text-xs text-[#A7B4CB]">Live distribution across 6 statuses</p>
                     <div className="mt-2 h-44 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 280, height: 176 }}>
                             <PieChart>
                                 <Pie
                                     data={tasksByStatus.filter((s) => s.count > 0)}
