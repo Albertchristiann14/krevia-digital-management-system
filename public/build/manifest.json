@@ -57,6 +57,14 @@
     "file": "assets/rolldown-runtime-XKyaHtl9.js",
     "name": "rolldown-runtime"
   },
+  "_sortable.esm-Q5gWEnjc.js": {
+    "file": "assets/sortable.esm-Q5gWEnjc.js",
+    "name": "sortable.esm",
+    "imports": [
+      "_rolldown-runtime-XKyaHtl9.js",
+      "_vendor-charts-ms5lF5AV.js"
+    ]
+  },
   "_vendor-calendar-Dkpo5_Hz.js": {
     "file": "assets/vendor-calendar-Dkpo5_Hz.js",
     "name": "vendor-calendar"
@@ -86,7 +94,7 @@
     ]
   },
   "resources/css/app.css": {
-    "file": "assets/app-BrIS18OO.css",
+    "file": "assets/app-B5KBe5Mw.css",
     "name": "app",
     "names": [
       "app.css"
@@ -200,18 +208,19 @@
     ]
   },
   "resources/js/Pages/Crm/Index.tsx": {
-    "file": "assets/Index-C4AVWxpx.js",
+    "file": "assets/Index-BcDVJ7rr.js",
     "name": "Index",
     "src": "resources/js/Pages/Crm/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-XKyaHtl9.js",
-      "_StatusBadge-VPfxcolU.js",
-      "_AppShell-dI80gwgb.js",
-      "_UserAvatar-Dp-cCOmt.js",
+      "_sortable.esm-Q5gWEnjc.js",
       "_vendor-react-Pz9Uipqh.js",
       "_vendor-ui-DkvU9iqh.js",
-      "_vendor-charts-ms5lF5AV.js"
+      "_vendor-charts-ms5lF5AV.js",
+      "_UserAvatar-Dp-cCOmt.js",
+      "_StatusBadge-VPfxcolU.js",
+      "_AppShell-dI80gwgb.js"
     ]
   },
   "resources/js/Pages/Crm/Show.tsx": {
@@ -528,16 +537,17 @@
     ]
   },
   "resources/js/Pages/Tasks/Index.tsx": {
-    "file": "assets/Index-CjCM6vcx.js",
+    "file": "assets/Index-Ba7nnm_-.js",
     "name": "Index",
     "src": "resources/js/Pages/Tasks/Index.tsx",
     "isDynamicEntry": true,
     "imports": [
       "_rolldown-runtime-XKyaHtl9.js",
       "_StatusBadge-VPfxcolU.js",
-      "_vendor-charts-ms5lF5AV.js",
+      "_sortable.esm-Q5gWEnjc.js",
       "_vendor-react-Pz9Uipqh.js",
       "_vendor-ui-DkvU9iqh.js",
+      "_vendor-charts-ms5lF5AV.js",
       "_UserAvatar-Dp-cCOmt.js",
       "_AppShell-dI80gwgb.js",
       "_vendor-calendar-Dkpo5_Hz.js"
@@ -588,7 +598,7 @@
     ]
   },
   "resources/js/app.tsx": {
-    "file": "assets/app-DalSzzFH.js",
+    "file": "assets/app-hka64y4i.js",
     "name": "app",
     "src": "resources/js/app.tsx",
     "isEntry": true,
@@ -632,7 +642,7 @@
       "resources/js/Pages/Workplan/Roadmap.tsx"
     ],
     "css": [
-      "assets/app-BrIS18OO.css"
+      "assets/app-B5KBe5Mw.css"
     ]
   }
 }

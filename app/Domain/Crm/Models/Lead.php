@@ -42,6 +42,7 @@ class Lead extends Model
         'service_line',
         'source',
         'stage',
+        'kanban_order',
         'pic_user_id',
         'contacted_at',
         'next_follow_up_at',

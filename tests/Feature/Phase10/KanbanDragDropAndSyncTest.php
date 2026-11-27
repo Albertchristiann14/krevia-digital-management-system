@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Phase10;
 
+use App\Domain\Crm\Models\Lead;
 use App\Domain\Workplan\Models\Task;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
@@ -116,5 +117,34 @@ class KanbanDragDropAndSyncTest extends TestCase
                     return false;
                 })
             );
+    }
+
+    public function test_crm_pipeline_kanban_reorder_moves_stage_and_persists_order(): void
+    {
+        $albert = User::where('email', 'albert@kreviadigital.com')->firstOrFail();
+        $leads = Lead::query()->orderBy('id')->take(2)->get();
+        $this->assertCount(2, $leads);
+
+        [$l1, $l2] = [$leads[0], $leads[1]];
+        $l1->forceFill(['stage' => 'Lead Identified', 'kanban_order' => 1])->save();
+        $l2->forceFill(['stage' => 'Initial Contact', 'kanban_order' => 1])->save();
+
+        $this->actingAs($albert)
+            ->postJson('/crm/leads/reorder', [
+                'lead_id' => $l1->id,
+                'stage' => 'Initial Contact',
+                'ordered_ids' => [$l2->id, $l1->id],
+            ])
+            ->assertOk()
+            ->assertJson([
+                'ok' => true,
+                'lead_id' => $l1->id,
+                'stage' => 'Initial Contact',
+                'kanban_order' => 2,
+            ]);
+
+        $this->assertSame('Initial Contact', $l1->fresh()->stage);
+        $this->assertSame(1, (int) $l2->fresh()->kanban_order);
+        $this->assertSame(2, (int) $l1->fresh()->kanban_order);
     }
 }

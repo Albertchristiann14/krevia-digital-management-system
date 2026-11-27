@@ -1,3 +1,4 @@
+import { PipelineKanbanBoard, type PipelineLeadRow } from '@/Components/crm/PipelineKanbanBoard';
 import { StatusBadge } from '@/Components/shared/StatusBadge';
 import { AppShell } from '@/Layouts/AppShell';
 import { cn, formatShortDate, getInitials } from '@/lib/utils';
@@ -323,100 +324,12 @@ export default function CrmIndex({
 
             {/* Kanban or Table */}
             {view === 'kanban' ? (
-                <div className="mt-4 flex gap-3 overflow-x-auto pb-4">
-                    {stages.map((stage) => {
-                        const columnLeads = leads.filter((l) => l.stage === stage);
-                        return (
-                            <div
-                                key={stage}
-                                className={cn(
-                                    'flex w-[285px] shrink-0 flex-col rounded-xl border border-t-4 border-slate-200 bg-slate-50/70',
-                                    STAGE_TOP_BAR[stage] ?? 'border-t-slate-400',
-                                )}
-                            >
-                                <div className="flex items-center justify-between border-b border-slate-200/80 px-3 py-2.5">
-                                    <h3 className="text-xs font-bold text-[#101D35]">{stage}</h3>
-                                    <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold text-slate-600 ring-1 ring-slate-200">
-                                        {columnLeads.length}
-                                    </span>
-                                </div>
-                                <div className="flex max-h-[68vh] flex-1 flex-col gap-2.5 overflow-y-auto p-2.5">
-                                    {columnLeads.length === 0 ? (
-                                        <div className="rounded-lg border border-dashed border-slate-200 bg-white/60 px-3 py-6 text-center text-[11px] text-slate-400">
-                                            No prospects in this stage
-                                        </div>
-                                    ) : (
-                                        columnLeads.map((lead) => (
-                                            <Link
-                                                key={lead.id}
-                                                href={`/crm/leads/${lead.id}`}
-                                                className="group block rounded-lg border border-slate-200 bg-white p-3 transition hover:border-[#101D35]/40 hover:shadow-xs"
-                                            >
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <span className="font-mono text-[11px] font-semibold text-slate-500">
-                                                        {lead.code}
-                                                    </span>
-                                                    {lead.converted_project ? (
-                                                        <span className="inline-flex items-center gap-0.5 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                                                            <CheckCircle2 className="h-2.5 w-2.5" />
-                                                            {lead.converted_project.code}
-                                                        </span>
-                                                    ) : lead.data_status !== 'Disepakati' ? (
-                                                        <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
-                                                            Needs Confirm
-                                                        </span>
-                                                    ) : null}
-                                                </div>
-                                                <p className="mt-1.5 text-sm font-semibold text-[#101D35] group-hover:text-blue-700">
-                                                    {lead.company_name}
-                                                </p>
-                                                <p className="text-[11px] text-slate-500">
-                                                    {lead.industry} • {lead.service_line}
-                                                </p>
-                                                {lead.potential_needs && (
-                                                    <p className="mt-1.5 line-clamp-2 text-xs text-slate-600">
-                                                        {lead.potential_needs}
-                                                    </p>
-                                                )}
-                                                <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-[11px]">
-                                                    <span className="font-medium text-slate-700">
-                                                        {formatCurrency(lead.estimated_value)}
-                                                    </span>
-                                                    {lead.next_follow_up_at && (
-                                                        <span
-                                                            className={cn(
-                                                                'inline-flex items-center gap-1 font-medium',
-                                                                lead.follow_up_overdue
-                                                                    ? 'text-rose-600'
-                                                                    : 'text-slate-500',
-                                                            )}
-                                                        >
-                                                            <CalendarClock className="h-3 w-3" />
-                                                            {formatShortDate(lead.next_follow_up_at)}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="mt-2 flex items-center justify-between">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#101D35] text-[9px] font-bold text-white">
-                                                            {lead.pic_name
-                                                                ? getInitials(lead.pic_name)
-                                                                : 'KD'}
-                                                        </span>
-                                                        <span className="text-[11px] text-slate-600">
-                                                            {lead.pic_name ?? 'Unassigned'}
-                                                        </span>
-                                                    </div>
-                                                    <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-[#101D35]" />
-                                                </div>
-                                            </Link>
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+                <PipelineKanbanBoard
+                    leads={leads as PipelineLeadRow[]}
+                    stages={stages}
+                    stageTopBar={STAGE_TOP_BAR}
+                    formatCurrency={formatCurrency}
+                />
             ) : (
                 <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-white">
                     <div className="overflow-x-auto">

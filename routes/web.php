@@ -122,6 +122,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::prefix('crm')->name('crm.')->group(function () {
         Route::get('/leads', [CrmController::class, 'index'])->name('leads.index');
         Route::post('/leads', [CrmController::class, 'store'])->name('leads.store');
+        Route::post('/leads/reorder', [CrmController::class, 'reorder'])->name('leads.reorder');
         Route::get('/leads/{lead}', [CrmController::class, 'show'])->name('leads.show');
         Route::patch('/leads/{lead}', [CrmController::class, 'update'])->name('leads.update');
         Route::post('/leads/{lead}/stage', [CrmController::class, 'transitionStage'])->name('leads.stage');

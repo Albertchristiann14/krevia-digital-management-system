@@ -16,6 +16,7 @@ use App\Domain\Project\Models\Project;
 use App\Domain\Shared\Services\ReferenceCacheService;
 use App\Domain\Workspace\Services\AuditLogger;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,7 +58,13 @@ class CrmController extends Controller
             $query->where('service_line', $serviceLine);
         }
 
-        $leads = $query->orderBy('external_no')->orderBy('id')->get();
+        $leads = $query
+            ->with(['pic:id,name,avatar_path,updated_at', 'pic.employeeProfile:id,user_id,avatar_color'])
+            ->orderByRaw('CASE WHEN kanban_order > 0 THEN 0 ELSE 1 END')
+            ->orderBy('kanban_order')
+            ->orderBy('external_no')
+            ->orderBy('id')
+            ->get();
 
         $stageCounts = collect(Lead::STAGES)->mapWithKeys(
             fn (string $s) => [$s => $leads->where('stage', $s)->count()]
@@ -82,8 +89,11 @@ class CrmController extends Controller
                 'service_line' => $l->service_line,
                 'source' => $l->source,
                 'stage' => $l->stage,
+                'kanban_order' => (int) $l->kanban_order,
                 'pic_user_id' => $l->pic_user_id,
                 'pic_name' => $l->pic?->name,
+                'pic_avatar_url' => $l->pic?->avatarUrl(),
+                'pic_avatar_color' => $l->pic?->employeeProfile?->avatar_color ?? '#101D35',
                 'contacted_at' => $l->contacted_at?->format('Y-m-d'),
                 'next_follow_up_at' => $l->next_follow_up_at?->format('Y-m-d'),
                 'estimated_value' => $l->estimated_value !== null ? (float) $l->estimated_value : null,
@@ -367,6 +377,71 @@ class CrmController extends Controller
         $service->transitionStage($lead, $data['stage'], $request->user(), $data);
 
         return back()->with('success', "Prospect {$lead->code} moved to {$data['stage']}.");
+    }
+
+    public function reorder(
+        Request $request,
+        LeadPipelineService $service,
+        AuditLogger $audit
+    ): JsonResponse {
+        $data = $request->validate([
+            'lead_id' => ['required', 'integer', 'exists:leads,id'],
+            'stage' => ['required', Rule::in(Lead::STAGES)],
+            'ordered_ids' => ['required', 'array', 'min:1'],
+            'ordered_ids.*' => ['integer', 'distinct', 'exists:leads,id'],
+        ]);
+
+        $user = $request->user();
+        $lead = Lead::findOrFail($data['lead_id']);
+        $this->authorize('update', $lead);
+
+        $updated = DB::transaction(function () use ($data, $lead, $user, $service, $audit): Lead {
+            $lockedLeads = Lead::query()
+                ->with('company')
+                ->whereIn('id', $data['ordered_ids'])
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $targetLead = $lockedLeads->get($lead->id) ?? Lead::query()->with('company')->lockForUpdate()->findOrFail($lead->id);
+
+            if ($targetLead->stage !== $data['stage']) {
+                $targetLead = $service->transitionStage(
+                    $targetLead,
+                    $data['stage'],
+                    $user,
+                    ['evidence_note' => 'Moved via Pipeline Kanban board']
+                );
+            }
+
+            foreach ($data['ordered_ids'] as $index => $leadId) {
+                $item = $lockedLeads->get($leadId);
+                if (! $item) {
+                    continue;
+                }
+                if ($item->id !== $targetLead->id && $item->stage !== $data['stage']) {
+                    continue;
+                }
+                if ($user->can('update', $item)) {
+                    $item->forceFill(['kanban_order' => $index + 1])->save();
+                }
+            }
+
+            $audit->log(
+                'crm.kanban_reordered',
+                "Updated Pipeline Kanban position for {$targetLead->code} in {$data['stage']}.",
+                $targetLead
+            );
+
+            return $targetLead->fresh();
+        });
+
+        return response()->json([
+            'ok' => true,
+            'lead_id' => $updated->id,
+            'stage' => $updated->stage,
+            'kanban_order' => (int) $updated->kanban_order,
+        ]);
     }
 
     public function storeInteraction(Request $request, Lead $lead): RedirectResponse
