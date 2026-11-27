@@ -14,6 +14,7 @@ import {
     CalendarRange,
     CheckCircle2,
     CheckSquare,
+    ChevronDown,
     ClipboardList,
     Compass,
     FileSpreadsheet,
@@ -283,8 +284,33 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 ];
 
 const SIDEBAR_COLLAPSED_KEY = 'kdms.sidebar.collapsed';
+const SIDEBAR_GROUPS_KEY = 'kdms.sidebar.groups.v1';
 const SIDEBAR_SCROLL_KEY = 'kdms.sidebar.scrollTop';
 let lastSidebarScrollTop = 0;
+
+function readInitialCollapsedGroups(currentUrl: string): Record<string, boolean> {
+    const defaults: Record<string, boolean> = {};
+    for (const group of NAV_GROUPS) {
+        const hasActive = group.items.some((item) =>
+            item.matchPrefix === '/finance'
+                ? currentUrl === '/finance' || currentUrl.startsWith('/finance?')
+                : currentUrl === item.href || currentUrl.startsWith(item.matchPrefix),
+        );
+        defaults[group.title] = group.title !== 'Overview' && !hasActive;
+    }
+    if (typeof window === 'undefined') return defaults;
+    try {
+        const raw = window.localStorage.getItem(SIDEBAR_GROUPS_KEY);
+        if (!raw) return defaults;
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+            return { ...defaults, ...parsed };
+        }
+    } catch {
+        // ignore storage errors
+    }
+    return defaults;
+}
 
 function readInitialCollapsed(): boolean {
     if (typeof window === 'undefined') return false;
@@ -333,6 +359,21 @@ function SidebarContent({
     onNavScroll,
 }: SidebarContentProps) {
     const compact = isCollapsed && !mobile;
+    const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>(() =>
+        readInitialCollapsedGroups(currentUrl),
+    );
+
+    const toggleGroup = (title: string) => {
+        setCollapsedGroups((prev) => {
+            const next = { ...prev, [title]: !prev[title] };
+            try {
+                window.localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify(next));
+            } catch {
+                // ignore storage errors
+            }
+            return next;
+        });
+    };
 
     return (
         <div className="relative flex h-full flex-col overflow-hidden bg-gradient-to-b from-[#0D1729] via-[#0B1424] to-[#080E1B] text-slate-200 select-none">
@@ -403,6 +444,7 @@ function SidebarContent({
                 {NAV_GROUPS.map((group, groupIndex) => {
                     const visibleItems = group.items.filter(canSee);
                     if (visibleItems.length === 0) return null;
+                    const isGroupCollapsed = !compact && !!collapsedGroups[group.title];
 
                     return (
                         <div
@@ -412,44 +454,57 @@ function SidebarContent({
                             )}
                         >
                             {!compact && (
-                                <p className="mb-2 px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-                                    {group.title}
-                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleGroup(group.title)}
+                                    aria-expanded={!isGroupCollapsed}
+                                    className="mb-1.5 flex w-full items-center justify-between rounded-lg px-3 py-1 text-left text-[11px] font-semibold tracking-wider text-slate-400 uppercase transition hover:bg-white/[0.04] hover:text-slate-200"
+                                >
+                                    <span>{group.title}</span>
+                                    <ChevronDown
+                                        className={cn(
+                                            'h-3.5 w-3.5 text-slate-500 transition-transform duration-150',
+                                            isGroupCollapsed && '-rotate-90',
+                                        )}
+                                    />
+                                </button>
                             )}
-                            <div className={cn(compact ? 'space-y-1.5' : 'space-y-1')}>
-                                {visibleItems.map((item) => {
-                                    const active =
-                                        currentUrl === item.href ||
-                                        (item.matchPrefix === '/finance'
-                                            ? currentUrl === '/finance' || currentUrl.startsWith('/finance?')
-                                            : currentUrl.startsWith(item.matchPrefix));
-                                    const Icon = item.icon;
-                                    return (
-                                        <Link
-                                            key={item.href}
-                                            href={item.href}
-                                            prefetch
-                                            onClick={onCloseMobile}
-                                            title={compact ? item.label : undefined}
-                                            aria-label={item.label}
-                                             className={cn(
-                                                'flex items-center rounded-xl text-sm font-medium transition-all duration-150',
-                                                compact
-                                                    ? 'mx-auto h-10 w-10 justify-center p-0'
-                                                    : 'gap-3 px-3 py-2',
-                                                active
-                                                    ? 'bg-gradient-to-r from-[#6C8CFF]/25 via-[#55D6E8]/10 to-transparent text-white shadow-[0_0_20px_rgba(108,140,255,0.16)] ring-1 ring-[#6C8CFF]/35'
-                                                    : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
-                                            )}
-                                        >
-                                            <Icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-[#55D6E8]')} />
-                                            {!compact && (
-                                                <span className="truncate">{item.label}</span>
-                                            )}
-                                        </Link>
-                                    );
-                                })}
-                            </div>
+                            {!isGroupCollapsed && (
+                                <div className={cn(compact ? 'space-y-1.5' : 'space-y-1')}>
+                                    {visibleItems.map((item) => {
+                                        const active =
+                                            currentUrl === item.href ||
+                                            (item.matchPrefix === '/finance'
+                                                ? currentUrl === '/finance' || currentUrl.startsWith('/finance?')
+                                                : currentUrl.startsWith(item.matchPrefix));
+                                        const Icon = item.icon;
+                                        return (
+                                            <Link
+                                                key={item.href}
+                                                href={item.href}
+                                                prefetch
+                                                onClick={onCloseMobile}
+                                                title={compact ? item.label : undefined}
+                                                aria-label={item.label}
+                                                className={cn(
+                                                    'flex items-center rounded-xl text-sm font-medium transition-all duration-150',
+                                                    compact
+                                                        ? 'mx-auto h-10 w-10 justify-center p-0'
+                                                        : 'gap-3 px-3 py-2',
+                                                    active
+                                                        ? 'bg-gradient-to-r from-[#6C8CFF]/25 via-[#55D6E8]/10 to-transparent text-white shadow-[0_0_20px_rgba(108,140,255,0.16)] ring-1 ring-[#6C8CFF]/35'
+                                                        : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
+                                                )}
+                                            >
+                                                <Icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-[#55D6E8]')} />
+                                                {!compact && (
+                                                    <span className="truncate">{item.label}</span>
+                                                )}
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     );
                 })}
